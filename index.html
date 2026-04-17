@@ -24,10 +24,9 @@ body {
 .left {
     display:flex;
     align-items:center;
-    gap:15px; /* 🔥 más compacto */
+    gap:15px;
 }
 
-/* 🔥 LOGO FIX */
 .logo {
     height:40px;
     object-fit:contain;
@@ -42,8 +41,6 @@ body {
     font-size:50px;
     font-weight:bold;
 }
-
-/* resto igual */
 
 table {
     width:100%;
@@ -98,8 +95,8 @@ tr.on-time { background:#002800; }
 
 <div class="header">
     <div class="left">
-        <!-- 🔥 LOGO CON ANTI-CACHE -->
-        <img src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=3" class="logo">
+        <!-- 🔥 LOGO FORZADO (ANTI CACHE REAL) -->
+        <img id="logo" class="logo">
         <div class="title">✈️ AIRPORT BOARD</div>
     </div>
     <div class="time" id="clock"></div>
@@ -137,6 +134,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+/* 🔥 LOGO SIN CACHE (GARANTIZADO) */
+document.getElementById("logo").src =
+"https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=" + Date.now();
 
 /* ⏰ RELOJ */
 function updateClock(){

@@ -24,10 +24,14 @@ body {
 .left {
     display:flex;
     align-items:center;
-    gap:20px;
+    gap:15px; /* 🔥 más compacto */
 }
 
-.logo { height:45px; }
+/* 🔥 LOGO FIX */
+.logo {
+    height:40px;
+    object-fit:contain;
+}
 
 .title {
     font-size:35px;
@@ -35,9 +39,11 @@ body {
 }
 
 .time {
-    font-size:45px;
+    font-size:50px;
     font-weight:bold;
 }
+
+/* resto igual */
 
 table {
     width:100%;
@@ -58,26 +64,22 @@ td {
     border-bottom:1px solid #222;
 }
 
-/* ESTADOS */
 .boarding { color:#00c3ff; }
 .arriving { color:#00ff9c; }
 .delayed { color:#ff0000; }
 .on-time { color:#00ff00; }
 
-/* FILAS */
 tr.boarding { background:#002b40; }
 tr.arriving { background:#003d2e; }
 tr.delayed { background:#330000; }
 tr.on-time { background:#002800; }
 
-/* COUNTDOWN */
 .countdown {
     color:#ffd700;
     margin-left:10px;
     font-weight:bold;
 }
 
-/* PARPADEO */
 .blink-row {
     animation: blink 1s infinite;
 }
@@ -86,11 +88,9 @@ tr.on-time { background:#002800; }
     50% { opacity: 0.3; }
 }
 
-/* DELAY */
 .delayed {
     animation: blink 1s infinite;
 }
-
 </style>
 </head>
 
@@ -98,7 +98,8 @@ tr.on-time { background:#002800; }
 
 <div class="header">
     <div class="left">
-        <img src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" class="logo">
+        <!-- 🔥 LOGO CON ANTI-CACHE -->
+        <img src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=3" class="logo">
         <div class="title">✈️ AIRPORT BOARD</div>
     </div>
     <div class="time" id="clock"></div>
@@ -150,10 +151,9 @@ function updateClock(){
 setInterval(updateClock,1000);
 updateClock();
 
-/* ⏱️ TIEMPO CORRECTO */
+/* ⏱️ TIEMPO */
 function getTimeData(timeStr){
     const now = new Date();
-
     const [h, m] = timeStr.split(":").map(Number);
 
     const target = new Date(
@@ -166,7 +166,6 @@ function getTimeData(timeStr){
     );
 
     const diff = target - now;
-
     return { diff };
 }
 
@@ -201,7 +200,7 @@ onValue(flightsRef, (snapshot) => {
     actualizarContador(data);
 });
 
-/* 🔥 ACTUALIZACIÓN EN VIVO */
+/* 🔥 COUNTDOWN */
 function actualizarContador(data){
     setInterval(() => {
 
@@ -212,7 +211,6 @@ function actualizarContador(data){
             rowEl.classList.remove("blink-row");
 
             const rowData = Object.values(data)[index];
-
             const llegadaCell = rowEl.children[2];
 
             let llegadaHora = rowData.llegada;
@@ -228,7 +226,6 @@ function actualizarContador(data){
                 min = min % 60;
                 llegadaTexto = `${h}h ${min}m`;
 
-                // 🚨 SOLO últimos 30 min
                 if(llegadaData.diff <= 1800000){
                     rowEl.classList.add("blink-row");
                 }

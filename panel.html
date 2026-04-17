@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Panel Control Vuelos</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#111;
+    color:white;
+    padding:20px;
+}
+
+h2 { text-align:center; }
+
+.card {
+    background:#1a1a1a;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border:none;
+    border-radius:5px;
+}
+
+button {
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.add {
+    width:100%;
+    padding:15px;
+    background:#00c3ff;
+    border-radius:10px;
+    font-size:18px;
+}
+
+.boarding { background:#00c3ff; }
+.delayed { background:#ff0000; }
+.ontime { background:#00ff00; color:black; }
+
+.departed { background:#ffaa00; }
+.cancelled { background:#555; }
+.diverted { background:#8e44ad; }
+
+</style>
+</head>
+
+<body>
+
+<h2>✈️ Panel de Control</h2>
+
+<button class="add" onclick="addFlight()">➕ Agregar Vuelo</button>
+<br><br>
+
+<div id="panel"></div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDba69idtZm1wE3Xc64NEgfgmMYDbj5uFI",
+  authDomain: "airport-board-ee661.firebaseapp.com",
+  databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
+  projectId: "airport-board-ee661",
+  storageBucket: "airport-board-ee661.firebasestorage.app",
+  messagingSenderId: "430802368853",
+  appId: "1:430802368853:web:2645e852d811df712f14ec"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const flightsRef = ref(db, "flights");
+
+/* 🔄 CARGAR VUELOS */
+onValue(flightsRef, (snapshot) => {
+    const data = snapshot.val();
+    const panel = document.getElementById("panel");
+    panel.innerHTML = "";
+
+    if(!data) return;
+
+    Object.entries(data).forEach(([key, row]) => {
+
+        let div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <label>Vuelo</label>
+            <input value="${row.vuelo}" onchange="updateField('${key}','vuelo',this.value)">
+
+            <label>Destino</label>
+            <input value="${row.destino}" onchange="updateField('${key}','destino',this.value)">
+
+            <label>Gate</label>
+            <input value="${row.gate}" onchange="updateField('${key}','gate',this.value)">
+
+            <label>Llegada</label>
+            <input value="${row.llegada}" onchange="updateField('${key}','llegada',this.value)">
+
+            <label>Salida</label>
+            <input value="${row.salida}" onchange="updateField('${key}','salida',this.value)">
+
+            <br>
+
+            <button class="boarding" onclick="setStatus('${key}','BOARDING')">BOARDING</button>
+            <button class="delayed" onclick="setStatus('${key}','DELAYED')">DELAY</button>
+            <button class="ontime" onclick="setStatus('${key}','ON-TIME')">ON TIME</button>
+
+            <br>
+
+            <button class="departed" onclick="setStatus('${key}','DEPARTED')">DESPEGADO</button>
+            <button class="cancelled" onclick="setStatus('${key}','CANCELLED')">CANCELADO</button>
+            <button class="diverted" onclick="setStatus('${key}','DIVERTED')">DESVIADO</button>
+
+            <br>
+
+            <button style="background:#333;" onclick="deleteFlight('${key}')">🗑 Eliminar</button>
+        `;
+
+        panel.appendChild(div);
+    });
+});
+
+/* ✏️ EDITAR CAMPOS */
+window.updateField = (id, field, value) => {
+    update(ref(db, "flights/" + id), {
+        [field]: value
+    });
+};
+
+/* 🔄 CAMBIAR ESTADO */
+window.setStatus = (id, status) => {
+    update(ref(db, "flights/" + id), {
+        estado: status
+    });
+};
+
+/* ➕ AGREGAR VUELO */
+window.addFlight = () => {
+    const id = "flight" + Math.floor(Math.random()*10000);
+
+    update(ref(db, "flights/" + id), {
+        vuelo: "",
+        destino: "",
+        llegada: "10:00",
+        salida: "10:30",
+        gate: "",
+        estado: "ON-TIME"
+    });
+};
+
+/* 🗑 ELIMINAR */
+window.deleteFlight = (id) => {
+    remove(ref(db, "flights/" + id));
+};
+
+</script>
+
+</body>
+</html>

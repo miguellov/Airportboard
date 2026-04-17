@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Airport Board PRO MAX</title>
+
+<style>
+body {
+    margin:0;
+    background:#0a0a0a;
+    color:#f5f5f5;
+    font-family: 'Segoe UI', monospace;
+}
+
+.header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 40px;
+    background:#111;
+    border-bottom:3px solid #00c3ff;
+}
+
+.left {
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.logo { height:45px; }
+
+.title {
+    font-size:35px;
+    color:#00c3ff;
+}
+
+.time {
+    font-size:45px;
+    font-weight:bold;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+}
+
+th {
+    font-size:24px;
+    padding:15px;
+    color:#00c3ff;
+    border-bottom:2px solid #00c3ff;
+}
+
+td {
+    font-size:26px;
+    padding:15px;
+    text-align:center;
+    border-bottom:1px solid #222;
+}
+
+/* ESTADOS */
+.boarding { color:#00c3ff; }
+.arriving { color:#00ff9c; }
+.delayed { color:#ff0000; }
+.on-time { color:#00ff00; }
+
+/* FILAS */
+tr.boarding { background:#002b40; }
+tr.arriving { background:#003d2e; }
+tr.delayed { background:#330000; }
+tr.on-time { background:#002800; }
+
+/* COUNTDOWN */
+.countdown {
+    color:#ffd700;
+    margin-left:10px;
+    font-weight:bold;
+}
+
+/* PARPADEO */
+.blink-row {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0.3; }
+}
+
+/* DELAY */
+.delayed {
+    animation: blink 1s infinite;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="left">
+        <img src="logo.png" class="logo">
+        <div class="title">✈️ AIRPORT BOARD</div>
+    </div>
+    <div class="time" id="clock"></div>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>VUELO</th>
+<th>DESTINO</th>
+<th>LLEGADA</th>
+<th>SALIDA</th>
+<th>GATE</th>
+<th>ESTADO</th>
+</tr>
+</thead>
+
+<tbody id="board"></tbody>
+</table>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDba69idtZm1wE3Xc64NEgfgmMYDbj5uFI",
+  authDomain: "airport-board-ee661.firebaseapp.com",
+  databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
+  projectId: "airport-board-ee661",
+  storageBucket: "airport-board-ee661.firebasestorage.app",
+  messagingSenderId: "430802368853",
+  appId: "1:430802368853:web:2645e852d811df712f14ec"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ⏰ RELOJ */
+function updateClock(){
+    const now = new Date();
+    document.getElementById("clock").innerText =
+        now.toLocaleTimeString('es-DO', {
+            hour:'2-digit',
+            minute:'2-digit',
+            second:'2-digit'
+        });
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* ⏱️ TIEMPO CORRECTO */
+function getTimeData(timeStr){
+    const now = new Date();
+
+    const [h, m] = timeStr.split(":").map(Number);
+
+    const target = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        h,
+        m,
+        0
+    );
+
+    const diff = target - now;
+
+    return { diff };
+}
+
+/* 📡 FIREBASE */
+const flightsRef = ref(db, "flights");
+
+onValue(flightsRef, (snapshot) => {
+    const data = snapshot.val();
+    const tbody = document.getElementById("board");
+    tbody.innerHTML = "";
+
+    if(!data) return;
+
+    Object.values(data).forEach(row => {
+
+        let estadoClase = row.estado.toLowerCase().replace(/\s+/g,"-");
+
+        let tr = `
+        <tr class="${estadoClase}">
+            <td>${row.vuelo}</td>
+            <td>${row.destino}</td>
+            <td>${row.llegada}</td>
+            <td>${row.salida}</td>
+            <td>${row.gate}</td>
+            <td class="${estadoClase}">${row.estado}</td>
+        </tr>
+        `;
+
+        tbody.innerHTML += tr;
+    });
+
+    actualizarContador(data);
+});
+
+/* 🔥 ACTUALIZACIÓN EN VIVO */
+function actualizarContador(data){
+    setInterval(() => {
+
+        const rows = document.querySelectorAll("#board tr");
+
+        rows.forEach((rowEl, index) => {
+
+            rowEl.classList.remove("blink-row");
+
+            const rowData = Object.values(data)[index];
+
+            const llegadaCell = rowEl.children[2];
+
+            let llegadaHora = rowData.llegada;
+            let llegadaData = getTimeData(llegadaHora);
+
+            let llegadaTexto;
+
+            if(llegadaData.diff <= 0){
+                llegadaTexto = "ATERRIZADO";
+            } else {
+                let min = Math.floor(llegadaData.diff / 60000);
+                let h = Math.floor(min / 60);
+                min = min % 60;
+                llegadaTexto = `${h}h ${min}m`;
+
+                // 🚨 SOLO últimos 30 min
+                if(llegadaData.diff <= 1800000){
+                    rowEl.classList.add("blink-row");
+                }
+            }
+
+            llegadaCell.innerHTML = `${llegadaHora} <span class="countdown">(${llegadaTexto})</span>`;
+
+        });
+
+    }, 1000);
+}
+
+</script>
+
+</body>
+</html>

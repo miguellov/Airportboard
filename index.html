@@ -95,7 +95,6 @@ tr.on-time { background:#002800; }
 
 <div class="header">
     <div class="left">
-        <!-- 🔥 LOGO FORZADO (ANTI CACHE REAL) -->
         <img id="logo" class="logo">
         <div class="title">✈️ AIRPORT BOARD</div>
     </div>
@@ -135,11 +134,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* 🔥 LOGO SIN CACHE (GARANTIZADO) */
+/* LOGO SIN CACHE */
 document.getElementById("logo").src =
 "https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=" + Date.now();
 
-/* ⏰ RELOJ */
+/* RELOJ */
 function updateClock(){
     const now = new Date();
     document.getElementById("clock").innerText =
@@ -152,8 +151,10 @@ function updateClock(){
 setInterval(updateClock,1000);
 updateClock();
 
-/* ⏱️ TIEMPO */
+/* TIEMPO */
 function getTimeData(timeStr){
+    if(!timeStr) return { diff: 0 };
+
     const now = new Date();
     const [h, m] = timeStr.split(":").map(Number);
 
@@ -170,7 +171,10 @@ function getTimeData(timeStr){
     return { diff };
 }
 
-/* 📡 FIREBASE */
+/* CONTROL GLOBAL DEL INTERVALO */
+let intervaloCountdown = null;
+
+/* FIREBASE */
 const flightsRef = ref(db, "flights");
 
 onValue(flightsRef, (snapshot) => {
@@ -180,38 +184,49 @@ onValue(flightsRef, (snapshot) => {
 
     if(!data) return;
 
-    Object.values(data).forEach(row => {
+    const flightsArray = Object.values(data);
 
-        let estadoClase = row.estado.toLowerCase().replace(/\s+/g,"-");
+    flightsArray.forEach(row => {
+
+        let estadoClase = (row.estado || "")
+            .toLowerCase()
+            .replace(/\s+/g,"-");
 
         let tr = `
         <tr class="${estadoClase}">
-            <td>${row.vuelo}</td>
-            <td>${row.destino}</td>
-            <td>${row.llegada}</td>
-            <td>${row.salida}</td>
-            <td>${row.gate}</td>
-            <td class="${estadoClase}">${row.estado}</td>
+            <td>${row.vuelo || ""}</td>
+            <td>${row.destino || ""}</td>
+            <td>${row.llegada || ""}</td>
+            <td>${row.salida || ""}</td>
+            <td>${row.gate || ""}</td>
+            <td class="${estadoClase}">${row.estado || ""}</td>
         </tr>
         `;
 
         tbody.innerHTML += tr;
     });
 
-    actualizarContador(data);
+    iniciarContador(flightsArray);
 });
 
-/* 🔥 COUNTDOWN */
-function actualizarContador(data){
-    setInterval(() => {
+/* COUNTDOWN CORREGIDO */
+function iniciarContador(data){
+
+    if(intervaloCountdown){
+        clearInterval(intervaloCountdown);
+    }
+
+    intervaloCountdown = setInterval(() => {
 
         const rows = document.querySelectorAll("#board tr");
 
         rows.forEach((rowEl, index) => {
 
+            const rowData = data[index];
+            if(!rowData) return;
+
             rowEl.classList.remove("blink-row");
 
-            const rowData = Object.values(data)[index];
             const llegadaCell = rowEl.children[2];
 
             let llegadaHora = rowData.llegada;
@@ -225,6 +240,7 @@ function actualizarContador(data){
                 let min = Math.floor(llegadaData.diff / 60000);
                 let h = Math.floor(min / 60);
                 min = min % 60;
+
                 llegadaTexto = `${h}h ${min}m`;
 
                 if(llegadaData.diff <= 1800000){
@@ -232,7 +248,8 @@ function actualizarContador(data){
                 }
             }
 
-            llegadaCell.innerHTML = `${llegadaHora} <span class="countdown">(${llegadaTexto})</span>`;
+            llegadaCell.innerHTML =
+                `${llegadaHora} <span class="countdown">(${llegadaTexto})</span>`;
 
         });
 

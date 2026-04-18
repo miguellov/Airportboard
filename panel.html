@@ -2,58 +2,109 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Panel Control Vuelos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Control Vuelos PRO</title>
 
 <style>
-body {
-    font-family: Arial;
-    background:#111;
-    color:white;
-    padding:20px;
+:root{
+    --bg:#0f172a;
+    --card:#1e293b;
+    --text:#e5e7eb;
+    --input:#0f172a;
 }
 
-h2 { text-align:center; }
-
-.card {
-    background:#1a1a1a;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
+.light{
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --text:#0f172a;
+    --input:#e2e8f0;
 }
 
-input {
-    width:100%;
+.airport{
+    --bg:#000;
+    --card:#0a0a0a;
+    --text:#00ff9c;
+    --input:#000;
+    font-family:monospace;
+}
+
+body{
+    margin:0;
     padding:10px;
-    margin:5px 0;
-    border:none;
-    border-radius:5px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial;
 }
 
-button {
-    padding:10px;
-    margin:5px;
+h2{ text-align:center; }
+
+.top-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+}
+
+button{
+    padding:8px;
     border:none;
-    border-radius:5px;
+    border-radius:6px;
     cursor:pointer;
-    font-weight:bold;
+    background:#334155;
+    color:white;
 }
 
-.add {
-    width:100%;
-    padding:15px;
-    background:#00c3ff;
+.add{ background:#3b82f6; }
+
+#panel{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:10px;
+}
+
+.card{
+    background:var(--card);
+    padding:10px;
     border-radius:10px;
-    font-size:18px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
 }
 
-.boarding { background:#00c3ff; }
-.delayed { background:#ff0000; }
-.ontime { background:#00ff00; color:black; }
+input, select{
+    background:var(--input);
+    color:var(--text);
+    border:none;
+    padding:8px;
+    border-radius:6px;
+}
 
-.departed { background:#ffaa00; }
-.cancelled { background:#555; }
-.diverted { background:#8e44ad; }
+.btn-row{
+    display:flex;
+    gap:5px;
+}
 
+.btn-row button{ flex:1; }
+
+.boarding{background:#2563eb;}
+.delayed{background:#dc2626;}
+.ontime{background:#16a34a;}
+.departed{background:#f59e0b;}
+.cancelled{background:#475569;}
+.diverted{background:#7c3aed;}
+
+/* 🔥 TICKER PANEL */
+.ticker-box{
+    background:#000;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+
+.ticker-box input{
+    width:100%;
+    margin-bottom:5px;
+}
 </style>
 </head>
 
@@ -61,113 +112,163 @@ button {
 
 <h2>✈️ Panel de Control</h2>
 
-<button class="add" onclick="addFlight()">➕ Agregar Vuelo</button>
-<br><br>
+<!-- 🔥 NUEVO CONTROL DE MENSAJE -->
+<div class="ticker-box">
+    <input id="tickerInput" placeholder="Escribe mensaje del aeropuerto...">
+    <button onclick="saveTicker()">💾 Guardar Mensaje</button>
+</div>
+
+<div class="top-buttons">
+    <button class="add" onclick="addFlight()">➕ Agregar</button>
+    <button onclick="undo()">⏪ Undo</button>
+    <button onclick="redo()">⏩ Redo</button>
+    <button onclick="setTheme('dark')">🌙</button>
+    <button onclick="setTheme('light')">🌞</button>
+    <button onclick="setTheme('airport')">✈️</button>
+</div>
+
+<br>
 
 <div id="panel"></div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDba69idtZm1wE3Xc64NEgfgmMYDbj5uFI",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-  projectId: "airport-board-ee661",
-  storageBucket: "airport-board-ee661.firebasestorage.app",
-  messagingSenderId: "430802368853",
-  appId: "1:430802368853:web:2645e852d811df712f14ec"
+  projectId: "airport-board-ee661"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const flightsRef = ref(db, "flights");
+const flightsRef = ref(db,"flights");
+const tickerRef = ref(db,"ticker/message");
 
-/* 🔄 CARGAR VUELOS */
-onValue(flightsRef, (snapshot) => {
-    const data = snapshot.val();
-    const panel = document.getElementById("panel");
-    panel.innerHTML = "";
+/* 🔥 GUARDAR MENSAJE */
+window.saveTicker = ()=>{
+    const msg = document.getElementById("tickerInput").value;
+    set(tickerRef, msg);
+};
 
-    if(!data) return;
+/* 🔥 CARGAR MENSAJE ACTUAL */
+onValue(tickerRef,(snap)=>{
+    document.getElementById("tickerInput").value = snap.val() || "";
+});
 
-    Object.entries(data).forEach(([key, row]) => {
+/* UNDO REDO */
+let history=[], redoStack=[], currentData={};
 
-        let div = document.createElement("div");
-        div.className = "card";
+function saveState(d){
+    history.push(JSON.stringify(d));
+    if(history.length>50)history.shift();
+    redoStack=[];
+}
 
-        div.innerHTML = `
-            <label>Vuelo</label>
-            <input value="${row.vuelo}" onchange="updateField('${key}','vuelo',this.value)">
+function getArray(d){ return Object.values(d||{}); }
 
-            <label>Destino</label>
-            <input value="${row.destino}" onchange="updateField('${key}','destino',this.value)">
+function toObj(arr){
+    let o={};
+    arr.forEach((v,i)=>o["flight"+i]=v);
+    return o;
+}
 
-            <label>Gate</label>
-            <input value="${row.gate}" onchange="updateField('${key}','gate',this.value)">
+/* RENDER */
+onValue(flightsRef,snap=>{
+    const data=snap.val()||{};
+    const panel=document.getElementById("panel");
+    panel.innerHTML="";
 
-            <label>Llegada</label>
-            <input value="${row.llegada}" onchange="updateField('${key}','llegada',this.value)">
+    currentData=data;
+    saveState(data);
 
-            <label>Salida</label>
-            <input value="${row.salida}" onchange="updateField('${key}','salida',this.value)">
+    getArray(data).forEach((r,i)=>{
 
-            <br>
+        let div=document.createElement("div");
+        div.className="card";
 
-            <button class="boarding" onclick="setStatus('${key}','BOARDING')">BOARDING</button>
-            <button class="delayed" onclick="setStatus('${key}','DELAYED')">DELAY</button>
-            <button class="ontime" onclick="setStatus('${key}','ON-TIME')">ON TIME</button>
+        div.innerHTML=`
+        <input value="${r.vuelo}" placeholder="Vuelo" onchange="updateField(${i},'vuelo',this.value)">
+        <input value="${r.destino}" placeholder="Destino" onchange="updateField(${i},'destino',this.value)">
 
-            <br>
+        <select onchange="updateField(${i},'gate',this.value)">
+            <option value="">GATE</option>
+            <option value="A2" ${r.gate==="A2"?"selected":""}>A2</option>
+            <option value="A3" ${r.gate==="A3"?"selected":""}>A3</option>
+            <option value="A4" ${r.gate==="A4"?"selected":""}>A4</option>
+            <option value="A5" ${r.gate==="A5"?"selected":""}>A5</option>
+            <option value="A6" ${r.gate==="A6"?"selected":""}>A6</option>
+            <option value="A7" ${r.gate==="A7"?"selected":""}>A7</option>
+            <option value="A8" ${r.gate==="A8"?"selected":""}>A8</option>
+            <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
+        </select>
 
-            <button class="departed" onclick="setStatus('${key}','DEPARTED')">DESPEGADO</button>
-            <button class="cancelled" onclick="setStatus('${key}','CANCELLED')">CANCELADO</button>
-            <button class="diverted" onclick="setStatus('${key}','DIVERTED')">DESVIADO</button>
+        <input type="time" value="${r.llegada}" onchange="updateField(${i},'llegada',this.value)">
+        <input type="time" value="${r.salida}" onchange="updateField(${i},'salida',this.value)">
 
-            <br>
+        <div class="btn-row">
+            <button class="boarding" onclick="setStatus(${i},'BOARDING')">B</button>
+            <button class="delayed" onclick="setStatus(${i},'DELAYED')">D</button>
+            <button class="ontime" onclick="setStatus(${i},'ON-TIME')">ON</button>
+        </div>
 
-            <button style="background:#333;" onclick="deleteFlight('${key}')">🗑 Eliminar</button>
+        <div class="btn-row">
+            <button class="departed" onclick="setStatus(${i},'DEPARTED')">DEP</button>
+            <button class="cancelled" onclick="setStatus(${i},'CANCELLED')">C</button>
+            <button class="diverted" onclick="setStatus(${i},'DIVERTED')">DIV</button>
+        </div>
+
+        <div class="btn-row">
+            <button onclick="addFlight(${i})">➕</button>
+            <button onclick="duplicateFlight(${i})">📄</button>
+            <button onclick="moveUp(${i})">⬆️</button>
+            <button onclick="moveDown(${i})">⬇️</button>
+        </div>
+
+        <button onclick="deleteFlight(${i})">🗑</button>
         `;
 
         panel.appendChild(div);
     });
 });
 
-/* ✏️ EDITAR CAMPOS */
-window.updateField = (id, field, value) => {
-    update(ref(db, "flights/" + id), {
-        [field]: value
-    });
+/* FUNCIONES */
+window.updateField=(i,f,v)=>{saveState(currentData);let a=getArray(currentData);a[i][f]=v;set(flightsRef,toObj(a));};
+window.setStatus=(i,s)=>{saveState(currentData);let a=getArray(currentData);a[i].estado=s;set(flightsRef,toObj(a));};
+window.addFlight=(i=null)=>{saveState(currentData);let a=getArray(currentData);let n={vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME"};i==null?a.push(n):a.splice(i+1,0,n);set(flightsRef,toObj(a));};
+window.duplicateFlight=i=>{saveState(currentData);let a=getArray(currentData);a.splice(i+1,0,{...a[i]});set(flightsRef,toObj(a));};
+window.deleteFlight=i=>{saveState(currentData);let a=getArray(currentData);a.splice(i,1);set(flightsRef,toObj(a));};
+window.moveUp=i=>{saveState(currentData);let a=getArray(currentData);if(i===0)return;[a[i-1],a[i]]=[a[i],a[i-1]];set(flightsRef,toObj(a));};
+window.moveDown=i=>{saveState(currentData);let a=getArray(currentData);if(i===a.length-1)return;[a[i+1],a[i]]=[a[i],a[i+1]];set(flightsRef,toObj(a));};
+
+window.undo=()=>{if(history.length<2)return;redoStack.push(history.pop());set(flightsRef,JSON.parse(history[history.length-1]));};
+window.redo=()=>{if(!redoStack.length)return;let n=JSON.parse(redoStack.pop());history.push(JSON.stringify(n));set(flightsRef,n);};
+
+/* TEMA */
+window.setTheme=(m)=>{
+    document.body.classList.remove("light","airport");
+    if(m==="light")document.body.classList.add("light");
+    if(m==="airport")document.body.classList.add("airport");
+    localStorage.setItem("theme",m);
 };
 
-/* 🔄 CAMBIAR ESTADO */
-window.setStatus = (id, status) => {
-    update(ref(db, "flights/" + id), {
-        estado: status
-    });
-};
+function autoTheme(){
+    let h=new Date().getHours();
+    if(h>=7&&h<18)setTheme("light");
+}
 
-/* ➕ AGREGAR VUELO */
-window.addFlight = () => {
-    const id = "flight" + Math.floor(Math.random()*10000);
+let saved=localStorage.getItem("theme");
+saved?setTheme(saved):autoTheme();
 
-    update(ref(db, "flights/" + id), {
-        vuelo: "",
-        destino: "",
-        llegada: "10:00",
-        salida: "10:30",
-        gate: "",
-        estado: "ON-TIME"
-    });
-};
-
-/* 🗑 ELIMINAR */
-window.deleteFlight = (id) => {
-    remove(ref(db, "flights/" + id));
-};
+/* ATAJOS */
+document.addEventListener("keydown",e=>{
+    if(e.ctrlKey&&e.key==="z"){e.preventDefault();undo();}
+    if(e.ctrlKey&&e.key==="y"){e.preventDefault();redo();}
+});
 
 </script>
 

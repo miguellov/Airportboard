@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Airport Board PRO MAX</title>
+<title>Airport Board LONGPORT</title>
 
 <style>
 body {
@@ -21,10 +21,30 @@ body {
     border-bottom:3px solid #00c3ff;
 }
 
-.title { font-size:35px; color:#00c3ff; }
-.time { font-size:50px; font-weight:bold; }
+.left {
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
 
-table { width:100%; border-collapse:collapse; }
+.logo {
+    height:40px;
+}
+
+.title {
+    font-size:35px;
+    color:#00c3ff;
+}
+
+.time {
+    font-size:50px;
+    font-weight:bold;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+}
 
 th {
     font-size:24px;
@@ -40,28 +60,84 @@ td {
     border-bottom:1px solid #222;
 }
 
-.blink-row { animation: blink 1s infinite; }
-@keyframes blink { 50% { opacity:0.3; } }
+.on-time { color:#00ff00; }
+.delayed { color:#ff0000; }
 
-button {
-    margin:5px;
-    padding:10px 15px;
-    font-size:16px;
-    cursor:pointer;
+tr.on-time { background:#002800; }
+tr.delayed { background:#330000; }
+
+.countdown {
+    color:#ffd700;
+    font-weight:bold;
 }
+
+.blink-row {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0.3; }
+}
+
+/* 🔥 TICKER */
+.ticker {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #000;
+    border-top: 3px solid #00c3ff;
+    overflow: hidden;
+    height: 50px;
+    display: flex;
+    align-items: center;
+}
+
+.ticker-text {
+    white-space: nowrap;
+    font-size: 28px;
+    color: #00ff9c;
+    font-weight: bold;
+    padding-left: 100%;
+    animation: scrollText 20s linear infinite;
+}
+
+@keyframes scrollText {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+/* 🔥 MODOS AUTOMÁTICOS */
+.compact td {
+    font-size:18px;
+    padding:8px;
+}
+
+.compact th {
+    font-size:18px;
+    padding:10px;
+}
+
+.super-compact td {
+    font-size:14px;
+    padding:5px;
+}
+
+.super-compact th {
+    font-size:14px;
+    padding:8px;
+}
+
 </style>
 </head>
 
 <body>
 
 <div class="header">
-    <div class="title">✈️ AIRPORT BOARD PRO</div>
+    <div class="left">
+        <img id="logo" class="logo">
+        <div class="title">✈️ AIRPORT BOARD</div>
+    </div>
     <div class="time" id="clock"></div>
-</div>
-
-<div style="padding:10px;">
-    <button onclick="undo()">⏪ Undo</button>
-    <button onclick="redo()">⏩ Redo</button>
 </div>
 
 <table>
@@ -75,16 +151,24 @@ button {
 <th>ESTADO</th>
 </tr>
 </thead>
+
 <tbody id="board"></tbody>
 </table>
+
+<!-- 🔥 TICKER -->
+<div class="ticker">
+    <div class="ticker-text" id="tickerText">
+        ✈️ Bienvenidos | Presentarse 2 horas antes | Puertas cierran 20 min antes | Seguridad en todo momento
+    </div>
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyDba69idtZm1wE3Xc64NEgfgmMYDbj5uFI",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
   projectId: "airport-board-ee661"
@@ -93,10 +177,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const flightsRef = ref(db, "flights");
-const historyRef = ref(db, "history");
-
-const USER = "Miguel";
+/* LOGO */
+document.getElementById("logo").src =
+"https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=" + Date.now();
 
 /* RELOJ */
 setInterval(()=>{
@@ -104,42 +187,76 @@ setInterval(()=>{
     new Date().toLocaleTimeString('es-DO');
 },1000);
 
-/* VARIABLES */
+/* TIEMPO */
+function getTimeData(timeStr){
+    const now = new Date();
+    const [h,m] = timeStr.split(":").map(Number);
+
+    const target = new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,m,0);
+    return { diff: target-now };
+}
+
+/* CONTROL INTERVALO */
 let intervalo = null;
-let currentData = [];
 
-/* RENDER */
-function render(data){
+const flightsRef = ref(db,"flights");
+
+onValue(flightsRef,(snap)=>{
+    const data = snap.val();
     const tbody = document.getElementById("board");
-    tbody.innerHTML = "";
+    const table = document.querySelector("table");
 
-    data.forEach(row=>{
+    tbody.innerHTML="";
+    table.classList.remove("compact","super-compact");
+
+    if(!data) return;
+
+    const arr = Object.values(data);
+
+    /* 🔥 AJUSTE AUTOMÁTICO */
+    if(arr.length > 6){
+        table.classList.add("compact");
+    }
+
+    if(arr.length > 10){
+        table.classList.add("super-compact");
+    }
+
+    arr.forEach(row=>{
+        let estadoClase = (row.estado||"").toLowerCase().replace(/\s+/g,"-");
+
         tbody.innerHTML += `
-        <tr>
-            <td>${row.vuelo||""}</td>
-            <td>${row.destino||""}</td>
-            <td>${row.llegada||""}</td>
-            <td>${row.salida||""}</td>
-            <td>${row.gate||""}</td>
-            <td>${row.estado||""}</td>
+        <tr class="${estadoClase}">
+            <td>${row.vuelo}</td>
+            <td>${row.destino}</td>
+            <td>${row.llegada}</td>
+            <td>${row.salida}</td>
+            <td>${row.gate}</td>
+            <td>${row.estado}</td>
         </tr>`;
     });
 
-    startCountdown(data);
-}
+    iniciarContador(arr);
+});
 
 /* COUNTDOWN */
-function startCountdown(data){
+function iniciarContador(data){
+
     if(intervalo) clearInterval(intervalo);
 
     intervalo = setInterval(()=>{
+
         const rows = document.querySelectorAll("#board tr");
 
         rows.forEach((rowEl,i)=>{
+
             const d = data[i];
             if(!d) return;
 
-            let diff = getDiff(d.llegada);
+            const cell = rowEl.children[2];
+
+            let diff = getTimeData(d.llegada).diff;
+
             let txt;
 
             if(diff<=0){
@@ -148,6 +265,7 @@ function startCountdown(data){
                 let m=Math.floor(diff/60000);
                 let h=Math.floor(m/60);
                 m=m%60;
+
                 txt=`${h}h ${m}m`;
 
                 if(diff<=1800000){
@@ -155,81 +273,11 @@ function startCountdown(data){
                 }
             }
 
-            rowEl.children[2].innerHTML =
-            `${d.llegada} (${txt})`;
+            cell.innerHTML = `${d.llegada} <span class="countdown">(${txt})</span>`;
         });
+
     },1000);
 }
-
-function getDiff(time){
-    const now=new Date();
-    const [h,m]=time.split(":").map(Number);
-
-    const target=new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        h,m,0
-    );
-
-    return target-now;
-}
-
-/* HISTORIAL EN FIREBASE */
-async function saveHistory(data){
-    await push(historyRef,{
-        data,
-        user:USER,
-        time:new Date().toISOString()
-    });
-}
-
-/* UNDO */
-async function undo(){
-    onValue(historyRef,(snap)=>{
-        const hist=Object.values(snap.val()||{});
-        if(hist.length<2) return;
-
-        const prev=hist[hist.length-2].data;
-        set(flightsRef, convertArrayToObj(prev));
-    },{onlyOnce:true});
-}
-
-/* REDO */
-async function redo(){
-    onValue(historyRef,(snap)=>{
-        const hist=Object.values(snap.val()||{});
-        const last=hist[hist.length-1];
-        if(!last) return;
-
-        set(flightsRef, convertArrayToObj(last.data));
-    },{onlyOnce:true});
-}
-
-/* CONVERTIR */
-function convertArrayToObj(arr){
-    let obj={};
-    arr.forEach((v,i)=> obj[i]=v);
-    return obj;
-}
-
-/* ESCUCHAR FIREBASE */
-onValue(flightsRef,(snap)=>{
-    const data=snap.val();
-    if(!data) return;
-
-    const arr=Object.values(data);
-    currentData=arr;
-
-    render(arr);
-    saveHistory(arr); // 🔥 GUARDA CAMBIO GLOBAL
-});
-
-/* ATAJOS */
-document.addEventListener("keydown",(e)=>{
-    if(e.ctrlKey && e.key==="z"){ e.preventDefault(); undo(); }
-    if(e.ctrlKey && e.key==="y"){ e.preventDefault(); redo(); }
-});
 
 </script>
 

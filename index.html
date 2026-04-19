@@ -2,52 +2,189 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Airport Board PRO MAX</title>
+<title>Airport Board PRO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body {
-    margin:0;
-    background:#0a0a0a;
-    color:#f5f5f5;
-    font-family: 'Segoe UI', monospace;
+    .flight-progress{
+    position:relative;
+    height:6px;
+    background:#1e293b;
+    border-radius:10px;
+    margin-top:5px;
 }
 
-.header {
+.flight-bar{
+    height:100%;
+    background:#22d3ee;
+    border-radius:10px;
+    width:0%;
+}
+
+.plane{
+    position:absolute;
+    top:-10px;
+    font-size:14px;
+    transform:translateX(-50%);
+}
+body{
+    margin:0;
+    background:linear-gradient(180deg,#000,#05080a);
+    color:#7dd3fc;
+    font-family:'Inter', sans-serif;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* HEADER */
+.header{
     display:flex;
     justify-content:space-between;
     align-items:center;
     padding:20px 40px;
-    background:#111;
-    border-bottom:3px solid #00c3ff;
+    border-bottom:2px solid #0ea5e9;
 }
 
-.title { font-size:35px; color:#00c3ff; }
-.time { font-size:50px; font-weight:bold; }
+.left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
 
-table { width:100%; border-collapse:collapse; }
+.logo{ height:42px; }
 
-th {
+.title{
+    font-size:38px;
+    font-family:'Orbitron', sans-serif;
+    color:#38bdf8;
+}
+
+.time{
+    font-size:70px;
+    font-family:'Orbitron', sans-serif;
+    color:#22d3ee;
+}
+
+/* FULLSCREEN */
+.fullscreen-btn{
+    background:transparent;
+    color:#22d3ee;
+    border:1px solid #22d3ee;
+    padding:6px 10px;
+    border-radius:6px;
+}
+
+/* TABLA */
+.table-container{ flex:1; overflow:hidden; }
+
+table{ width:100%; border-collapse:collapse; }
+
+th{
     font-size:24px;
-    padding:15px;
-    color:#00c3ff;
-    border-bottom:2px solid #00c3ff;
+    padding:12px;
+    border-bottom:1px solid #0ea5e9;
 }
 
-td {
-    font-size:26px;
-    padding:15px;
+td{
+    font-size:30px;
+    padding:14px;
     text-align:center;
-    border-bottom:1px solid #222;
 }
 
-.blink-row { animation: blink 1s infinite; }
-@keyframes blink { 50% { opacity:0.3; } }
+/* ESTADOS */
+.on-time { color:#4ade80; }
+.delayed { color:#f87171; }
+.boarding { color:#38bdf8; }
+.departed { color:#fbbf24; }
+.arrived { color:#94a3b8; }
 
-button {
-    margin:5px;
-    padding:10px 15px;
-    font-size:16px;
-    cursor:pointer;
+tr.on-time { background:rgba(0,40,20,0.6); }
+tr.delayed { background:rgba(60,0,0,0.6); }
+tr.boarding { background:rgba(0,30,60,0.6); }
+tr.departed { background:rgba(60,40,0,0.6); }
+tr.arrived { background:rgba(50,50,50,0.5); }
+
+/* EFECTOS */
+.blink{ animation:blink 1s infinite; }
+@keyframes blink{ 50%{opacity:0.4;} }
+
+/* PANELES */
+.positions-wrapper{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.jetblue{
+    border-top:2px solid #1d4ed8;
+    background:rgba(29,78,216,0.1);
+}
+
+.westjet{
+    border-top:2px solid #16a34a;
+    background:rgba(22,163,74,0.1);
+}
+
+.positions-panel{
+    padding:6px 10px;
+}
+
+.panel-title{
+    font-size:14px;
+    margin-bottom:4px;
+    font-weight:bold;
+    letter-spacing:1px;
+}
+
+/* GRID */
+.positions-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+}
+
+.pos-card{
+    min-width:110px;
+    padding:6px;
+    border-radius:6px;
+    background:#e2e8f0;
+    border:1px solid #94a3b8;
+    text-align:center;
+}
+
+.role{
+    font-size:10px;
+    color:#334155;
+}
+
+.name{
+    font-size:13px;
+    font-weight:bold;
+    color:#0f172a;
+}
+
+/* TICKER */
+.ticker{
+    height:40px;
+    border-top:2px solid #0ea5e9;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+}
+
+.ticker-text{
+    white-space:nowrap;
+    font-size:22px;
+    padding-left:100%;
+    animation:scroll 25s linear infinite;
+}
+
+@keyframes scroll{
+    from{transform:translateX(0);}
+    to{transform:translateX(-100%);}
 }
 </style>
 </head>
@@ -55,15 +192,18 @@ button {
 <body>
 
 <div class="header">
-    <div class="title">✈️ AIRPORT BOARD PRO</div>
-    <div class="time" id="clock"></div>
+    <div class="left">
+        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png">
+        <div class="title">AIRPORT BOARD</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:20px;">
+        <div class="time" id="clock"></div>
+        <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+    </div>
 </div>
 
-<div style="padding:10px;">
-    <button onclick="undo()">⏪ Undo</button>
-    <button onclick="redo()">⏩ Redo</button>
-</div>
-
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -77,161 +217,237 @@ button {
 </thead>
 <tbody id="board"></tbody>
 </table>
+</div>
+
+<!-- 🔥 PANELES SIN TEXTO FIJO -->
+<div class="positions-wrapper">
+
+    <div class="positions-panel westjet">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsWestjet"></div>
+    </div>
+
+    <div class="positions-panel jetblue">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsJetblue"></div>
+    </div>
+
+</div>
+
+<div class="ticker">
+    <div class="ticker-text" id="ticker"></div>
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
+const app = initializeApp({
+  apiKey: "TU_API_KEY",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
   projectId: "airport-board-ee661"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
-const flightsRef = ref(db, "flights");
-const historyRef = ref(db, "history");
-
-const USER = "Miguel";
 
 /* RELOJ */
 setInterval(()=>{
-    document.getElementById("clock").innerText =
-    new Date().toLocaleTimeString('es-DO');
+    clock.innerText=new Date().toLocaleTimeString('es-DO');
 },1000);
 
-/* VARIABLES */
-let intervalo = null;
-let currentData = [];
+/* VUELOS */
+/* 🔥 VARIABLES GLOBALES */
+let vuelosData = [];
+let countdownActivo = {};
+if(!window.avisos) window.avisos = {};
 
-/* RENDER */
-function render(data){
-    const tbody = document.getElementById("board");
-    tbody.innerHTML = "";
+/* 🔥 ESCUCHAR FIREBASE (SOLO DATOS) */
+onValue(ref(db,"flights"),snap=>{
+    vuelosData = Object.values(snap.val() || {});
+});
 
-    data.forEach(row=>{
-        tbody.innerHTML += `
-        <tr>
-            <td>${row.vuelo||""}</td>
-            <td>${row.destino||""}</td>
-            <td>${row.llegada||""}</td>
-            <td>${row.salida||""}</td>
-            <td>${row.gate||""}</td>
-            <td>${row.estado||""}</td>
-        </tr>`;
-    });
+/* 🔥 RENDER EN TIEMPO REAL */
+function renderVuelos(){
 
-    startCountdown(data);
-}
+    let html = "";
 
-/* COUNTDOWN */
-function startCountdown(data){
-    if(intervalo) clearInterval(intervalo);
+    vuelosData.forEach(r=>{
 
-    intervalo = setInterval(()=>{
-        const rows = document.querySelectorAll("#board tr");
+        let estadoClase = (r.estado || "").toLowerCase().replace(/\s+/g,"-");
 
-        rows.forEach((rowEl,i)=>{
-            const d = data[i];
-            if(!d) return;
+        let [h,m] = r.llegada.split(":");
+        let llegada = new Date();
+        llegada.setHours(h,m,0);
 
-            let diff = getDiff(d.llegada);
-            let txt;
+        let diffMs = llegada.getTime() - Date.now();
+        let diffMin = Math.floor(diffMs / 60000);
 
-            if(diff<=0){
-                txt="ATERRIZADO";
-            }else{
-                let m=Math.floor(diff/60000);
-                let h=Math.floor(m/60);
-                m=m%60;
-                txt=`${h}h ${m}m`;
+        let hours = Math.floor(diffMin / 60);
+        let minutes = diffMin % 60;
 
-                if(diff<=1800000){
-                    rowEl.classList.add("blink-row");
+        let estadoFinal = r.estado;
+        let extraClass = "";
+
+        let totalMin = 120;
+        let progreso = 100 - (diffMin / totalMin * 100);
+        if(progreso < 0) progreso = 0;
+        if(progreso > 100) progreso = 100;
+
+        if(diffMin <= 0){
+            estadoFinal = "ARRIVED";
+            estadoClase = "arrived";
+        }
+
+        if(diffMin <= 30 && diffMin > 0){
+            extraClass = "blink";
+        }
+
+        if(diffMin <= 10 && diffMin > 0){
+            estadoFinal = "ARRIVING";
+        }
+
+        /* 🔊 AVISOS */
+
+        if(diffMin > 0){
+
+            // 30 MIN
+            if(diffMin <= 30 && diffMin > 29){
+                if(!window.avisos[r.vuelo+"_30"]){
+                    hablar(`Vuelo ${r.vuelo} llegará en 30 minutos`);
+                    window.avisos[r.vuelo+"_30"] = true;
                 }
             }
 
-            rowEl.children[2].innerHTML =
-            `${d.llegada} (${txt})`;
-        });
-    },1000);
+            // 10 MIN
+            if(diffMin <= 10 && diffMin > 9){
+                if(!window.avisos[r.vuelo+"_10"]){
+                    hablar(`Vuelo ${r.vuelo} aterrizando en 10 minutos`);
+                    window.avisos[r.vuelo+"_10"] = true;
+                }
+            }
+
+            // 1 MIN + SEGUNDOS
+            if(diffMin <= 1 && diffMin > 0){
+
+                if(!window.avisos[r.vuelo+"_1"]){
+                    hablar(`Vuelo ${r.vuelo} aterrizando en 1 minuto`);
+                    window.avisos[r.vuelo+"_1"] = true;
+                }
+
+                if(!countdownActivo[r.vuelo]){
+                    countdownActivo[r.vuelo] = true;
+
+                    let ultimoSegundo = null;
+
+                    let intervalo = setInterval(()=>{
+
+                        let diff = llegada.getTime() - Date.now();
+                        let segundos = Math.floor(diff / 1000);
+
+                        if(segundos !== ultimoSegundo && segundos > 0 && segundos <= 10){
+
+    speechSynthesis.cancel(); // 🔥 evita acumulación
+
+    hablar(segundos.toString());
+    ultimoSegundo = segundos;
 }
 
-function getDiff(time){
-    const now=new Date();
-    const [h,m]=time.split(":").map(Number);
+                        if(segundos <= 0){
+                            clearInterval(intervalo);
+                            countdownActivo[r.vuelo] = false;
+                        }
 
-    const target=new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        h,m,0
-    );
+                    },300);
+                }
+            }
+        }
 
-    return target-now;
-}
+        /* ⏱ CONTADOR */
+        let countdown = "0 min";
 
-/* HISTORIAL EN FIREBASE */
-async function saveHistory(data){
-    await push(historyRef,{
-        data,
-        user:USER,
-        time:new Date().toISOString()
+        if(diffMin > 0){
+            if(hours > 0){
+                countdown = hours + "h " + minutes + "m";
+            }else{
+                countdown = minutes + " min";
+            }
+        }
+
+        html += `
+        <tr class="${estadoClase} ${extraClass}">
+        <td>${r.vuelo}</td>
+        <td>${r.destino}</td>
+        <td>
+            ${r.llegada}
+            <br><small>${countdown}</small>
+
+            <div class="flight-progress">
+                <div class="flight-bar" style="width:${progreso}%"></div>
+                <div class="plane" style="left:${progreso}%">✈️</div>
+            </div>
+        </td>
+        <td>${r.salida}</td>
+        <td>${r.gate}</td>
+        <td>${estadoFinal}</td>
+        </tr>`;
     });
+
+    board.innerHTML = html;
 }
 
-/* UNDO */
-async function undo(){
-    onValue(historyRef,(snap)=>{
-        const hist=Object.values(snap.val()||{});
-        if(hist.length<2) return;
+/* 🔥 REFRESH AUTOMÁTICO (CLAVE) */
+setInterval(renderVuelos, 1000);
 
-        const prev=hist[hist.length-2].data;
-        set(flightsRef, convertArrayToObj(prev));
-    },{onlyOnce:true});
-}
+/* POSICIONES */
+onValue(ref(db,"positions"),snap=>{
+    let data=snap.val()||{};
+    let west="";
+    let jet="";
 
-/* REDO */
-async function redo(){
-    onValue(historyRef,(snap)=>{
-        const hist=Object.values(snap.val()||{});
-        const last=hist[hist.length-1];
-        if(!last) return;
+    Object.entries(data).forEach(([k,v])=>{
 
-        set(flightsRef, convertArrayToObj(last.data));
-    },{onlyOnce:true});
-}
+        let card=`
+        <div class="pos-card">
+            <div class="role">${k.toUpperCase()}</div>
+            <div class="name">${v}</div>
+        </div>`;
 
-/* CONVERTIR */
-function convertArrayToObj(arr){
-    let obj={};
-    arr.forEach((v,i)=> obj[i]=v);
-    return obj;
-}
+        if(k.includes("west") || k.includes("wj")){
+            west+=card;
+        }else{
+            jet+=card;
+        }
+    });
 
-/* ESCUCHAR FIREBASE */
-onValue(flightsRef,(snap)=>{
-    const data=snap.val();
-    if(!data) return;
-
-    const arr=Object.values(data);
-    currentData=arr;
-
-    render(arr);
-    saveHistory(arr); // 🔥 GUARDA CAMBIO GLOBAL
+    positionsWestjet.innerHTML=west;
+    positionsJetblue.innerHTML=jet;
 });
 
-/* ATAJOS */
-document.addEventListener("keydown",(e)=>{
-    if(e.ctrlKey && e.key==="z"){ e.preventDefault(); undo(); }
-    if(e.ctrlKey && e.key==="y"){ e.preventDefault(); redo(); }
+/* TICKER */
+onValue(ref(db,"ticker/message"),snap=>{
+    ticker.innerText=snap.val()||"Bienvenidos";
 });
 
+/* FULLSCREEN */
+window.toggleFullscreen=function(){
+    if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen();
+    }else{
+        document.exitFullscreen();
+    }
+};
+function hablar(texto){
+    speechSynthesis.cancel(); // 🔥 limpia cola (CLAVE)
+
+    const msg = new SpeechSynthesisUtterance(texto);
+    msg.lang = "es-ES";
+    msg.rate = 1.1; // un poco más rápido
+
+    speechSynthesis.speak(msg);
+}
 </script>
-
+<script src="http://localhost:35729/livereload.js"></script>
 </body>
 </html>

@@ -1,0 +1,41 @@
+{
+  "name": "flightradarapi",
+  "version": "1.4.0",
+  "description": "SDK for FlightRadar24",
+  "main": "./FlightRadar24/index.js",
+  "scripts": {
+    "test": "mocha tests --timeout 10000",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeanExtreme002/FlightRadarAPI.git"
+  },
+  "keywords": [
+    "flightradar24",
+    "api",
+    "radar", 
+    "aviation", 
+    "flights", 
+    "airports",
+    "airlines",
+    "aircraft"
+  ],
+  "author": "Jean Loui Bernard Silva de Jesus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JeanExtreme002/FlightRadarAPI/issues"
+  },
+  "homepage": "https://github.com/JeanExtreme002/FlightRadarAPI#readme",
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "jsdom": "^24.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "eslint": "^8.56.0",
+    "eslint-config-google": "^0.14.0",
+    "mocha": "^10.2.0"
+  }
+}

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Airport Board LONGPORT</title>
+<title>Airport Board PRO MAX</title>
 
 <style>
 body {
@@ -21,31 +21,10 @@ body {
     border-bottom:3px solid #00c3ff;
 }
 
-.left {
-    display:flex;
-    align-items:center;
-    gap:15px;
-}
+.title { font-size:35px; color:#00c3ff; }
+.time { font-size:50px; font-weight:bold; }
 
-.logo {
-    height:40px;
-    object-fit:contain;
-}
-
-.title {
-    font-size:35px;
-    color:#00c3ff;
-}
-
-.time {
-    font-size:50px;
-    font-weight:bold;
-}
-
-table {
-    width:100%;
-    border-collapse:collapse;
-}
+table { width:100%; border-collapse:collapse; }
 
 th {
     font-size:24px;
@@ -61,32 +40,14 @@ td {
     border-bottom:1px solid #222;
 }
 
-.boarding { color:#00c3ff; }
-.arriving { color:#00ff9c; }
-.delayed { color:#ff0000; }
-.on-time { color:#00ff00; }
+.blink-row { animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity:0.3; } }
 
-tr.boarding { background:#002b40; }
-tr.arriving { background:#003d2e; }
-tr.delayed { background:#330000; }
-tr.on-time { background:#002800; }
-
-.countdown {
-    color:#ffd700;
-    margin-left:10px;
-    font-weight:bold;
-}
-
-.blink-row {
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    50% { opacity: 0.3; }
-}
-
-.delayed {
-    animation: blink 1s infinite;
+button {
+    margin:5px;
+    padding:10px 15px;
+    font-size:16px;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -94,11 +55,13 @@ tr.on-time { background:#002800; }
 <body>
 
 <div class="header">
-    <div class="left">
-        <img id="logo" class="logo">
-        <div class="title">✈️ AIRPORT BOARD</div>
-    </div>
+    <div class="title">✈️ AIRPORT BOARD PRO</div>
     <div class="time" id="clock"></div>
+</div>
+
+<div style="padding:10px;">
+    <button onclick="undo()">⏪ Undo</button>
+    <button onclick="redo()">⏩ Redo</button>
 </div>
 
 <table>
@@ -112,149 +75,161 @@ tr.on-time { background:#002800; }
 <th>ESTADO</th>
 </tr>
 </thead>
-
 <tbody id="board"></tbody>
 </table>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDba69idtZm1wE3Xc64NEgfgmMYDbj5uFI",
+  apiKey: "AIzaSy...",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-  projectId: "airport-board-ee661",
-  storageBucket: "airport-board-ee661.firebasestorage.app",
-  messagingSenderId: "430802368853",
-  appId: "1:430802368853:web:2645e852d811df712f14ec"
+  projectId: "airport-board-ee661"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* LOGO SIN CACHE */
-document.getElementById("logo").src =
-"https://trainingreport.longportsecurity.com.co/pix/logolongport.png?v=" + Date.now();
+const flightsRef = ref(db, "flights");
+const historyRef = ref(db, "history");
+
+const USER = "Miguel";
 
 /* RELOJ */
-function updateClock(){
-    const now = new Date();
+setInterval(()=>{
     document.getElementById("clock").innerText =
-        now.toLocaleTimeString('es-DO', {
-            hour:'2-digit',
-            minute:'2-digit',
-            second:'2-digit'
-        });
-}
-setInterval(updateClock,1000);
-updateClock();
+    new Date().toLocaleTimeString('es-DO');
+},1000);
 
-/* TIEMPO */
-function getTimeData(timeStr){
-    if(!timeStr) return { diff: 0 };
+/* VARIABLES */
+let intervalo = null;
+let currentData = [];
 
-    const now = new Date();
-    const [h, m] = timeStr.split(":").map(Number);
-
-    const target = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        h,
-        m,
-        0
-    );
-
-    const diff = target - now;
-    return { diff };
-}
-
-/* CONTROL GLOBAL DEL INTERVALO */
-let intervaloCountdown = null;
-
-/* FIREBASE */
-const flightsRef = ref(db, "flights");
-
-onValue(flightsRef, (snapshot) => {
-    const data = snapshot.val();
+/* RENDER */
+function render(data){
     const tbody = document.getElementById("board");
     tbody.innerHTML = "";
 
-    if(!data) return;
-
-    const flightsArray = Object.values(data);
-
-    flightsArray.forEach(row => {
-
-        let estadoClase = (row.estado || "")
-            .toLowerCase()
-            .replace(/\s+/g,"-");
-
-        let tr = `
-        <tr class="${estadoClase}">
-            <td>${row.vuelo || ""}</td>
-            <td>${row.destino || ""}</td>
-            <td>${row.llegada || ""}</td>
-            <td>${row.salida || ""}</td>
-            <td>${row.gate || ""}</td>
-            <td class="${estadoClase}">${row.estado || ""}</td>
-        </tr>
-        `;
-
-        tbody.innerHTML += tr;
+    data.forEach(row=>{
+        tbody.innerHTML += `
+        <tr>
+            <td>${row.vuelo||""}</td>
+            <td>${row.destino||""}</td>
+            <td>${row.llegada||""}</td>
+            <td>${row.salida||""}</td>
+            <td>${row.gate||""}</td>
+            <td>${row.estado||""}</td>
+        </tr>`;
     });
 
-    iniciarContador(flightsArray);
-});
+    startCountdown(data);
+}
 
-/* COUNTDOWN CORREGIDO */
-function iniciarContador(data){
+/* COUNTDOWN */
+function startCountdown(data){
+    if(intervalo) clearInterval(intervalo);
 
-    if(intervaloCountdown){
-        clearInterval(intervaloCountdown);
-    }
-
-    intervaloCountdown = setInterval(() => {
-
+    intervalo = setInterval(()=>{
         const rows = document.querySelectorAll("#board tr");
 
-        rows.forEach((rowEl, index) => {
+        rows.forEach((rowEl,i)=>{
+            const d = data[i];
+            if(!d) return;
 
-            const rowData = data[index];
-            if(!rowData) return;
+            let diff = getDiff(d.llegada);
+            let txt;
 
-            rowEl.classList.remove("blink-row");
+            if(diff<=0){
+                txt="ATERRIZADO";
+            }else{
+                let m=Math.floor(diff/60000);
+                let h=Math.floor(m/60);
+                m=m%60;
+                txt=`${h}h ${m}m`;
 
-            const llegadaCell = rowEl.children[2];
-
-            let llegadaHora = rowData.llegada;
-            let llegadaData = getTimeData(llegadaHora);
-
-            let llegadaTexto;
-
-            if(llegadaData.diff <= 0){
-                llegadaTexto = "ATERRIZADO";
-            } else {
-                let min = Math.floor(llegadaData.diff / 60000);
-                let h = Math.floor(min / 60);
-                min = min % 60;
-
-                llegadaTexto = `${h}h ${min}m`;
-
-                if(llegadaData.diff <= 1800000){
+                if(diff<=1800000){
                     rowEl.classList.add("blink-row");
                 }
             }
 
-            llegadaCell.innerHTML =
-                `${llegadaHora} <span class="countdown">(${llegadaTexto})</span>`;
-
+            rowEl.children[2].innerHTML =
+            `${d.llegada} (${txt})`;
         });
-
-    }, 1000);
+    },1000);
 }
+
+function getDiff(time){
+    const now=new Date();
+    const [h,m]=time.split(":").map(Number);
+
+    const target=new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        h,m,0
+    );
+
+    return target-now;
+}
+
+/* HISTORIAL EN FIREBASE */
+async function saveHistory(data){
+    await push(historyRef,{
+        data,
+        user:USER,
+        time:new Date().toISOString()
+    });
+}
+
+/* UNDO */
+async function undo(){
+    onValue(historyRef,(snap)=>{
+        const hist=Object.values(snap.val()||{});
+        if(hist.length<2) return;
+
+        const prev=hist[hist.length-2].data;
+        set(flightsRef, convertArrayToObj(prev));
+    },{onlyOnce:true});
+}
+
+/* REDO */
+async function redo(){
+    onValue(historyRef,(snap)=>{
+        const hist=Object.values(snap.val()||{});
+        const last=hist[hist.length-1];
+        if(!last) return;
+
+        set(flightsRef, convertArrayToObj(last.data));
+    },{onlyOnce:true});
+}
+
+/* CONVERTIR */
+function convertArrayToObj(arr){
+    let obj={};
+    arr.forEach((v,i)=> obj[i]=v);
+    return obj;
+}
+
+/* ESCUCHAR FIREBASE */
+onValue(flightsRef,(snap)=>{
+    const data=snap.val();
+    if(!data) return;
+
+    const arr=Object.values(data);
+    currentData=arr;
+
+    render(arr);
+    saveHistory(arr); // 🔥 GUARDA CAMBIO GLOBAL
+});
+
+/* ATAJOS */
+document.addEventListener("keydown",(e)=>{
+    if(e.ctrlKey && e.key==="z"){ e.preventDefault(); undo(); }
+    if(e.ctrlKey && e.key==="y"){ e.preventDefault(); redo(); }
+});
 
 </script>
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
 <title>Airport Board PRO</title>
 
@@ -186,6 +187,33 @@ tr.arrived { background:rgba(50,50,50,0.5); }
     from{transform:translateX(0);}
     to{transform:translateX(-100%);}
 }
+@media (max-width: 768px){
+
+    .time{
+        font-size:30px;
+    }
+
+    .title{
+        font-size:20px;
+    }
+
+    th{
+        font-size:14px;
+    }
+
+    td{
+        font-size:16px;
+        padding:8px;
+    }
+
+    .header{
+        padding:10px;
+    }
+
+    table{
+        font-size:12px;
+    }
+}
 </style>
 </head>
 
@@ -243,6 +271,7 @@ tr.arrived { background:rgba(50,50,50,0.5); }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+
 const app = initializeApp({
   apiKey: "TU_API_KEY",
   authDomain: "airport-board-ee661.firebaseapp.com",
@@ -251,7 +280,17 @@ const app = initializeApp({
 });
 
 const db = getDatabase(app);
+// 🔥 TITULOS DINAMICOS
 
+onValue(ref(db,"titles/westjet"), snap=>{
+    const value = snap.val() || "ASIGNACIONES WESTJET";
+    document.querySelector(".westjet .panel-title").innerText = value;
+});
+
+onValue(ref(db,"titles/jetblue"), snap=>{
+    const value = snap.val() || "ASIGNACIONES JETBLUE";
+    document.querySelector(".jetblue .panel-title").innerText = value;
+});
 /* RELOJ */
 setInterval(()=>{
     clock.innerText=new Date().toLocaleTimeString('es-DO');

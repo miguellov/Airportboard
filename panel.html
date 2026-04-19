@@ -136,7 +136,9 @@ input, select{
 .pos-actions button{
     flex:1;
 }
+
 </style>
+
 </head>
 
 <body>
@@ -162,27 +164,31 @@ input, select{
     <div class="ticker-box">
         <h3 style="margin-top:0;">👨‍✈️ POSICIONES</h3>
 
-        <!-- 🔵 JETBLUE -->
-        <h4 style="color:#3b82f6;">🔵 JETBLUE</h4>
+       <!-- 🔵 JETBLUE -->
+<h4 style="color:#3b82f6;">🔵 JETBLUE</h4>
 
-        <input id="posRoleJet" placeholder="Posición JetBlue">
-        <input id="posNameJet" placeholder="Nombre empleado">
-        <button onclick="savePositionJet()">➕ Agregar JetBlue</button>
+<input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
+<button onclick="saveJetblueTitle()">💾 Guardar Título</button>
 
-        <div id="positionsJet"></div>
+<input id="posRoleJet" placeholder="Posición JetBlue">
+<input id="posNameJet" placeholder="Nombre empleado">
+<button onclick="savePositionJet()">➕ Agregar JetBlue</button>
 
-        <hr style="margin:15px 0; border:1px solid #333;">
+<div id="positionsJet"></div>
 
-        <!-- 🟢 WESTJET -->
-        <h4 style="color:#22c55e;">🟢 WESTJET</h4>
-        <input id="westjetTitle" placeholder="Título WestJet (ej: WS123)">
+<hr style="margin:15px 0; border:1px solid #333;">
+
+<!-- 🟢 WESTJET -->
+<h4 style="color:#22c55e;">🟢 WESTJET</h4>
+
+<input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS2507">
 <button onclick="saveWestjetTitle()">💾 Guardar Título</button>
 
-        <input id="posRoleWest" placeholder="Posición WestJet">
-        <input id="posNameWest" placeholder="Nombre empleado">
-        <button onclick="savePositionWest()">➕ Agregar WestJet</button>
+<input id="posRoleWest" placeholder="Posición WestJet">
+<input id="posNameWest" placeholder="Nombre empleado">
+<button onclick="savePositionWest()">➕ Agregar WestJet</button>
 
-        <div id="positionsWest"></div>
+<div id="positionsWest"></div>
     </div>
 
 </div>
@@ -314,6 +320,17 @@ function toObj(arr){
     arr.forEach((v,i)=>o["flight"+i]=v);
     return o;
 }
+// WESTJET
+window.saveWestjetTitle = ()=>{
+    const value = document.getElementById("westjetTitle").value;
+    set(ref(db,"titles/westjet"), value);
+};
+
+// JETBLUE
+window.saveJetblueTitle = ()=>{
+    const value = document.getElementById("jetblueTitle").value;
+    set(ref(db,"titles/jetblue"), value);
+};
 
 onValue(flightsRef,snap=>{
     const data=snap.val()||{};

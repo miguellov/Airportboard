@@ -386,6 +386,21 @@ let vuelosData = [];
 onValue(ref(db,"flights"),snap=>{
     vuelosData = Object.values(snap.val() || {});
 });
+function traducirAerolinea(vuelo){
+
+    if(!vuelo) return "";
+
+    const codigo = vuelo.toUpperCase();
+
+    if(codigo.startsWith("WS")) return "WestJet";
+    if(codigo.startsWith("B6")) return "JetBlue";
+
+    return "Vuelo"; // fallback
+}
+function formatearVuelo(vuelo){
+    let numero = vuelo.replace(/\D/g, "");
+    return numero.match(/.{1,2}/g)?.join(" ") || numero;
+}
 function renderVuelos(){
 
     let html = "";
@@ -432,7 +447,7 @@ function renderVuelos(){
             // 30 MIN
             if(diffMin <= 30 && diffMin > 29){
                 if(!window.avisos[r.vuelo+"_30"]){
-                    hablar(`Vuelo ${r.vuelo} llegará en 30 minutos`);
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} llegará en 30 minutos`);
                     window.avisos[r.vuelo+"_30"] = true;
                 }
             }
@@ -440,7 +455,7 @@ function renderVuelos(){
             // 10 MIN
             if(diffMin <= 10 && diffMin > 9){
                 if(!window.avisos[r.vuelo+"_10"]){
-                    hablar(`Vuelo ${r.vuelo} aterrizando en 10 minutos`);
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en 10 minutos`);
                     window.avisos[r.vuelo+"_10"] = true;
                 }
             }
@@ -449,7 +464,7 @@ function renderVuelos(){
             if(diffMin <= 1 && diffMin > 0){
 
                 if(!window.avisos[r.vuelo+"_1"]){
-                    hablar(`Vuelo ${r.vuelo} aterrizando en 1 minuto`);
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en 1 minuto`);
                     window.avisos[r.vuelo+"_1"] = true;
                 }
 

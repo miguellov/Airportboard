@@ -220,6 +220,9 @@ tr.arrived { background:rgba(50,50,50,0.5); }
         font-size:12px;
     }
 }
+.countdown-green { color:#22c55e !important; }
+.countdown-yellow { color:#facc15 !important; }
+.countdown-red { color:#ef4444 !important; }
 </style>
 </head>
 
@@ -479,15 +482,26 @@ function renderVuelos(){
         }
 
         /* ⏱ CONTADOR */
-        let countdown = "0 min";
+       let countdown = "0 min";
+let countdownClass = "countdown-green";
 
-        if(diffMin > 0){
-            if(hours > 0){
-                countdown = hours + "h " + minutes + "m";
-            }else{
-                countdown = minutes + " min";
-            }
-        }
+if(diffMin > 0){
+
+    if(hours > 0){
+        countdown = hours + "h " + minutes + "m";
+    }else{
+        countdown = minutes + " min";
+    }
+
+    // 🎯 COLORES DINÁMICOS
+    if(diffMin <= 60){
+        countdownClass = "countdown-yellow";
+    }
+
+    if(diffMin <= 15){
+        countdownClass = "countdown-red";
+    }
+}
 
         html += `
         <tr class="${estadoClase} ${extraClass}">
@@ -495,7 +509,7 @@ function renderVuelos(){
         <td>${r.destino}</td>
         <td>
             ${r.llegada}
-            <br><small>${countdown}</small>
+            <br><small class="${countdownClass}">${countdown}</small>
 
             <div class="flight-progress">
                 <div class="flight-bar" style="width:${progreso}%"></div>
@@ -558,13 +572,49 @@ window.toggleFullscreen=function(){
     }
 };
 function hablar(texto){
-    speechSynthesis.cancel(); // 🔥 limpia cola (CLAVE)
 
-    const msg = new SpeechSynthesisUtterance(texto);
-    msg.lang = "es-ES";
-    msg.rate = 1.1; // un poco más rápido
+    const ding = document.getElementById("ding");
+    if(ding){
+        ding.currentTime = 0;
+        ding.play();
+    }
 
-    speechSynthesis.speak(msg);
+    speechSynthesis.cancel();
+
+    const voces = speechSynthesis.getVoices();
+
+    // 🎯 buscar voz en español latino
+    let vozLatina = voces.find(v => 
+        v.lang === "es-US" || 
+        v.lang === "es-MX" || 
+        v.lang === "es-419"
+    );
+
+    // fallback si no encuentra
+    if(!vozLatina){
+        vozLatina = voces.find(v => v.lang.startsWith("es"));
+    }
+
+    const msg1 = new SpeechSynthesisUtterance(texto);
+    const msg2 = new SpeechSynthesisUtterance(texto);
+
+    msg1.voice = vozLatina;
+    msg2.voice = vozLatina;
+
+    msg1.lang = vozLatina?.lang || "es-ES";
+    msg2.lang = vozLatina?.lang || "es-ES";
+
+    msg1.rate = 0.95;
+msg2.rate = 0.95;
+msg1.pitch = 0.9;
+msg2.pitch = 0.9;
+
+    // 🔁 repetir 2 veces limpio
+    msg1.onend = () => {
+        speechSynthesis.speak(msg2);
+    };
+
+    speechSynthesis.speak(msg1);
 }
 
 </script>

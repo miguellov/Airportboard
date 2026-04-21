@@ -6,6 +6,58 @@
 <title>Panel Control Vuelos PRO</title>
 
 <style>
+    .card{
+    background: var(--card);
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    position: relative;   /* 🔥 IMPORTANTE */
+    overflow: visible;    /* 🔥 CLAVE */
+}
+
+.search-box{
+    position: relative;
+    z-index: 10;
+}
+
+.search-box input{
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    background: #0f172a;
+    color: white;
+}
+
+/* 🔥 DROPDOWN DE RESULTADOS */
+.results{
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    z-index: 99999; /* 🔥 MUY IMPORTANTE */
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+/* ITEMS */
+.results div{
+    padding: 8px;
+    cursor: pointer;
+    border-bottom: 1px solid #1e293b;
+}
+
+/* HOVER */
+.results div:hover{
+    background: #1e293b;
+
+}
 :root{
     --bg:#0f172a;
     --card:#1e293b;
@@ -345,9 +397,14 @@ onValue(flightsRef,snap=>{
         div.className="card";
 
         div.innerHTML=`
-        <input value="${r.vuelo}" onchange="updateField(${i},'vuelo',this.value)">
-        <input value="${r.destino}" onchange="updateField(${i},'destino',this.value)">
-       <select onchange="updateField(${i},'gate',this.value)">
+<div class="search-box">
+    <input placeholder="🔍 Buscar vuelo..." oninput="buscarVuelo(this, ${i})">
+    <div id="results${i}" class="results"></div>
+</div>
+
+<input value="${r.vuelo}" onchange="updateField(${i},'vuelo',this.value)">
+<input value="${r.destino}" onchange="updateField(${i},'destino',this.value)">
+<select onchange="updateField(${i},'gate',this.value)">
     <option value="">GATE</option>
     <option value="A2" ${r.gate==="A2"?"selected":""}>A2</option>
     <option value="A3" ${r.gate==="A3"?"selected":""}>A3</option>
@@ -358,27 +415,57 @@ onValue(flightsRef,snap=>{
     <option value="A8" ${r.gate==="A8"?"selected":""}>A8</option>
     <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
 </select>
-        <input type="time" value="${r.llegada}" onchange="updateField(${i},'llegada',this.value)">
-        <input type="time" value="${r.salida}" onchange="updateField(${i},'salida',this.value)">
-        <div class="btn-row">
-            <button class="boarding" onclick="setStatus(${i},'BOARDING')">B</button>
-            <button class="delayed" onclick="setStatus(${i},'DELAYED')">D</button>
-            <button class="ontime" onclick="setStatus(${i},'ON-TIME')">ON</button>
-        </div>
-        <div class="btn-row">
-            <button class="departed" onclick="setStatus(${i},'DEPARTED')">DEP</button>
-            <button class="cancelled" onclick="setStatus(${i},'CANCELLED')">C</button>
-            <button class="diverted" onclick="setStatus(${i},'DIVERTED')">DIV</button>
-        </div>
-        <button onclick="deleteFlight(${i})">🗑</button>
-        `;
+
+<input type="time" value="${r.llegada}" onchange="updateField(${i},'llegada',this.value)">
+<input type="time" value="${r.salida}" onchange="updateField(${i},'salida',this.value)">
+
+<div class="btn-row">
+    <button class="boarding" onclick="setStatus(${i},'BOARDING')">B</button>
+    <button class="delayed" onclick="setStatus(${i},'DELAYED')">D</button>
+    <button class="ontime" onclick="setStatus(${i},'ON-TIME')">ON</button>
+</div>
+
+<div class="btn-row">
+    <button class="departed" onclick="setStatus(${i},'DEPARTED')">DEP</button>
+    <button class="cancelled" onclick="setStatus(${i},'CANCELLED')">C</button>
+    <button class="diverted" onclick="setStatus(${i},'DIVERTED')">DIV</button>
+</div>
+
+<button onclick="deleteFlight(${i})">🗑</button>
+`;
 
         panel.appendChild(div);
     });
 });
 
 window.updateField=(i,f,v)=>{saveState(currentData);let a=getArray(currentData);a[i][f]=v;set(flightsRef,toObj(a));};
-window.setStatus=(i,s)=>{saveState(currentData);let a=getArray(currentData);a[i].estado=s;set(flightsRef,toObj(a));};
+window.setStatus=(i,s)=>{
+    window.setStatus = (i,s)=>{
+
+    console.log("CLICK:", i, s);
+
+    let a = getArray(currentData);
+
+    if(!a[i]) return;
+
+    a[i].estado = s;
+
+    set(flightsRef, toObj(a));
+
+    // 🔥 FORZAR REFRESCO LOCAL (CLAVE)
+    currentData = toObj(a);
+};
+
+    console.log("CLICK:", i, s); // DEBUG
+
+    let a = getArray(currentData);
+
+    if(!a[i]) return;
+
+    a[i].estado = s;
+
+    set(flightsRef, toObj(a));
+};
 window.addFlight=(i=null)=>{saveState(currentData);let a=getArray(currentData);let n={vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME"};i==null?a.push(n):a.splice(i+1,0,n);set(flightsRef,toObj(a));};
 window.deleteFlight=i=>{saveState(currentData);let a=getArray(currentData);a.splice(i,1);set(flightsRef,toObj(a));};
 
@@ -427,6 +514,114 @@ window.saveWestjetTitle = ()=>{
     const value = document.getElementById("westjetTitle").value;
     set(westjetTitleRef, value);
 };
+async function cargarVuelos(){
+
+    try{
+        // 🔥 1. TRAER API (ONLINE)
+        const res = await fetch("http://localhost:4000/flights");
+        const apiData = await res.json();
+
+        // 🔥 2. TRAER FIREBASE (OFFLINE CAMBIOS)
+        const snapshot = await get(ref(db,"flights"));
+        const localData = snapshot.val() || {};
+
+        const tabla = document.getElementById("tabla-vuelos");
+        tabla.innerHTML = "";
+
+        apiData.forEach((f, i) => {
+
+            // 🔥 3. SI EXISTE CAMBIO LOCAL, USARLO
+            const local = localData[i] || {};
+
+            const vuelo   = local.vuelo   || f.vuelo;
+            const destino = local.destino || f.destino;
+            const llegada = local.llegada || f.llegada;
+            const salida  = local.salida  || f.salida;
+            const gate    = local.gate    || f.gate;
+            const estado  = local.estado  || f.estado;
+
+            tabla.innerHTML += `
+                <tr>
+                    <td>${vuelo}</td>
+                    <td>${destino}</td>
+                    <td>${llegada || "--"}</td>
+                    <td>${salida || "--"}</td>
+                    <td>${gate || "--"}</td>
+                    <td>${estado}</td>
+                </tr>
+            `;
+        });
+
+    }catch(e){
+        console.error("ERROR:", e);
+    }
+    setInterval(cargarVuelos, 10000); // cada 10 segundos
+}
+
+/* 🔥 ESTA PARTE ARREGLA TODO */
+window.buscarVuelo = buscarVuelo;
+window.seleccionarVuelo = seleccionarVuelo;
+async function buscarVuelo(input, index){
+
+    const query = input.value.toLowerCase();
+    const resultsDiv = document.getElementById("results"+index);
+
+    if(!resultsDiv) return;
+
+    if(query.length < 1){
+        resultsDiv.innerHTML = "";
+        return;
+    }
+
+    try{
+        const res = await fetch("http://localhost:4000/flights");
+        const data = await res.json();
+
+        const filtrados = data.filter(f =>
+            f.vuelo.toLowerCase().includes(query)
+        );
+
+        if(filtrados.length === 0){
+            resultsDiv.innerHTML = "<div>No hay resultados</div>";
+            return;
+        }
+
+        let html = "";
+
+        filtrados.forEach(f => {
+            html += `
+                <div onclick='seleccionarVuelo(${index}, ${JSON.stringify(f)})'>
+                    ${f.vuelo} - ${f.destino}
+                </div>
+            `;
+        });
+
+        resultsDiv.innerHTML = html;
+
+    }catch(e){
+        console.error("ERROR BUSCANDO:", e);
+    }
+}
+function seleccionarVuelo(index, vuelo){
+
+    let arr = Object.values(currentData);
+
+    if(!arr[index]) return;
+
+    arr[index].vuelo = vuelo.vuelo;
+    arr[index].destino = vuelo.destino;
+
+    // 🔥 HORAS REALES
+    arr[index].llegada = vuelo.llegada || "00:00";
+    arr[index].salida  = vuelo.salida  || "00:00";
+
+    arr[index].gate = vuelo.gate || "";
+    arr[index].estado = vuelo.estado || "ON-TIME";
+
+    set(ref(db,"flights"), toObj(arr));
+
+    document.getElementById("results"+index).innerHTML = "";
+}
 </script>
 
 </body>

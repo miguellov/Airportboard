@@ -69,8 +69,10 @@ body{
 
 .time{
     font-size:70px;
-    font-family:'Orbitron', sans-serif;
-    color:#22d3ee;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    letter-spacing:3px;
+    color:#00ffff;
 }
 
 /* FULLSCREEN */
@@ -229,10 +231,17 @@ tr.arrived { background:rgba(50,50,50,0.5); }
         <div class="title">AIRPORT BOARD</div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:20px;">
-        <div class="time" id="clock"></div>
-        <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+    <div style="display:flex; align-items:center; gap:25px;">
+
+    <div style="text-align:right;">
+        <div id="date" style="font-size:20px; color:#7dd3fc;"></div>
+        <div id="clock" class="time"></div>
     </div>
+    
+
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+
+</div>
 </div>
 
 <div class="table-container">
@@ -297,12 +306,70 @@ onValue(ref(db,"titles/jetblue"), snap=>{
 });
 /* RELOJ */
 setInterval(()=>{
-    clock.innerText=new Date().toLocaleTimeString('es-DO');
+
+    const now = new Date();
+
+    // 🕒 HORA
+    document.getElementById("clock").innerText =
+        now.toLocaleTimeString('es-DO');
+
+    // 📅 FECHA + DÍA
+    document.getElementById("date").innerText =
+        now.toLocaleDateString('es-DO', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+
 },1000);
 
 /* VUELOS */
 /* 🔥 VARIABLES GLOBALES */
-let vuelosData = [];
+async function cargarVuelos(){
+
+    try{
+        const res = await fetch("http://localhost:4000/flights");
+        const apiData = await res.json();
+
+        const snapshot = await get(ref(db,"flights"));
+        const localData = snapshot.val() || {};
+
+        const tabla = document.getElementById("tabla-vuelos");
+        tabla.innerHTML = "";
+
+        apiData.forEach((f, i)=>{
+
+            const local = localData["flight"+i] || {};
+
+            const vuelo   = local.vuelo   || f.vuelo;
+            const destino = local.destino || f.destino;
+            const llegada = local.llegada || f.llegada;
+            const salida  = local.salida  || f.salida;
+            const gate    = local.gate    || f.gate;
+            const estado  = local.estado  || f.estado;
+
+            tabla.innerHTML += `
+                <tr>
+                    <td>${vuelo}</td>
+                    <td>${destino}</td>
+                    <td>${llegada}</td>
+                    <td>${salida}</td>
+                    <td>${gate}</td>
+                    <td>${estado}</td>
+                </tr>
+            `;
+        });
+
+    }catch(e){
+        console.error(e);
+    }
+}
+
+setInterval(cargarVuelos, 10000);
+cargarVuelos();
+
+// cargar cada 5 segundos
 let countdownActivo = {};
 if(!window.avisos) window.avisos = {};
 
@@ -312,6 +379,10 @@ onValue(ref(db,"flights"),snap=>{
 });
 
 /* 🔥 RENDER EN TIEMPO REAL */
+let vuelosData = [];
+onValue(ref(db,"flights"),snap=>{
+    vuelosData = Object.values(snap.val() || {});
+});
 function renderVuelos(){
 
     let html = "";
@@ -473,6 +544,11 @@ onValue(ref(db,"ticker/message"),snap=>{
     ticker.innerText=snap.val()||"Bienvenidos";
 });
 
+window.addEventListener("load", ()=>{
+    setTimeout(()=>{
+        document.documentElement.requestFullscreen().catch(()=>{});
+    }, 1500);
+});
 /* FULLSCREEN */
 window.toggleFullscreen=function(){
     if(!document.fullscreenElement){
@@ -490,6 +566,7 @@ function hablar(texto){
 
     speechSynthesis.speak(msg);
 }
+
 </script>
 <script src="http://localhost:35729/livereload.js"></script>
 </body>

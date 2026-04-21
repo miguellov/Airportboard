@@ -463,36 +463,42 @@ function renderVuelos(){
             // 1 MIN + SEGUNDOS
             if(diffMin <= 1 && diffMin > 0){
 
-                if(!window.avisos[r.vuelo+"_1"]){
-                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en 1 minuto`);
-                    window.avisos[r.vuelo+"_1"] = true;
+                if(diffMin <= 1 && diffMin > 0){
+
+    if(!window.avisos[r.vuelo+"_1"]){
+        window.avisos[r.vuelo+"_1"] = true;
+
+        if(!countdownActivo[r.vuelo]){
+            countdownActivo[r.vuelo] = true;
+
+            let ultimoSegundo = null;
+
+            let intervalo = setInterval(()=>{
+
+                let diff = llegada.getTime() - Date.now();
+                let segundos = Math.floor(diff / 1000);
+
+                if(segundos !== ultimoSegundo && segundos > 0 && segundos <= 10){
+
+                    speechSynthesis.cancel();
+
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en ${segundos}`);
+
+                    ultimoSegundo = segundos;
                 }
 
-                if(!countdownActivo[r.vuelo]){
-                    countdownActivo[r.vuelo] = true;
+                // 🛬 CUANDO ATERRIZA
+                if(segundos <= 0){
+                    clearInterval(intervalo);
+                    countdownActivo[r.vuelo] = false;
 
-                    let ultimoSegundo = null;
+                    hablar(`Aeronave en tierra`);
+                }
 
-                    let intervalo = setInterval(()=>{
-
-                        let diff = llegada.getTime() - Date.now();
-                        let segundos = Math.floor(diff / 1000);
-
-                        if(segundos !== ultimoSegundo && segundos > 0 && segundos <= 10){
-
-    speechSynthesis.cancel(); // 🔥 evita acumulación
-
-    hablar(segundos.toString());
-    ultimoSegundo = segundos;
+            }, 500);
+        }
+    }
 }
-
-                        if(segundos <= 0){
-                            clearInterval(intervalo);
-                            countdownActivo[r.vuelo] = false;
-                        }
-
-                    },300);
-                }
             }
         }
 
@@ -599,37 +605,57 @@ function hablar(texto){
     const voces = speechSynthesis.getVoices();
 
     // 🎯 buscar voz en español latino
-    let vozLatina = voces.find(v => 
+    let vozLatinaGlobal = null;
+let hablando = false;
+
+// 🔥 cargar voces UNA SOLA VEZ
+speechSynthesis.onvoiceschanged = () => {
+    const voces = speechSynthesis.getVoices();
+
+    vozLatinaGlobal = voces.find(v => 
         v.lang === "es-US" || 
         v.lang === "es-MX" || 
         v.lang === "es-419"
-    );
+    ) || voces.find(v => v.lang.startsWith("es"));
+};
 
-    // fallback si no encuentra
-    if(!vozLatina){
-        vozLatina = voces.find(v => v.lang.startsWith("es"));
+function hablar(texto){
+
+    if(hablando) return; // 🔥 evita solapamiento
+
+    hablando = true;
+
+    const ding = document.getElementById("ding");
+    if(ding){
+        ding.currentTime = 0;
+        ding.play();
     }
 
     const msg1 = new SpeechSynthesisUtterance(texto);
     const msg2 = new SpeechSynthesisUtterance(texto);
 
-    msg1.voice = vozLatina;
-    msg2.voice = vozLatina;
+    msg1.voice = vozLatinaGlobal;
+    msg2.voice = vozLatinaGlobal;
 
-    msg1.lang = vozLatina?.lang || "es-ES";
-    msg2.lang = vozLatina?.lang || "es-ES";
+    msg1.lang = vozLatinaGlobal?.lang || "es-419";
+    msg2.lang = vozLatinaGlobal?.lang || "es-419";
 
     msg1.rate = 0.95;
-msg2.rate = 0.95;
-msg1.pitch = 0.9;
-msg2.pitch = 0.9;
+    msg2.rate = 0.95;
+    msg1.pitch = 0.9;
+    msg2.pitch = 0.9;
 
-    // 🔁 repetir 2 veces limpio
+    // 🔁 repetir sin delay
     msg1.onend = () => {
         speechSynthesis.speak(msg2);
     };
 
+    msg2.onend = () => {
+        hablando = false;
+    };
+
     speechSynthesis.speak(msg1);
+}
 }
 
 </script>

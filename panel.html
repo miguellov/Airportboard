@@ -536,7 +536,7 @@ async function buscarVuelo(input, index){
     }
 
     try{
-        const res = await fetch("http://192.168.1.X:4000/flights");
+        const res = await fetch("https://airportboard.onrender.com/flights");
         const { salidas, llegadas } = await res.json();
 
         const data = [...salidas, ...llegadas];
@@ -593,13 +593,25 @@ function seleccionarVuelo(index, i){
     document.getElementById("results"+index).innerHTML = "";
 }
 
-// 🔄 AUTO LOAD
 async function autoCargarVuelos(){
     try{
-        const res = await fetch("http://192.168.1.X:4000/flights");
-        const { salidas, llegadas } = await res.json();
+        const res = await fetch("https://airportboard.onrender.com/flights");
 
-        const data = [...salidas, ...llegadas];
+        if(!res.ok){
+            console.error("❌ Error HTTP:", res.status);
+            return;
+        }
+
+        const json = await res.json();
+
+        console.log("🔥 DATA API:", json);
+
+        if(!json.salidas || !json.llegadas){
+            console.error("❌ Formato incorrecto");
+            return;
+        }
+
+        const data = [...json.salidas, ...json.llegadas];
 
         let arr = Object.values(currentData);
 
@@ -610,21 +622,19 @@ async function autoCargarVuelos(){
             arr[i].vuelo = vuelo.vuelo;
             arr[i].destino = vuelo.destino || vuelo.origen || "N/A";
 
-            arr[i].salida = vuelo.salida 
-                ? convertirHora(vuelo.salida) 
-                : "";
-
-            arr[i].llegada = vuelo.llegada 
-                ? convertirHora(vuelo.llegada) 
-                : "";
+            // 🔥 AQUÍ ESTÁ LA CLAVE
+            arr[i].salida = vuelo.salida || "";
+            arr[i].llegada = vuelo.llegada || "";
 
             arr[i].estado = vuelo.estado || "ON-TIME";
         });
 
         set(ref(db,"flights"), toObj(arr));
 
+        console.log("✅ PANEL ACTUALIZADO");
+
     }catch(e){
-        console.error("ERROR AUTO:", e);
+        console.error("💥 ERROR:", e);
     }
 }
 

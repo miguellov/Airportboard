@@ -514,53 +514,15 @@ window.saveWestjetTitle = ()=>{
     const value = document.getElementById("westjetTitle").value;
     set(westjetTitleRef, value);
 };
-async function cargarVuelos(){
 
-    try{
-        // 🔥 1. TRAER API (ONLINE)
-        const res = await fetch("http://localhost:4000/flights");
-        const apiData = await res.json();
 
-        // 🔥 2. TRAER FIREBASE (OFFLINE CAMBIOS)
-        const snapshot = await get(ref(db,"flights"));
-        const localData = snapshot.val() || {};
-
-        const tabla = document.getElementById("tabla-vuelos");
-        tabla.innerHTML = "";
-
-        apiData.forEach((f, i) => {
-
-            // 🔥 3. SI EXISTE CAMBIO LOCAL, USARLO
-            const local = localData[i] || {};
-
-            const vuelo   = local.vuelo   || f.vuelo;
-            const destino = local.destino || f.destino;
-            const llegada = local.llegada || f.llegada;
-            const salida  = local.salida  || f.salida;
-            const gate    = local.gate    || f.gate;
-            const estado  = local.estado  || f.estado;
-
-            tabla.innerHTML += `
-                <tr>
-                    <td>${vuelo}</td>
-                    <td>${destino}</td>
-                    <td>${llegada || "--"}</td>
-                    <td>${salida || "--"}</td>
-                    <td>${gate || "--"}</td>
-                    <td>${estado}</td>
-                </tr>
-            `;
-        });
-
-    }catch(e){
-        console.error("ERROR:", e);
-    }
-    setInterval(cargarVuelos, 10000); // cada 10 segundos
-}
-
-/* 🔥 ESTA PARTE ARREGLA TODO */
+// 🔥 HACER FUNCIONES GLOBALES
 window.buscarVuelo = buscarVuelo;
 window.seleccionarVuelo = seleccionarVuelo;
+
+window.vuelosTemp = [];
+
+// 🔍 BUSCAR
 async function buscarVuelo(input, index){
 
     const query = input.value.toLowerCase();
@@ -574,24 +536,23 @@ async function buscarVuelo(input, index){
     }
 
     try{
-        const res = await fetch("http://localhost:4000/flights");
-        const data = await res.json();
+        const res = await fetch("http://192.168.1.X:4000/flights");
+        const { salidas, llegadas } = await res.json();
+
+        const data = [...salidas, ...llegadas];
 
         const filtrados = data.filter(f =>
-            f.vuelo.toLowerCase().includes(query)
+            (f.vuelo || "").toLowerCase().includes(query)
         );
 
-        if(filtrados.length === 0){
-            resultsDiv.innerHTML = "<div>No hay resultados</div>";
-            return;
-        }
+        window.vuelosTemp = filtrados;
 
         let html = "";
 
-        filtrados.forEach(f => {
+        filtrados.forEach((f, i) => {
             html += `
-                <div onclick='seleccionarVuelo(${index}, ${JSON.stringify(f)})'>
-                    ${f.vuelo} - ${f.destino}
+                <div onclick="seleccionarVuelo(${index}, ${i})">
+                    ${f.vuelo} - ${f.destino || f.origen}
                 </div>
             `;
         });
@@ -602,27 +563,88 @@ async function buscarVuelo(input, index){
         console.error("ERROR BUSCANDO:", e);
     }
 }
-function seleccionarVuelo(index, vuelo){
+
+// 🎯 SELECCIONAR
+function seleccionarVuelo(index, i){
+
+    const vuelo = window.vuelosTemp[i];
 
     let arr = Object.values(currentData);
-
     if(!arr[index]) return;
 
     arr[index].vuelo = vuelo.vuelo;
-    arr[index].destino = vuelo.destino;
+    arr[index].destino = vuelo.destino || vuelo.origen || "N/A";
 
-    // 🔥 HORAS REALES
-    arr[index].llegada = vuelo.llegada || "00:00";
-    arr[index].salida  = vuelo.salida  || "00:00";
+    // 🔥 NO SOBRESCRIBIR
+    arr[index].manual = true;
 
-    arr[index].gate = vuelo.gate || "";
+    arr[index].salida = vuelo.salida 
+        ? convertirHora(vuelo.salida) 
+        : "";
+
+    arr[index].llegada = vuelo.llegada 
+        ? convertirHora(vuelo.llegada) 
+        : "";
+
     arr[index].estado = vuelo.estado || "ON-TIME";
 
     set(ref(db,"flights"), toObj(arr));
 
     document.getElementById("results"+index).innerHTML = "";
 }
-</script>
 
+// 🔄 AUTO LOAD
+async function autoCargarVuelos(){
+    try{
+        const res = await fetch("http://192.168.1.X:4000/flights");
+        const { salidas, llegadas } = await res.json();
+
+        const data = [...salidas, ...llegadas];
+
+        let arr = Object.values(currentData);
+
+        data.slice(0, arr.length).forEach((vuelo, i) => {
+
+            if(!arr[i] || arr[i].manual) return;
+
+            arr[i].vuelo = vuelo.vuelo;
+            arr[i].destino = vuelo.destino || vuelo.origen || "N/A";
+
+            arr[i].salida = vuelo.salida 
+                ? convertirHora(vuelo.salida) 
+                : "";
+
+            arr[i].llegada = vuelo.llegada 
+                ? convertirHora(vuelo.llegada) 
+                : "";
+
+            arr[i].estado = vuelo.estado || "ON-TIME";
+        });
+
+        set(ref(db,"flights"), toObj(arr));
+
+    }catch(e){
+        console.error("ERROR AUTO:", e);
+    }
+}
+
+// 🔁 AUTO REFRESH
+setInterval(autoCargarVuelos, 20000);
+
+// 🔥 FIX FORMATO ESPAÑOL
+function convertirHora(hora12) {
+    if(!hora12) return "";
+
+    let limpia = hora12
+        .replace("a. m.", "AM")
+        .replace("p. m.", "PM");
+
+    const date = new Date("1970-01-01 " + limpia);
+
+    if(isNaN(date)) return "";
+
+    return date.toTimeString().slice(0,5);
+}
+</script>
 </body>
 </html>

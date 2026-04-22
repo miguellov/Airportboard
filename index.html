@@ -338,7 +338,7 @@ async function cargarVuelos(){
         const snapshot = await get(ref(db,"flights"));
         const localData = snapshot.val() || {};
 
-        const tabla = document.getElementById("tabla-vuelos");
+        const tabla = document.getElementById("board");
         tabla.innerHTML = "";
 
         apiData.forEach((f, i)=>{
@@ -424,6 +424,7 @@ function renderVuelos(){
 
         let totalMin = 120;
         let progreso = 100 - (diffMin / totalMin * 100);
+        
         if(progreso < 0) progreso = 0;
         if(progreso > 100) progreso = 100;
 

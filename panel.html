@@ -6,6 +6,59 @@
 <title>Panel Control Vuelos PRO</title>
 
 <style>
+
+    .asignaciones-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tabla-asignaciones {
+    display: grid;
+    grid-auto-rows: 40px;
+    gap: 5px;
+    align-items: center;
+    text-align: center;
+}
+
+.tabla-header {
+    font-weight: bold;
+    color: #00e0ff;
+}
+
+.tabla-posicion {
+    text-align: left;
+    font-weight: bold;
+    padding-left: 10px;
+}
+
+.celda {
+    color: #ccc;
+}
+
+
+    .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.tabs button {
+    background: #1e3a5f;
+    border: none;
+    padding: 10px 20px;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.tabs button:hover {
+    background: #00eaff;
+    color: black;
+}
+
+
   .card-anuncio{
     background:#020617;
     border:1px solid #0ea5e9;
@@ -199,22 +252,49 @@ input, select{
 }
 
 </style>
-
 </head>
 
 <body>
 
 <h2>✈️ Panel de Control</h2>
 
-<!-- 🔥 TABS -->
-<div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+<div class="tabs">
     <button onclick="showTab('flightsTab')">🛫 Vuelos</button>
-<button onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
-<button onclick="showTab('anunciosTab')">📢 Anuncios</button>
+    <button onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
+    <button onclick="showTab('anunciosTab')">📢 Anuncios</button>
 </div>
 
-<!-- 🔹 POSICIONES TAB -->
-<div id="positionsTab">
+<!-- ========================= -->
+<!-- ✈️ TAB VUELOS -->
+<!-- ========================= -->
+<div id="flightsTab">
+
+    <div class="top-buttons">
+        <button class="add" onclick="addFlight()">➕ Agregar</button>
+        <button onclick="undo()">⏪ Undo</button>
+        <button onclick="redo()">⏩ Redo</button>
+        <button onclick="setTheme('dark')">🌙</button>
+        <button onclick="setTheme('light')">🌞</button>
+        <button onclick="setTheme('airport')">✈️</button>
+    </div>
+
+    <br>
+
+    <div id="panel"></div>
+
+</div>
+
+<!-- ========================= -->
+<!-- 👨‍✈️ TAB POSICIONES -->
+<!-- ========================= -->
+<div id="positionsTab" style="display:none;">
+
+    <h2>👨‍✈️ Asignación de Posiciones</h2>
+
+    <!-- TABLA AUTOMÁTICA -->
+    <div class="asignaciones-container">
+        <div id="tablaPanel"></div>
+    </div>
 
     <!-- MENSAJE -->
     <div class="ticker-box">
@@ -222,38 +302,41 @@ input, select{
         <button onclick="saveTicker()">💾 Guardar Mensaje</button>
     </div>
 
-    <!-- POSICIONES -->
+    <!-- POSICIONES MANUALES -->
     <div class="ticker-box">
-        <h3 style="margin-top:0;">👨‍✈️ POSICIONES</h3>
 
-       <!-- 🔵 JETBLUE -->
-<h4 style="color:#3b82f6;">🔵 JETBLUE</h4>
+        <h3>👨‍✈️ POSICIONES</h3>
 
-<input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
-<button onclick="saveJetblueTitle()">💾 Guardar Título</button>
+        <!-- 🔵 JETBLUE -->
+        <h4 style="color:#3b82f6;">🔵 JETBLUE</h4>
 
-<input id="posRoleJet" placeholder="Posición JetBlue">
-<input id="posNameJet" placeholder="Nombre empleado">
-<button onclick="savePositionJet()">➕ Agregar JetBlue</button>
+        <input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
+        <button onclick="saveJetblueTitle()">💾 Guardar Título</button>
 
-<div id="positionsJet"></div>
+        <input id="posRoleJet" placeholder="Posición JetBlue">
+        <input id="posNameJet" placeholder="Nombre empleado">
+        <button onclick="savePositionJet()">➕ Agregar JetBlue</button>
 
-<hr style="margin:15px 0; border:1px solid #333;">
+        <div id="positionsJet"></div>
 
-<!-- 🟢 WESTJET -->
-<h4 style="color:#22c55e;">🟢 WESTJET</h4>
+        <hr style="margin:15px 0; border:1px solid #333;">
 
-<input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS2507">
-<button onclick="saveWestjetTitle()">💾 Guardar Título</button>
+        <!-- 🟢 WESTJET -->
+        <h4 style="color:#22c55e;">🟢 WESTJET</h4>
 
-<input id="posRoleWest" placeholder="Posición WestJet">
-<input id="posNameWest" placeholder="Nombre empleado">
-<button onclick="savePositionWest()">➕ Agregar WestJet</button>
+        <input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS2507">
+        <button onclick="saveWestjetTitle()">💾 Guardar Título</button>
 
-<div id="positionsWest"></div>
+        <input id="posRoleWest" placeholder="Posición WestJet">
+        <input id="posNameWest" placeholder="Nombre empleado">
+        <button onclick="savePositionWest()">➕ Agregar WestJet</button>
+
+        <div id="positionsWest"></div>
+
     </div>
 
 </div>
+
 <!-- ========================= -->
 <!-- 📢 TAB ANUNCIOS -->
 <!-- ========================= -->
@@ -270,37 +353,17 @@ input, select{
             <option value="asignacion">Asignación</option>
         </select>
 
-        <label>Texto</label>
-        <input id="textoAnuncio" placeholder="Escribe aquí...">
+        <input id="textoAnuncio" placeholder="Texto">
 
-        <label>Archivo</label>
-        <input type="file" id="fileAnuncio">
+        <input type="file" id="fileAnuncio" accept="image/*,video/*">
 
-        <label>Duración</label>
-        <input type="number" id="duracionAnuncio" value="8">
+        <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10">
 
         <button onclick="guardarAnuncio()">💾 Guardar</button>
 
+        <button onclick="toggleAnuncios()">🛑 Encender / Apagar</button>
+
     </div>
-
-</div>
-
-
-<!-- 🔹 VUELOS TAB -->
-<div id="flightsTab" style="display:none;">
-
-    <div class="top-buttons">
-        <button class="add" onclick="addFlight()">➕ Agregar</button>
-        <button onclick="undo()">⏪ Undo</button>
-        <button onclick="redo()">⏩ Redo</button>
-        <button onclick="setTheme('dark')">🌙</button>
-        <button onclick="setTheme('light')">🌞</button>
-        <button onclick="setTheme('airport')">✈️</button>
-    </div>
-
-    <br>
-
-    <div id="panel"></div>
 
 </div>
 
@@ -755,8 +818,61 @@ function showTab(tab){
     document.getElementById("anunciosTab").style.display = "none";
 
     document.getElementById(tab).style.display = "block";
+    
 }
 
+
+const posiciones = [
+  "Supervisor","Documento 1","Documento 2","Fila Rápida",
+  "Control Eq. 5x5","Make Up","Sello","Observer",
+  "Segundo Punto","Escolta","Puerta 1","Puerta 2",
+  "Rampa 1","Rampa 2","OBS Rampa","Escolta Aduana","Selectee","Verificacion Aduana","Rev 1","Rev 2"
+  ,"Rev 3","Rev 4","Rev 5","Rev 6","Rev 7"
+];
+
+async function cargarPanelAsignaciones(){
+
+  const res = await fetch("https://airportboard.onrender.com/flights");
+  const data = await res.json();
+
+  const vuelos = [...data.salidas, ...data.llegadas].slice(0,5);
+
+  let html = `<table style="width:100%; color:white;">`;
+
+  // header
+  html += `<tr><th>Posición</th>`;
+  vuelos.forEach(v => {
+    html += `<th>${v.vuelo}</th>`;
+  });
+  html += `</tr>`;
+
+  // filas
+  posiciones.forEach(pos => {
+
+    html += `<tr><td>${pos}</td>`;
+
+    vuelos.forEach(v => {
+      html += `
+        <td>
+          <input 
+            placeholder="Nombre"
+            onchange="guardarAsignacion('${v.vuelo}','${pos}', this.value)"
+          >
+        </td>
+      `;
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `</table>`;
+
+  document.getElementById("tablaPanel").innerHTML = html;
+}
+
+window.onload = () => {
+  cargarPanelAsignaciones();
+};
 
 </script>
 
@@ -767,27 +883,35 @@ window.onload = () => {
     showTab("flightsTab");
 };
 
-function showTab(tab){
 
-    console.log("CLICK TAB:", tab);
 
-    const flights = document.getElementById("flightsTab");
-    const positions = document.getElementById("positionsTab");
-    const anuncios = document.getElementById("anunciosTab");
+function guardarAnuncio() {
+    const tipo = document.getElementById("tipoAnuncio").value;
+    const texto = document.getElementById("textoAnuncio").value;
+    const media = document.getElementById("mediaURL").value;
 
-    if(flights) flights.style.display = "none";
-    if(positions) positions.style.display = "none";
-    if(anuncios) anuncios.style.display = "none";
-
-    const target = document.getElementById(tab);
-
-    if(target){
-        target.style.display = "block";
-    }else{
-        console.error("NO EXISTE:", tab);
-    }
+    fetch("https://airportboard.onrender.com/anuncios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            tipo,
+            texto,
+            media,
+            duracion: 10
+        })
+    })
+    .then(res => res.json())
+    .then(() => alert("✅ Anuncio guardado"));
 }
 
+async function toggleAnuncios() {
+    const res = await fetch("https://airportboard.onrender.com/anuncios/toggle", {
+        method: "POST"
+    });
+
+    const data = await res.json();
+    alert("Anuncios activos: " + data.activos);
+}
 
 </script>
 </body>

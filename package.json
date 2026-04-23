@@ -21,9 +21,12 @@
   "homepage": "https://github.com/miguellov/Airportboard#readme",
   "dependencies": {
     "axios": "^1.15.2",
+    "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "flightradarapi": "^1.4.0",
+    "mongoose": "^9.5.0",
     "multer": "^2.1.1",
     "node-fetch": "^3.3.2"
   }

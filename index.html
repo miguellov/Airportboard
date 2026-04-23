@@ -13,6 +13,9 @@
 
 <style>
 
+
+
+
     .header{
     position:relative;
     z-index:1000000;
@@ -249,6 +252,7 @@ tr.arrived { background:rgba(50,50,50,0.5); }
 <body>
 <div id="anuncioFull" class="anuncio-full"></div>
 <div class="header">
+    <div id="anuncioFull" style="display:none;"></div>
     <div class="left">
         <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png">
         <div class="title">AIRPORT BOARD</div>
@@ -302,6 +306,20 @@ tr.arrived { background:rgba(50,50,50,0.5); }
 </div>
 
 <script type="module">
+
+    let anunciosActivos = false;
+
+async function verificarEstadoAnuncios() {
+    try {
+        const res = await fetch("https://airportboard.onrender.com/anuncios/estado");
+        const data = await res.json();
+
+        anunciosActivos = data.activos;
+
+    } catch (e) {
+        console.log("Error estado anuncios", e);
+    }
+}
     let anuncios = [];
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -350,36 +368,21 @@ setInterval(()=>{
 
 },1000);
 
-setInterval(()=>{
 
-    if(anuncios.length === 0) return;
+function actualizarPantalla() {
 
-    const anuncio = anuncios[Math.floor(Math.random() * anuncios.length)];
-
-    const full = document.getElementById("anuncioFull");
-
-    // 🔥 MOSTRAR ANUNCIO
-    full.style.display = "flex";
-
-    if(anuncio.media){
-        if(anuncio.media.includes("video")){
-            full.innerHTML = `
-                <video src="${anuncio.media}" autoplay muted style="width:100%;height:100%;object-fit:cover"></video>
-            `;
-        }else{
-            full.innerHTML = `<img src="${anuncio.media}">`;
-        }
-    }else{
-        full.innerHTML = `<div>${anuncio.texto}</div>`;
+    if (anunciosActivos && anuncios.length > 0) {
+        mostrarAnuncio();
+    } else {
+        mostrarVuelos();
     }
 
-    // ⏳ DURACIÓN DEL ANUNCIO
-    setTimeout(()=>{
-        full.style.display = "none";
-        full.innerHTML = "";
-    }, 8000); // 8 segundos
+}
 
-}, 30000); // cada 30 segundos sale un anuncio
+async function cargarAnuncios() {
+    const res = await fetch("https://airportboard.onrender.com/anuncios");
+    anuncios = await res.json();
+}
 
 /* VUELOS */
 /* 🔥 VARIABLES GLOBALES */
@@ -423,12 +426,7 @@ async function cargarVuelos(){
     }
 }
 
-setInterval(cargarVuelos, 10000);
-cargarVuelos();
 
-// cargar cada 5 segundos
-let countdownActivo = {};
-if(!window.avisos) window.avisos = {};
 
 /* 🔥 ESCUCHAR FIREBASE (SOLO DATOS) */
 onValue(ref(db,"flights"),snap=>{
@@ -711,15 +709,103 @@ function hablar(texto){
 
     speechSynthesis.speak(msg1);
 }
+
+function actualizarPantalla() {
+
+    if (anunciosActivos && anuncios.length > 0) {
+        mostrarAnuncio();
+    } else {
+        mostrarVuelos();
+    }
+
 }
 
 
-setTimeout(()=>{
-    const full = document.getElementById("anuncioFull");
-    full.style.display = "flex";
-    full.innerHTML = "<h1 style='color:white'>FUNCIONA</h1>";
-}, 3000);
+window.onload = () => {
+    anunciosActivos = false; // 🔴 SIEMPRE INICIA EN VUELOS
+    iniciarSistema();
+};
+
+
+let anuncios = [];
+let anunciosActivos = false; // 🔴 CONTROL REAL
+
+async function cargarAnuncios() {
+    try {
+        const res = await fetch("https://airportboard.onrender.com/anuncios");
+        anuncios = await res.json();
+        console.log("ANUNCIOS:", anuncios);
+    } catch (e) {
+        console.log("Error anuncios", e);
+    }
+}
+
+function mostrarAnuncio() {
+    if (anuncios.length === 0) return;
+
+    const anuncio = anuncios[indexAnuncio];
+    const contenedor = document.getElementById("anuncioFull");
+
+    contenedor.style.display = "flex";
+    contenedor.innerHTML = "";
+
+    // 🎥 VIDEO
+    if (anuncio.media && anuncio.media.includes(".mp4")) {
+        contenedor.innerHTML = `
+            <video src="${anuncio.media}" autoplay muted style="width:100%; height:100%; object-fit:cover;"></video>
+        `;
+    }
+
+    // 🖼 IMAGEN
+    else if (anuncio.media) {
+        contenedor.innerHTML = `
+            <img src="${anuncio.media}" style="width:100%; height:100%; object-fit:cover;">
+        `;
+    }
+
+    // 📝 TEXTO
+    else {
+        contenedor.innerHTML = `
+            <div style="font-size:60px; text-align:center; color:#00e5ff;">
+                ${anuncio.texto}
+            </div>
+        `;
+    }
+
+    // ⏱ DURACIÓN PERSONALIZADA
+    setTimeout(() => {
+        document.getElementById("anuncioFull").style.display = "none";
+    }, anuncio.duracion * 1000);
+
+    indexAnuncio++;
+    if (indexAnuncio >= anuncios.length) indexAnuncio = 0;
+}
+
+
+function mostrarVuelos() {
+    document.getElementById("anuncioFull").style.display = "none";
+}
+
+
+
+}
+
 </script>
 <script src="http://localhost:35729/livereload.js"></script>
 </body>
+<div id="anuncioFull" style="
+    display:none;
+    position:fixed;
+    top:80px;
+    left:0;
+    width:100%;
+    height:calc(100% - 80px);
+    background:black;
+    color:white;
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+">
+</div>
+
 </html>

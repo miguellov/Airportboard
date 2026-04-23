@@ -3,10 +3,49 @@ const axios = require("axios");
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+let anuncios = [];
+let anunciosActivos = true;
+
+// 📥 GUARDAR ANUNCIO
+app.use(express.json());
+
+app.post("/anuncios", (req, res) => {
+  const { tipo, texto, media, duracion } = req.body;
+
+  const nuevo = {
+    id: Date.now(),
+    tipo,
+    texto,
+    media, // URL REAL (imagen o video)
+    duracion: duracion || 10
+  };
+
+  anuncios.push(nuevo);
+
+  res.json({ ok: true, anuncio: nuevo });
+});
+
+// 📤 OBTENER ANUNCIOS
+app.get("/anuncios", (req, res) => {
+  if (!anunciosActivos) return res.json([]);
+  res.json(anuncios);
+});
+
+app.get("/anuncios/estado", (req, res) => {
+  res.json({ activos: anunciosActivos });
+});
+
+// 🔴 ENCENDER / APAGAR ANUNCIOS
+app.post("/anuncios/toggle", (req, res) => {
+  anunciosActivos = !anunciosActivos;
+  res.json({ activos: anunciosActivos });
+});
 
 // =========================
 // 📂 CONFIG ARCHIVOS (ANUNCIOS)
@@ -187,4 +226,23 @@ const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log("🔥 Servidor corriendo en puerto " + PORT);
+});
+let asignaciones = {}; // 🔥 base de datos simple
+
+// 📥 GUARDAR
+app.post("/asignaciones", (req, res) => {
+  const { vuelo, posicion, nombre } = req.body;
+
+  if (!asignaciones[vuelo]) {
+    asignaciones[vuelo] = {};
+  }
+
+  asignaciones[vuelo][posicion] = nombre;
+
+  res.json({ ok: true });
+});
+
+// 📤 OBTENER
+app.get("/asignaciones", (req, res) => {
+  res.json(asignaciones);
 });

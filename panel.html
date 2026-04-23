@@ -7,6 +7,14 @@
 
 <style>
 
+    .ticker-box {
+    background: #0a0f1c;
+    border: 1px solid #00e0ff;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
     .asignaciones-container {
     width: 100%;
     overflow-x: auto;
@@ -269,6 +277,12 @@ input, select{
 <!-- ========================= -->
 <div id="flightsTab">
 
+    <!-- MENSAJE -->
+    <div class="ticker-box">
+        <input id="tickerInput" placeholder="Escribe mensaje del aeropuerto...">
+        <button onclick="saveTicker()">💾 Guardar Mensaje</button>
+    </div>
+
     <div class="top-buttons">
         <button class="add" onclick="addFlight()">➕ Agregar</button>
         <button onclick="undo()">⏪ Undo</button>
@@ -296,12 +310,7 @@ input, select{
         <div id="tablaPanel"></div>
     </div>
 
-    <!-- MENSAJE -->
-    <div class="ticker-box">
-        <input id="tickerInput" placeholder="Escribe mensaje del aeropuerto...">
-        <button onclick="saveTicker()">💾 Guardar Mensaje</button>
-    </div>
-
+    
     <!-- POSICIONES MANUALES -->
     <div class="ticker-box">
 

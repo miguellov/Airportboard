@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pantalla de Aeropuerto - Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #00e0ff;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================= */
+/* HEADER */
+/* ========================= */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    border-bottom: 2px solid #0ea5e9;
+    background: linear-gradient(180deg, #000, #0a0f1c);
+    z-index: 1000;
+}
+
+.logo {
+    height: 50px;
+}
+
+.title {
+    font-size: 40px;
+    font-family: 'Orbitron', sans-serif;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.time {
+    font-size: 60px;
+    font-weight: 700;
+    color: #00ffff;
+    letter-spacing: 3px;
+    text-align: right;
+}
+
+.date {
+    font-size: 16px;
+    color: #7dd3fc;
+}
+
+/* ========================= */
+/* CONTENEDOR PRINCIPAL */
+/* ========================= */
+.content-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ========================= */
+/* TABLA DE VUELOS */
+/* ========================= */
+.flights-view {
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.flights-view.active {
+    display: flex;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    flex: 1;
+}
+
+th {
+    font-size: 28px;
+    padding: 15px;
+    border-bottom: 2px solid #0ea5e9;
+    background: rgba(14, 165, 233, 0.1);
+    color: #00e0ff;
+    text-transform: uppercase;
+}
+
+td {
+    font-size: 26px;
+    padding: 18px;
+    text-align: center;
+    border-bottom: 1px solid #1e293b;
+    color: #ccc;
+}
+
+tr:hover {
+    background: rgba(14, 165, 233, 0.05);
+}
+
+/* ========================= */
+/* TABLA DE ASIGNACIONES */
+/* ========================= */
+.assignments-view {
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.assignments-view.active {
+    display: flex;
+}
+
+.assignments-title {
+    font-size: 32px;
+    color: #00e0ff;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 2px;
+    border-bottom: 2px solid #0ea5e9;
+    padding-bottom: 10px;
+}
+
+.assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+    flex: 1;
+}
+
+.assignment-card {
+    background: rgba(14, 165, 233, 0.1);
+    border: 2px solid #00e0ff;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.assignment-role {
+    font-size: 18px;
+    color: #7dd3fc;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.assignment-name {
+    font-size: 24px;
+    color: #00ffff;
+    font-weight: bold;
+}
+
+/* ========================= */
+/* ANUNCIOS (IMÁGENES/VIDEOS) */
+/* ========================= */
+.announcement-view {
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    position: relative;
+}
+
+.announcement-view.active {
+    display: flex;
+}
+
+.announcement-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.announcement-text {
+    font-size: 80px;
+    color: #00e0ff;
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 0 0 20px #00e0ff;
+    padding: 40px;
+}
+
+/* ========================= */
+/* INDICADOR DE VISTA */
+/* ========================= */
+.view-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #0ea5e9;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 2000;
+    text-transform: uppercase;
+}
+
+/* ========================= */
+/* TICKER */
+/* ========================= */
+.ticker {
+    height: 50px;
+    border-top: 2px solid #0ea5e9;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: rgba(10, 15, 28, 0.8);
+    z-index: 999;
+}
+
+.ticker-text {
+    white-space: nowrap;
+    font-size: 24px;
+    padding-left: 100%;
+    animation: scroll 30s linear infinite;
+    color: #00ffff;
+}
+
+@keyframes scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+/* ========================= */
+/* RESPONSIVE */
+/* ========================= */
+@media (max-width: 1024px) {
+    .title {
+        font-size: 28px;
+    }
+    
+    .time {
+        font-size: 40px;
+    }
+    
+    th {
+        font-size: 20px;
+    }
+    
+    td {
+        font-size: 18px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="view-indicator" id="viewIndicator">📊 VUELOS</div>
+
+<div class="header">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" alt="Logo">
+        <div class="title">🛫 AIRPORT DISPLAY</div>
+    </div>
+
+    <div style="text-align: right;">
+        <div class="date" id="date"></div>
+        <div class="time" id="clock"></div>
+    </div>
+</div>
+
+<div class="content-container">
+    
+    <!-- VISTA DE VUELOS -->
+    <div class="flights-view active" id="flightsView">
+        <table>
+            <thead>
+                <tr>
+                    <th>VUELO</th>
+                    <th>DESTINO</th>
+                    <th>LLEGADA</th>
+                    <th>SALIDA</th>
+                    <th>GATE</th>
+                    <th>ESTADO</th>
+                </tr>
+            </thead>
+            <tbody id="flightsTable"></tbody>
+        </table>
+    </div>
+
+    <!-- VISTA DE ASIGNACIONES -->
+    <div class="assignments-view" id="assignmentsView">
+        <div class="assignments-title" id="assignmentsTitle">ASIGNACIONES</div>
+        <div class="assignments-grid" id="assignmentsGrid"></div>
+    </div>
+
+    <!-- VISTA DE ANUNCIOS -->
+    <div class="announcement-view" id="announcementView">
+        <img id="announcementMedia" class="announcement-media" alt="Anuncio">
+        <div id="announcementText" class="announcement-text"></div>
+    </div>
+
+</div>
+
+<div class="ticker">
+    <div class="ticker-text" id="ticker">Bienvenidos al Aeropuerto • Welcome to the Airport</div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "933c97406ad862095eade39aef8a1f5d",
+    authDomain: "airport-board-ee661.firebaseapp.com",
+    databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
+    projectId: "airport-board-ee661"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ========================= */
+/* ESTADO DEL SISTEMA */
+/* ========================= */
+let currentView = 'flights'; // flights, assignments, announcements
+let rotationTimer = null;
+let announcements = [];
+let currentAnnouncementIndex = 0;
+let flights = [];
+let assignments = [];
+let rotationDelay = 10; // segundos
+
+/* ========================= */
+/* RELOJ Y FECHA */
+/* ========================= */
+function updateClock() {
+    const now = new Date();
+    
+    document.getElementById('clock').innerText = now.toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    document.getElementById('date').innerText = now.toLocaleDateString('es-CO', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ========================= */
+/* CARGAR TICKER */
+/* ========================= */
+onValue(ref(db, 'ticker/message'), (snap) => {
+    const message = snap.val() || 'Bienvenidos al Aeropuerto • Welcome to the Airport';
+    document.getElementById('ticker').innerText = message;
+});
+
+/* ========================= */
+/* CARGAR VUELOS */
+/* ========================= */
+onValue(ref(db, 'flights'), (snap) => {
+    flights = Object.values(snap.val() || {});
+    renderFlights();
+});
+
+function renderFlights() {
+    const tbody = document.getElementById('flightsTable');
+    tbody.innerHTML = '';
+    
+    flights.forEach(flight => {
+        const row = `
+            <tr>
+                <td>${flight.vuelo || 'N/A'}</td>
+                <td>${flight.destino || 'N/A'}</td>
+                <td>${flight.llegada || 'N/A'}</td>
+                <td>${flight.salida || 'N/A'}</td>
+                <td>${flight.gate || 'N/A'}</td>
+                <td>${flight.estado || 'N/A'}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+/* ========================= */
+/* CARGAR ASIGNACIONES */
+/* ========================= */
+onValue(ref(db, 'positions'), (snap) => {
+    const data = snap.val() || {};
+    assignments = Object.entries(data).map(([role, name]) => ({
+        role: role.toUpperCase(),
+        name: name
+    }));
+    renderAssignments();
+});
+
+function renderAssignments() {
+    const grid = document.getElementById('assignmentsGrid');
+    grid.innerHTML = '';
+    
+    assignments.forEach(assignment => {
+        const card = `
+            <div class="assignment-card">
+                <div class="assignment-role">${assignment.role}</div>
+                <div class="assignment-name">${assignment.name}</div>
+            </div>
+        `;
+        grid.innerHTML += card;
+    });
+}
+
+/* ========================= */
+/* CARGAR ANUNCIOS */
+/* ========================= */
+onValue(ref(db, 'anuncios'), (snap) => {
+    announcements = Object.values(snap.val() || {});
+    console.log('Anuncios cargados:', announcements.length);
+});
+
+/* ========================= */
+/* CAMBIAR VISTA */
+/* ========================= */
+function switchView(view) {
+    // Ocultar todas las vistas
+    document.getElementById('flightsView').classList.remove('active');
+    document.getElementById('assignmentsView').classList.remove('active');
+    document.getElementById('announcementView').classList.remove('active');
+    
+    // Mostrar la nueva vista
+    if (view === 'flights') {
+        document.getElementById('flightsView').classList.add('active');
+        document.getElementById('viewIndicator').innerText = '📊 VUELOS';
+    } else if (view === 'assignments') {
+        document.getElementById('assignmentsView').classList.add('active');
+        document.getElementById('viewIndicator').innerText = '👨‍✈️ ASIGNACIONES';
+    } else if (view === 'announcement') {
+        document.getElementById('announcementView').classList.add('active');
+        document.getElementById('viewIndicator').innerText = '📢 ANUNCIO';
+        showAnnouncement();
+    }
+    
+    currentView = view;
+}
+
+/* ========================= */
+/* MOSTRAR ANUNCIO */
+/* ========================= */
+function showAnnouncement() {
+    if (announcements.length === 0) return;
+    
+    const announcement = announcements[currentAnnouncementIndex];
+    const mediaElement = document.getElementById('announcementMedia');
+    const textElement = document.getElementById('announcementText');
+    
+    mediaElement.style.display = 'none';
+    textElement.style.display = 'none';
+    
+    if (announcement.media) {
+        if (announcement.media.includes('.mp4') || announcement.media.includes('video')) {
+            mediaElement.src = announcement.media;
+            mediaElement.style.display = 'block';
+        } else {
+            mediaElement.src = announcement.media;
+            mediaElement.style.display = 'block';
+        }
+    } else if (announcement.texto) {
+        textElement.innerText = announcement.texto;
+        textElement.style.display = 'block';
+    }
+    
+    currentAnnouncementIndex = (currentAnnouncementIndex + 1) % announcements.length;
+}
+
+/* ========================= */
+/* ROTACIÓN AUTOMÁTICA */
+/* ========================= */
+function startRotation() {
+    // Iniciar con VUELOS
+    switchView('flights');
+    
+    rotationTimer = setInterval(() => {
+        if (currentView === 'flights') {
+            switchView('assignments');
+        } else if (currentView === 'assignments') {
+            if (announcements.length > 0) {
+                switchView('announcement');
+            } else {
+                switchView('flights');
+            }
+        } else if (currentView === 'announcement') {
+            switchView('flights');
+        }
+    }, rotationDelay * 1000);
+}
+
+/* ========================= */
+/* TECLAS DE CONTROL (OPCIONAL) */
+/* ========================= */
+document.addEventListener('keydown', (e) => {
+    if (e.key === '1') switchView('flights');
+    if (e.key === '2') switchView('assignments');
+    if (e.key === '3') {
+        if (announcements.length > 0) switchView('announcement');
+    }
+});
+
+/* ========================= */
+/* INICIAR */
+/* ========================= */
+window.addEventListener('load', () => {
+    startRotation();
+    document.documentElement.requestFullscreen().catch(() => {});
+});
+
+</script>
+
+</body>
+</html>

@@ -75,7 +75,7 @@
     display:flex;
     flex-direction:column;
     gap:10px;
-    max-width:600px;
+    max-width:700px;
     margin:auto;
 }
 
@@ -86,6 +86,125 @@
     border:1px solid #334155;
     color:#7dd3fc;
     border-radius:6px;
+}
+
+.file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    width: 100%;
+}
+
+.file-input-wrapper input[type=file] {
+    display: none;
+}
+
+.file-input-label {
+    display: block;
+    padding: 10px;
+    background: #1e3a5f;
+    color: #7dd3fc;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    border: 1px dashed #00e0ff;
+    transition: 0.3s;
+}
+
+.file-input-label:hover {
+    background: #2a5080;
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #0f1f30;
+    border-radius: 6px;
+    border-left: 3px solid #00e0ff;
+    margin-top: 10px;
+    color: #7dd3fc;
+    font-size: 12px;
+}
+
+.preview-area {
+    width: 100%;
+    height: 150px;
+    background: #0a0f1c;
+    border: 2px solid #00e0ff;
+    border-radius: 6px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.preview-area img,
+.preview-area video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.preview-placeholder {
+    color: #7dd3fc;
+    font-size: 12px;
+    text-align: center;
+}
+
+.announcements-list {
+    background: #0f1f30;
+    border: 1px solid #00e0ff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.announcement-item {
+    background: #020617;
+    border-left: 3px solid #00ffff;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.announcement-item-info {
+    flex: 1;
+    font-size: 12px;
+    color: #7dd3fc;
+}
+
+.announcement-item-type {
+    color: #00ffff;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.announcement-item-time {
+    color: #888;
+    font-size: 10px;
+}
+
+.btn-delete-announcement {
+    background: #dc2626;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn-delete-announcement:hover {
+    background: #b91c1c;
 }
 
 .search-box{
@@ -111,7 +230,7 @@
     background: #0f172a;
     border: 1px solid #1e293b;
     border-radius: 6px;
-    z-index: 99999; /* 🔥 MUY IMPORTANTE */
+    z-index: 99999;
     max-height: 150px;
     overflow-y: auto;
 }
@@ -126,8 +245,8 @@
 /* HOVER */
 .results div:hover{
     background: #1e293b;
-
 }
+
 :root{
     --bg:#0f172a;
     --card:#1e293b;
@@ -355,23 +474,54 @@ input, select{
 
     <div class="card-anuncio">
 
-        <label>Tipo</label>
+        <label>Tipo de Anuncio</label>
         <select id="tipoAnuncio">
             <option value="mensaje">Mensaje</option>
             <option value="cumple">Cumpleaños</option>
             <option value="asignacion">Asignación</option>
+            <option value="promocion">Promoción</option>
         </select>
 
-        <input id="textoAnuncio" placeholder="Texto">
+        <label>Texto (opcional)</label>
+        <input id="textoAnuncio" placeholder="Texto del anuncio">
 
-        <input type="file" id="fileAnuncio" accept="image/*,video/*">
+        <label>📤 Cargar Imagen o Video</label>
+        <div class="file-input-wrapper">
+            <input type="file" id="fileAnuncio" accept="image/*,video/*">
+            <label class="file-input-label" for="fileAnuncio">
+                📁 Toca para seleccionar archivo (JPG, PNG, MP4, WebM)
+            </label>
+        </div>
 
-        <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10">
+        <div class="file-info" id="fileInfo" style="display: none;">
+            <span id="fileName">Archivo seleccionado</span>
+            <span id="fileSize">0 KB</span>
+        </div>
 
-        <button onclick="guardarAnuncio()">💾 Guardar</button>
+        <label>👁️ Vista Previa</label>
+        <div class="preview-area" id="previewArea">
+            <div class="preview-placeholder">Aquí aparecerá la vista previa</div>
+        </div>
 
-        <button onclick="toggleAnuncios()">🛑 Encender / Apagar</button>
+        <label>⏱️ Duración (segundos)</label>
+        <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10" min="1" max="120">
 
+        <button onclick="guardarAnuncio()" style="background: #16a34a; padding: 12px; font-size: 14px; font-weight: bold;">
+            💾 GUARDAR ANUNCIO
+        </button>
+
+        <button onclick="limpiarFormulario()" style="background: #1e3a5f; padding: 12px; font-size: 14px;">
+            🔄 LIMPIAR FORMULARIO
+        </button>
+
+    </div>
+
+    <!-- LISTA DE ANUNCIOS GUARDADOS -->
+    <div class="announcements-list" id="announcementsList">
+        <h3 style="color: #00e0ff; margin-top: 0;">📋 Anuncios Guardados</h3>
+        <div id="announcementsGrid">
+            <p style="color: #888;">Cargando anuncios...</p>
+        </div>
     </div>
 
 </div>
@@ -379,56 +529,179 @@ input, select{
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "933c97406ad862095eade39aef8a1f5d",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-  projectId: "airport-board-ee661"
+  projectId: "airport-board-ee661",
+  storageBucket: "airport-board-ee661.appspot.com"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
 
 const flightsRef = ref(db,"flights");
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
+const anunciosRef = ref(db,"anuncios");
 
-/* 🔥 TABS */
-window.showTab = (tab)=>{
-    document.getElementById("flightsTab").style.display = "none";
-    document.getElementById("positionsTab").style.display = "none";
-    document.getElementById(tab).style.display = "block";
-};
+/* ========================= */
+/* CARGA DE ARCHIVOS */
+/* ========================= */
+document.getElementById("fileAnuncio").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    
+    if (!file) return;
 
-window.guardarAnuncio = async ()=>{
+    // Mostrar información del archivo
+    const fileSize = (file.size / 1024).toFixed(2);
+    document.getElementById("fileName").innerText = file.name;
+    document.getElementById("fileSize").innerText = fileSize + " KB";
+    document.getElementById("fileInfo").style.display = "flex";
 
+    // Vista previa
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const previewArea = document.getElementById("previewArea");
+        previewArea.innerHTML = "";
+
+        if (file.type.startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = event.target.result;
+            previewArea.appendChild(img);
+        } else if (file.type.startsWith("video/")) {
+            const video = document.createElement("video");
+            video.src = event.target.result;
+            video.controls = true;
+            previewArea.appendChild(video);
+        }
+    };
+    reader.readAsDataURL(file);
+});
+
+/* ========================= */
+/* GUARDAR ANUNCIO */
+/* ========================= */
+window.guardarAnuncio = async () => {
     const tipo = document.getElementById("tipoAnuncio").value;
     const texto = document.getElementById("textoAnuncio").value;
     const duracion = document.getElementById("duracionAnuncio").value;
-    const modo = document.getElementById("modoAnuncio").value;
     const file = document.getElementById("fileAnuncio").files[0];
 
-    let media = "";
+    if (!texto && !file) {
+        alert("❌ Por favor, escribe un texto o selecciona una imagen/video");
+        return;
+    }
 
-    if(file){
-        media = URL.createObjectURL(file);
+    let mediaUrl = "";
+
+    // Subir archivo a Firebase Storage
+    if (file) {
+        try {
+            const fileName = Date.now() + "_" + file.name;
+            const fileRef = storageRef(storage, "anuncios/" + fileName);
+            
+            await uploadBytes(fileRef, file);
+            mediaUrl = await getDownloadURL(fileRef);
+            
+            console.log("✅ Archivo subido:", mediaUrl);
+        } catch (error) {
+            console.error("❌ Error subiendo archivo:", error);
+            alert("❌ Error subiendo el archivo. Intenta de nuevo.");
+            return;
+        }
     }
 
     const anuncio = {
         tipo,
         texto,
-        media,
+        media: mediaUrl,
         duracion: Number(duracion),
-        modo
+        fechaCreacion: new Date().toLocaleString("es-CO")
     };
 
     const id = Date.now();
 
-    set(ref(db,"anuncios/"+id), anuncio);
+    try {
+        set(ref(db, "anuncios/" + id), anuncio);
+        alert("✅ Anuncio guardado correctamente");
+        limpiarFormulario();
+    } catch (error) {
+        console.error("❌ Error guardando anuncio:", error);
+        alert("❌ Error guardando el anuncio");
+    }
+};
 
-    alert("✅ Anuncio guardado");
+/* ========================= */
+/* LIMPIAR FORMULARIO */
+/* ========================= */
+window.limpiarFormulario = () => {
+    document.getElementById("tipoAnuncio").value = "mensaje";
+    document.getElementById("textoAnuncio").value = "";
+    document.getElementById("fileAnuncio").value = "";
+    document.getElementById("duracionAnuncio").value = "10";
+    document.getElementById("fileInfo").style.display = "none";
+    document.getElementById("previewArea").innerHTML = '<div class="preview-placeholder">Aquí aparecerá la vista previa</div>';
+};
+
+/* ========================= */
+/* CARGAR LISTA DE ANUNCIOS */
+/* ========================= */
+onValue(anunciosRef, (snap) => {
+    const data = snap.val() || {};
+    const grid = document.getElementById("announcementsGrid");
+    
+    const anuncios = Object.entries(data);
+    
+    if (anuncios.length === 0) {
+        grid.innerHTML = '<p style="color: #888; text-align: center;">No hay anuncios guardados</p>';
+        return;
+    }
+
+    grid.innerHTML = "";
+
+    anuncios.forEach(([id, anuncio]) => {
+        const tipo = anuncio.tipo || "mensaje";
+        const texto = (anuncio.texto || "").substring(0, 40);
+        const duracion = anuncio.duracion || 10;
+        const fecha = anuncio.fechaCreacion || "Reciente";
+
+        const item = `
+            <div class="announcement-item">
+                <div class="announcement-item-info">
+                    <div class="announcement-item-type">🔹 ${tipo.toUpperCase()}</div>
+                    <div>${texto}${anuncio.texto && anuncio.texto.length > 40 ? "..." : ""}</div>
+                    <div class="announcement-item-time">⏱️ ${duracion}s • ${fecha}</div>
+                </div>
+                <button class="btn-delete-announcement" onclick="eliminarAnuncio('${id}')">
+                    🗑️ Eliminar
+                </button>
+            </div>
+        `;
+        grid.innerHTML += item;
+    });
+});
+
+/* ========================= */
+/* ELIMINAR ANUNCIO */
+/* ========================= */
+window.eliminarAnuncio = (id) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este anuncio?")) {
+        remove(ref(db, "anuncios/" + id));
+        alert("✅ Anuncio eliminado");
+    }
+};
+
+/* 🔥 TABS */
+window.showTab = (tab)=>{
+    document.getElementById("flightsTab").style.display = "none";
+    document.getElementById("positionsTab").style.display = "none";
+    document.getElementById("anunciosTab").style.display = "none";
+    document.getElementById(tab).style.display = "block";
 };
 
 /* MENSAJE */
@@ -450,31 +723,7 @@ window.savePositionJet = ()=>{
     posNameJet.value="";
 };
 
-window.previewAnuncio = ()=>{
-
-    const texto = document.getElementById("textoAnuncio").value;
-    const file = document.getElementById("fileAnuncio").files[0];
-
-    const full = document.getElementById("anuncioFull");
-
-    full.style.display = "flex";
-
-    if(file){
-        const url = URL.createObjectURL(file);
-
-        if(file.type.includes("video")){
-            full.innerHTML = `<video src="${url}" autoplay muted style="width:100%;height:100%">`;
-        }else{
-            full.innerHTML = `<img src="${url}" style="width:100%;height:100%">`;
-        }
-    }else{
-        full.innerHTML = `<h1 style="color:white">${texto}</h1>`;
-    }
-};
-
-
 /* 🟢 WESTJET */
-
 window.savePositionWest = ()=>{ 
     const role = document.getElementById("posRoleWest").value.toLowerCase()+"_west";
     const name = document.getElementById("posNameWest").value;
@@ -482,13 +731,6 @@ window.savePositionWest = ()=>{
     set(ref(db,"positions/"+role), name);
     posRoleWest.value="";
     posNameWest.value="";
-    const westjetTitleRef = ref(db,"titles/westjet");
-    
-
-window.saveWestjetTitle = ()=>{
-    const value = document.getElementById("westjetTitle").value;
-    set(westjetTitleRef, value);
-};
 };
 
 /* MOSTRAR POSICIONES */
@@ -521,7 +763,7 @@ onValue(positionsRef,(snap)=>{
     });
 });
 
-/* VUELOS (igual que antes) */
+/* VUELOS */
 let history=[], redoStack=[], currentData={};
 
 function saveState(d){
@@ -537,6 +779,7 @@ function toObj(arr){
     arr.forEach((v,i)=>o["flight"+i]=v);
     return o;
 }
+
 // WESTJET
 window.saveWestjetTitle = ()=>{
     const value = document.getElementById("westjetTitle").value;
@@ -605,8 +848,6 @@ onValue(flightsRef,snap=>{
 
 window.updateField=(i,f,v)=>{saveState(currentData);let a=getArray(currentData);a[i][f]=v;set(flightsRef,toObj(a));};
 window.setStatus=(i,s)=>{
-    window.setStatus = (i,s)=>{
-
     console.log("CLICK:", i, s);
 
     let a = getArray(currentData);
@@ -616,22 +857,16 @@ window.setStatus=(i,s)=>{
     a[i].estado = s;
 
     set(flightsRef, toObj(a));
-
-    // 🔥 FORZAR REFRESCO LOCAL (CLAVE)
-    currentData = toObj(a);
 };
 
-    console.log("CLICK:", i, s); // DEBUG
-
-    let a = getArray(currentData);
-
-    if(!a[i]) return;
-
-    a[i].estado = s;
-
-    set(flightsRef, toObj(a));
+window.addFlight=(i=null)=>{
+    saveState(currentData);
+    let a=getArray(currentData);
+    let n={vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME"};
+    i==null?a.push(n):a.splice(i+1,0,n);
+    set(flightsRef,toObj(a));
 };
-window.addFlight=(i=null)=>{saveState(currentData);let a=getArray(currentData);let n={vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME"};i==null?a.push(n):a.splice(i+1,0,n);set(flightsRef,toObj(a));};
+
 window.deleteFlight=i=>{saveState(currentData);let a=getArray(currentData);a.splice(i,1);set(flightsRef,toObj(a));};
 
 window.undo=()=>{if(history.length<2)return;redoStack.push(history.pop());set(flightsRef,JSON.parse(history[history.length-1]));};
@@ -647,11 +882,13 @@ window.setTheme=(m)=>{
 
 let saved=localStorage.getItem("theme");
 if(saved) setTheme(saved);
+
 window.deletePosition = (role)=>{
     if(confirm("Eliminar esta posición?")){
         set(ref(db,"positions/"+role), null);
     }
 };
+
 window.updatePosition = (oldRole, field, value) => {
 
     const currentRef = ref(db, "positions/" + oldRole);
@@ -673,13 +910,6 @@ window.updatePosition = (oldRole, field, value) => {
         }, {onlyOnce:true});
     }
 };
-const westjetTitleRef = ref(db,"titles/westjet");
-
-window.saveWestjetTitle = ()=>{
-    const value = document.getElementById("westjetTitle").value;
-    set(westjetTitleRef, value);
-};
-
 
 // 🔥 HACER FUNCIONES GLOBALES
 window.buscarVuelo = buscarVuelo;
@@ -740,7 +970,6 @@ function seleccionarVuelo(index, i){
     arr[index].vuelo = vuelo.vuelo;
     arr[index].destino = vuelo.destino || vuelo.origen || "N/A";
 
-    // 🔥 NO SOBRESCRIBIR
     arr[index].manual = true;
 
     arr[index].salida = vuelo.salida 
@@ -787,7 +1016,6 @@ async function autoCargarVuelos(){
             arr[i].vuelo = vuelo.vuelo;
             arr[i].destino = vuelo.destino || vuelo.origen || "N/A";
 
-            // 🔥 AQUÍ ESTÁ LA CLAVE
             arr[i].salida = vuelo.salida || "";
             arr[i].llegada = vuelo.llegada || "";
 
@@ -820,108 +1048,10 @@ function convertirHora(hora12) {
 
     return date.toTimeString().slice(0,5);
 }
-function showTab(tab){
 
-    document.getElementById("flightsTab").style.display = "none";
-    document.getElementById("positionsTab").style.display = "none";
-    document.getElementById("anunciosTab").style.display = "none";
-
-    document.getElementById(tab).style.display = "block";
-    
-}
-
-
-const posiciones = [
-  "Supervisor","Documento 1","Documento 2","Fila Rápida",
-  "Control Eq. 5x5","Make Up","Sello","Observer",
-  "Segundo Punto","Escolta","Puerta 1","Puerta 2",
-  "Rampa 1","Rampa 2","OBS Rampa","Escolta Aduana","Selectee","Verificacion Aduana","Rev 1","Rev 2"
-  ,"Rev 3","Rev 4","Rev 5","Rev 6","Rev 7"
-];
-
-async function cargarPanelAsignaciones(){
-
-  const res = await fetch("https://airportboard.onrender.com/flights");
-  const data = await res.json();
-
-  const vuelos = [...data.salidas, ...data.llegadas].slice(0,5);
-
-  let html = `<table style="width:100%; color:white;">`;
-
-  // header
-  html += `<tr><th>Posición</th>`;
-  vuelos.forEach(v => {
-    html += `<th>${v.vuelo}</th>`;
-  });
-  html += `</tr>`;
-
-  // filas
-  posiciones.forEach(pos => {
-
-    html += `<tr><td>${pos}</td>`;
-
-    vuelos.forEach(v => {
-      html += `
-        <td>
-          <input 
-            placeholder="Nombre"
-            onchange="guardarAsignacion('${v.vuelo}','${pos}', this.value)"
-          >
-        </td>
-      `;
-    });
-
-    html += `</tr>`;
-  });
-
-  html += `</table>`;
-
-  document.getElementById("tablaPanel").innerHTML = html;
-}
-
-window.onload = () => {
-  cargarPanelAsignaciones();
-};
+window.showTab("flightsTab");
 
 </script>
 
-
-<script>
-
-window.onload = () => {
-    showTab("flightsTab");
-};
-
-
-
-function guardarAnuncio() {
-    const tipo = document.getElementById("tipoAnuncio").value;
-    const texto = document.getElementById("textoAnuncio").value;
-    const media = document.getElementById("mediaURL").value;
-
-    fetch("https://airportboard.onrender.com/anuncios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            tipo,
-            texto,
-            media,
-            duracion: 10
-        })
-    })
-    .then(res => res.json())
-    .then(() => alert("✅ Anuncio guardado"));
-}
-
-async function toggleAnuncios() {
-    const res = await fetch("https://airportboard.onrender.com/anuncios/toggle", {
-        method: "POST"
-    });
-
-    const data = await res.json();
-    alert("Anuncios activos: " + data.activos);
-}
-
-</script>
 </body>
 </html>

@@ -24,6 +24,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "flightradarapi": "^1.4.0",
+    "multer": "^2.1.1",
     "node-fetch": "^3.3.2"
   }
 }

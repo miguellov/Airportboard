@@ -1,22 +1,72 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const multer = require("multer");
+const fs = require("fs");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
+// =========================
+// 📂 CONFIG ARCHIVOS (ANUNCIOS)
+// =========================
+
+// crear carpeta uploads si no existe
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+
+// servir archivos públicos
+app.use("/uploads", express.static("uploads"));
+
+// configurar multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads"),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + "-" + file.originalname;
+    cb(null, unique);
+  }
+});
+
+const upload = multer({ storage });
+
+// =========================
+// 📦 BASE DE DATOS ANUNCIOS
+// =========================
+
+const DB_FILE = "anuncios.json";
+
+function leerAnuncios() {
+  if (!fs.existsSync(DB_FILE)) return [];
+  return JSON.parse(fs.readFileSync(DB_FILE));
+}
+
+function guardarAnuncios(data) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
+
+// =========================
 // 🔐 API KEY desde Render
+// =========================
+
 const API_KEY = process.env.API_KEY;
 
 // 🛫 Aeropuerto
 const AIRPORT = "POP";
 
+// =========================
 // 🌐 Ruta base
+// =========================
+
 app.get("/", (req, res) => {
   res.send("🔥 API aeropuerto PRO funcionando");
 });
 
+// =========================
 // 🕐 Formato hora RD
+// =========================
+
 function formatHora(fecha) {
   if (!fecha) return "";
 
@@ -32,7 +82,10 @@ function formatHora(fecha) {
   }
 }
 
-// ✈️ Endpoint principal
+// =========================
+// ✈️ ENDPOINT VUELOS
+// =========================
+
 app.get("/flights", async (req, res) => {
   try {
 
@@ -44,47 +97,32 @@ app.get("/flights", async (req, res) => {
 
     const data = response.data;
 
-    // =========================
-    // ✈️ SALIDAS (LO DEJAMOS IGUAL)
-    // =========================
+    // ✈️ SALIDAS
     const salidas = (data.departures || []).slice(0, 10).map(f => ({
       vuelo: f.ident || "N/A",
       destino: f.destination?.code || "N/A",
-
-      salida: formatHora(
-        f.actual_out || f.estimated_out || f.scheduled_out
-      ),
-
+      salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
       llegada: "",
-
       estado: (f.status || "UNKNOWN").replaceAll("_", " ")
     }));
 
-    // =========================
-    // 🛬 LLEGADAS (LÓGICA REAL)
-    // =========================
+    // 🛬 LLEGADAS
     const llegadas = (data.arrivals || []).slice(0, 10).map(f => {
 
       let hora = "";
       let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
 
-      // ⏳ NO HA SALIDO DEL ORIGEN
       if (!f.actual_out) {
         hora = formatHora(f.scheduled_in);
 
-      // ✈️ EN VUELO
       } else if (f.actual_out && !f.actual_in) {
-        hora = formatHora(
-          f.estimated_in ?? f.scheduled_in
-        );
+        hora = formatHora(f.estimated_in ?? f.scheduled_in);
 
-      // 🛬 YA LLEGÓ
       } else if (f.actual_in) {
         hora = formatHora(f.actual_in);
         estado = "ARRIVED";
       }
 
-      // 🔴 DETECTAR DELAY
       if (
         f.estimated_in &&
         f.scheduled_in &&
@@ -96,10 +134,8 @@ app.get("/flights", async (req, res) => {
       return {
         vuelo: f.ident || "N/A",
         origen: f.origin?.code || "N/A",
-
         llegada: hora,
         salida: "",
-
         estado
       };
     });
@@ -116,7 +152,37 @@ app.get("/flights", async (req, res) => {
   }
 });
 
+// =========================
+// 📢 ENDPOINT ANUNCIOS (NUEVO)
+// =========================
+
+// 🔼 subir anuncio
+app.post("/anuncios", upload.single("media"), (req, res) => {
+  const anuncios = leerAnuncios();
+
+  const nuevo = {
+    id: Date.now(),
+    tipo: req.body.tipo,
+    texto: req.body.texto || "",
+    media: req.file ? `/uploads/${req.file.filename}` : null,
+    duracion: 10
+  };
+
+  anuncios.push(nuevo);
+  guardarAnuncios(anuncios);
+
+  res.json({ ok: true });
+});
+
+// 🔽 obtener anuncios
+app.get("/anuncios", (req, res) => {
+  res.json(leerAnuncios());
+});
+
+// =========================
 // 🌐 PUERTO PARA RENDER
+// =========================
+
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {

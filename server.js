@@ -246,7 +246,9 @@ app.post("/anuncios", upload.single("media"), (req, res) => {
     id: Date.now(),
     tipo: req.body.tipo,
     texto: req.body.texto || "",
-    media: req.file ? `/uploads/${req.file.filename}` : null,
+    media: req.file 
+  ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}` 
+  : null,
     duracion: 10
   };
 

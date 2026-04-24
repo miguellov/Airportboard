@@ -8,6 +8,47 @@
 
 <style>
 
+.estado-aterrizado {
+    color: #64748b; /* gris azulado apagado */
+    opacity: 0.8;
+}
+
+
+    /* ⚠️ PARPADEO */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+/* ✨ PARPADEO SUAVE */
+@keyframes rowBlink {
+    0% { background-color: rgba(34, 211, 238, 0.05); }
+    50% { background-color: rgba(34, 211, 238, 0.25); }
+    100% { background-color: rgba(34, 211, 238, 0.05); }
+}
+
+/* 🟡 WARNING */
+.row-warning {
+    animation: rowBlink 1.2s infinite;
+}
+
+/* 🔴 CRÍTICO */
+@keyframes rowDanger {
+    0% { background-color: rgba(239, 68, 68, 0.05); }
+    50% { background-color: rgba(239, 68, 68, 0.35); }
+    100% { background-color: rgba(239, 68, 68, 0.05); }
+}
+
+.row-danger {
+    animation: rowDanger 0.8s infinite;
+}
+
+
+.blink {
+    animation: blink 1s infinite;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -79,8 +120,23 @@ body {
     box-sizing: border-box;
 }
 
+.flight-progress {
+    height: 4px; /* 🔽 más fina */
+    margin-top: 3px;
+}
+
 .flights-view.active {
     display: flex;
+}
+
+.plane {
+    font-size: 12px;
+    top: -8px;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed; /* 🔥 CLAVE */
 }
 
 table {
@@ -99,28 +155,54 @@ th {
 }
 
 td {
-    font-size: 26px;
-    padding: 18px;
-    text-align: center;
-    border-bottom: 1px solid #1e293b;
-    color: #ccc;
+    font-size: 34px; /* 🔥 más grande */
+    padding: 24px;   /* 🔥 más espacio */
 }
 
 tr:hover {
     background: rgba(14, 165, 233, 0.05);
 }
 
+
+/* VUELO */
+td:nth-child(1), th:nth-child(1) {
+    width: 15%;
+}
+
+/* DESTINO */
+td:nth-child(2), th:nth-child(2) {
+    width: 25%;
+}
+
+/* LLEGADA */
+td:nth-child(3), th:nth-child(3) {
+    width: 15%;
+}
+
+/* SALIDA */
+td:nth-child(4), th:nth-child(4) {
+    width: 15%;
+}
+
+/* GATE */
+td:nth-child(5), th:nth-child(5) {
+    width: 10%;
+}
+
+/* ESTADO */
+td:nth-child(6), th:nth-child(6) {
+    width: 20%;
+}
+
 /* ========================= */
 /* TABLA DE ASIGNACIONES */
 /* ========================= */
 .assignments-view {
-    width: 100%;
-    height: 100%;
-    display: none;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
+    display: flex;
+flex-direction: column;
+align-items: stretch; /* 🔥 ocupa todo el ancho */
+padding: 20px;
+gap: 15px;
 }
 
 .assignments-view.active {
@@ -146,13 +228,66 @@ tr:hover {
 }
 
 .assignment-card {
-    background: rgba(14, 165, 233, 0.1);
-    border: 2px solid #00e0ff;
-    border-radius: 10px;
-    padding: 20px;
+    width: 100%;
+    height: 140px;
+
     display: flex;
     flex-direction: column;
-    gap: 10px;
+
+    padding: 15px;
+    border-radius: 10px;
+}
+.assignment-card .role {
+    text-align: center;
+    font-size: 16px;
+    height: 30px; /* 🔥 fija el espacio arriba */
+    color: #7dd3fc; /* 🔵 azul suave */
+    opacity: 0.7;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+.assignment-card .name {
+    flex: 1; /* 🔥 ocupa todo el resto */
+    color: #ffc400; /* 💡 cian fuerte (protagonista) */
+    font-size: 26px;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.card {
+    width: 100%; /* 🔥 clave */
+    max-width: 900px; /* opcional para no exagerar */
+    margin: 0 auto; /* centra pero ancho completo */
+}
+
+.card {
+    width: 100%;
+    margin: 0;
+}
+
+.assignment-card .name {
+    font-size: 24px;
+    font-weight: bold;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 1; /* 🔥 ocupa el espacio restante */
+    width: 100%;
+    text-align: center;
+}
+
+.assignment-card .name {
+    letter-spacing: 1px;
 }
 
 .assignment-role {
@@ -171,39 +306,45 @@ tr:hover {
 /* ========================= */
 /* ANUNCIOS (IMÁGENES/VIDEOS) */
 /* ========================= */
+/* 📢 CONTENEDOR ANUNCIO */
 .announcement-view {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: black;
     width: 100%;
     height: 100%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-    position: relative;
+    overflow: hidden; /* 🔥 evita desbordes */
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .announcement-view.active {
     display: flex;
 }
 
-.announcement-media {
+/* 🖼 IMAGEN / VIDEO */
+.announcement-media,
+.announcement-view video {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain;
+    object-fit: contain; /* 🔥 mantiene proporción */
 }
 
+/* 📝 TEXTO RESPONSIVE */
 .announcement-text {
-    font-size: 80px;
-    color: #00e0ff;
+    font-size: clamp(30px, 4vw, 60px); /* 🔽 más compacto */
     text-align: center;
-    font-weight: bold;
-    text-shadow: 0 0 20px #00e0ff;
-    padding: 40px;
+    max-width: 95%; /* 🔥 más ancho */
+    line-height: 1.1; /* 🔽 menos altura */
+    margin: auto;
 }
 
 /* ========================= */
 /* INDICADOR DE VISTA */
 /* ========================= */
 .view-indicator {
+    display: none;
     position: fixed;
     top: 10px;
     right: 10px;
@@ -255,12 +396,160 @@ tr:hover {
     }
     
     th {
-        font-size: 20px;
-    }
+    font-size: 32px;
+    padding: 18px;
+}
     
     td {
         font-size: 18px;
     }
+}
+
+tr {
+    height: 55px; /* 🔽 compacto */
+}
+
+td, th {
+    text-align: center;
+    vertical-align: middle;
+}
+
+td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+td {
+    font-size: 26px; /* 🔽 un poco más pequeño */
+    padding: 8px 12px; /* 🔥 menos altura */
+}
+th {
+    font-size: 28px;
+}
+
+td:first-child {
+    font-size: 36px;
+    font-weight: bold;
+}
+
+.assignment-card {
+    background: rgba(14, 165, 233, 0.1);
+    border: 2px solid #00e0ff;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: 0.3s;
+}
+
+
+/* 🎨 variantes de color */
+.card-blue { border-color:#38bdf8; color:#38bdf8; }
+.card-green { border-color:#22c55e; color:#22c55e; }
+.card-yellow { border-color:#facc15; color:#facc15; }
+.card-purple { border-color:#a855f7; color:#a855f7; }
+.card-red { border-color:#ef4444; color:#ef4444; }
+.card-cyan { border-color:#00ffff; color:#00ffff; }
+
+/* 🎬 TRANSICIONES MODO CINE */
+.flights-view,
+.assignments-view,
+.announcement-view {
+    display: none;
+    flex-direction: column;
+    justify-content: flex-start; /* 🔥 arriba */
+    align-items: stretch; /* 🔥 ancho completo */
+    background: black;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    padding: 10px 40px;
+    box-sizing: border-box;
+}
+.flights-view.active,
+.assignments-view.active,
+.announcement-view.active {
+    opacity: 1;
+    position: relative;
+}
+
+/* 🎥 ANUNCIO FULLSCREEN MÁS LIMPIO */
+.announcement-view {
+    background: black;
+}
+
+.announcement-text {
+    animation: fadeZoom 0.8s ease;
+}
+
+@keyframes fadeZoom {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 🔥 PROGRESO MEJORADO */
+.flight-progress {
+    position: relative;
+    width: 300px; /* 🔥 MÁS LARGA (puedes subir a 350px) */
+    height: 8px; /* 🔥 MÁS GRUESA */
+    background: #1e293b;
+    border-radius: 10px;
+    margin: 8px auto 0 auto; /* 🔥 centrada */
+    overflow: hidden;
+}
+
+/* 🔵 BARRA */
+.flight-bar {
+    height: 100%;
+    background: #22d3ee;
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.5s ease;
+
+    /* 🔥 glow */
+    box-shadow: 0 0 10px #22d3ee;
+}
+
+/* ✈️ AVIÓN */
+.plane {
+    position: absolute;
+    top: -14px;
+
+    font-size: 18px; /* 🔥 más grande */
+    color: #ffffff; /* 🔥 blanco para que se vea */
+
+    transform: translateX(-50%);
+    z-index: 2; /* 🔥 encima de la barra */
+
+    text-shadow: 0 0 6px #00ffff; /* 🔥 glow */
+}
+/* ⏱ COUNTDOWN */
+.countdown {
+    font-size: 25px;
+    font-weight: bold;
+    color: #00ffff;
+
+    text-shadow: 0 0 10px #00ffff; /* 🔥 glow pro */
+}
+
+.countdown {
+    color: #22c55e;
+}
+
+.countdown.warning {
+    color: #facc15;
+}
+
+.countdown.danger {
+    color: #ef4444;
 }
 
 </style>
@@ -302,16 +591,23 @@ tr:hover {
     </div>
 
     <!-- VISTA DE ASIGNACIONES -->
-    <div class="assignments-view" id="assignmentsView">
-        <div class="assignments-title" id="assignmentsTitle">ASIGNACIONES</div>
-        <div class="assignments-grid" id="assignmentsGrid"></div>
-    </div>
+    <!-- 🟢 WESTJET -->
+<div class="assignments-view" id="westjetView">
+    <div class="assignments-title" id="titleWestjet">ASIGNACIONES WESTJET</div>
+    <div class="assignments-grid" id="gridWestjet"></div>
+</div>
 
-    <!-- VISTA DE ANUNCIOS -->
-    <div class="announcement-view" id="announcementView">
-        <img id="announcementMedia" class="announcement-media" alt="Anuncio">
-        <div id="announcementText" class="announcement-text"></div>
-    </div>
+<!-- 🔵 JETBLUE -->
+<div class="assignments-view" id="jetblueView">
+    <div class="assignments-title" id="titleJetblue">ASIGNACIONES JETBLUE</div>
+    <div class="assignments-grid" id="gridJetblue"></div>
+</div>
+
+<!-- 📢 ANUNCIOS -->
+<div class="announcement-view" id="announcementView">
+    <img id="announcementMedia" class="announcement-media" style="display:none;">
+    <div id="announcementText" class="announcement-text" style="display:none;"></div>
+</div>
 
 </div>
 
@@ -345,6 +641,9 @@ let flights = [];
 let assignments = [];
 let rotationDelay = 10; // segundos
 
+
+
+
 /* ========================= */
 /* RELOJ Y FECHA */
 /* ========================= */
@@ -365,6 +664,108 @@ function updateClock() {
     });
 }
 
+function actualizarProgreso() {
+
+    flights.forEach(f => {
+
+        if(!f.llegada) return;
+
+        let [h,m] = f.llegada.split(":");
+        let llegada = new Date();
+        llegada.setHours(h,m,0);
+
+        let diffMs = llegada.getTime() - Date.now();
+        let diffMin = Math.floor(diffMs / 60000);
+
+        let totalMin = 120;
+        let progreso = 100 - (diffMin / totalMin * 100);
+
+        if(progreso < 0) progreso = 0;
+        if(progreso > 100) progreso = 100;
+
+        // 🔥 actualizar barra
+        const bar = document.getElementById(`bar-${f.vuelo}`);
+        const plane = document.getElementById(`plane-${f.vuelo}`);
+        const cd = document.getElementById(`cd-${f.vuelo}`);
+        const estado = document.getElementById(`estado-${f.vuelo}`);
+
+        if(bar) bar.style.width = progreso + "%";
+        if(plane) plane.style.left = progreso + "%";
+
+        // ⏱ countdown
+        if (cd) {
+
+   if (cd) {
+
+    if (diffMin <= 0) {
+        cd.innerText = "0m";
+        if (estado) {
+
+    const texto = estado.innerText.toLowerCase();
+
+    estado.classList.remove("estado-aterrizado");
+
+    if (diffMin <= 0) {
+
+        // 🚫 NO sobrescribir estados manuales importantes
+        if (
+            !texto.includes("delayed") &&
+            !texto.includes("cancelled") &&
+            !texto.includes("diverted")
+        ) {
+            estado.innerText = "Aterrizado";
+estado.classList.add("estado-aterrizado");
+        }
+    }
+}
+    } else {
+
+        const horas = Math.floor(diffMin / 60);
+        const minutos = diffMin % 60;
+
+        if (horas > 0) {
+            // 🔥 tiene horas
+            const mm = String(minutos).padStart(2, '0');
+            cd.innerText = `${horas}h ${mm}m`;
+        } else {
+            // 🔥 solo minutos
+            cd.innerText = `${minutos}m`;
+        }
+    
+        // 🔥 COLORES + PARPADEO
+        cd.classList.remove("warning", "danger", "blink");
+
+        if (diffMin <= 30) {
+            cd.classList.add("warning", "blink"); // ⚠️ amarillo + parpadeo
+        }
+
+        if (diffMin <= 10) {
+            cd.classList.remove("warning");
+            cd.classList.add("danger", "blink"); // 🔴 rojo + parpadeo fuerte
+        }
+
+        const row = document.getElementById(`row-${f.vuelo}`);
+
+if(row){
+    row.classList.remove("row-warning", "row-danger");
+
+    if(diffMin <= 30 && diffMin > 10){
+        row.classList.add("row-warning"); // 🟡 parpadeo suave
+    }
+
+    if(diffMin <= 10){
+        row.classList.add("row-danger"); // 🔴 parpadeo fuerte
+    }
+}
+    }
+}
+}
+    });
+}
+
+
+setInterval(actualizarProgreso, 1000);
+
 updateClock();
 setInterval(updateClock, 1000);
 
@@ -374,6 +775,10 @@ setInterval(updateClock, 1000);
 onValue(ref(db, 'ticker/message'), (snap) => {
     const message = snap.val() || 'Bienvenidos al Aeropuerto • Welcome to the Airport';
     document.getElementById('ticker').innerText = message;
+});
+
+onValue(ref(db, 'anuncios'), (snap) => {
+    announcements = Object.values(snap.val() || {});
 });
 
 /* ========================= */
@@ -390,17 +795,82 @@ function renderFlights() {
     
     flights.forEach(flight => {
         const row = `
-            <tr>
+            <tr id="row-${flight.vuelo}">
                 <td>${flight.vuelo || 'N/A'}</td>
                 <td>${flight.destino || 'N/A'}</td>
-                <td>${flight.llegada || 'N/A'}</td>
+                <td>
+     ${flight.llegada || "N/A"}
+
+    <div class="flight-progress">
+        <div class="flight-bar" id="bar-${flight.vuelo}"></div>
+        <div class="plane" id="plane-${flight.vuelo}">✈️</div>
+    </div>
+
+    <small class="countdown" id="cd-${flight.vuelo}">--</small>
+</td>
+    <small class="countdown" id="cd-${flight.vuelo}">--</small>
+</div>
+</div>
+</td>
                 <td>${flight.salida || 'N/A'}</td>
                 <td>${flight.gate || 'N/A'}</td>
-                <td>${flight.estado || 'N/A'}</td>
+                <td id="estado-${flight.vuelo}">${flight.estado || 'N/A'}</td>
             </tr>
         `;
         tbody.innerHTML += row;
     });
+
+    let countdownClass = "countdown-green";
+
+if(diffMin <= 60){
+    countdownClass = "countdown-yellow";
+}
+
+if(diffMin <= 15){
+    countdownClass = "countdown-red";
+}
+}
+
+function showAnnouncement() {
+
+    if (announcements.length === 0) return;
+
+    const anuncio = announcements[currentAnnouncementIndex];
+
+    const media = document.getElementById('announcementMedia');
+const text = document.getElementById('announcementText');
+
+media.style.display = "none";
+text.style.display = "none";
+
+// VIDEO o IMAGEN
+if (anuncio.media) {
+
+    if (anuncio.media.includes(".mp4")) {
+
+        media.outerHTML = `
+            <video id="announcementMedia" autoplay muted 
+            style="max-width:100%;max-height:100%;object-fit:contain;">
+            <source src="${anuncio.media}" type="video/mp4">
+            </video>
+        `;
+
+    } else {
+        media.src = anuncio.media;
+        media.style.display = "block";
+    }
+}
+
+// TEXTO
+else if (anuncio.texto) {
+    text.innerText = anuncio.texto;
+    text.style.display = "block";
+}
+
+    currentAnnouncementIndex++;
+    if (currentAnnouncementIndex >= announcements.length) {
+        currentAnnouncementIndex = 0;
+    }
 }
 
 /* ========================= */
@@ -416,101 +886,106 @@ onValue(ref(db, 'positions'), (snap) => {
 });
 
 function renderAssignments() {
-    const grid = document.getElementById('assignmentsGrid');
-    grid.innerHTML = '';
-    
-    assignments.forEach(assignment => {
-        const card = `
-            <div class="assignment-card">
-                <div class="assignment-role">${assignment.role}</div>
-                <div class="assignment-name">${assignment.name}</div>
-            </div>
-        `;
-        grid.innerHTML += card;
-    });
+
+    let westHTML = "";
+    let jetHTML = "";
+
+    assignments.forEach(a => {
+
+        const colores = ["blue","green","yellow","purple","red","cyan"];
+
+// 🎯 función para asignar color
+function getColor(role){
+    role = role.toLowerCase();
+
+    if(role.includes("puerta")) return "blue";
+    if(role.includes("rampa")) return "green";
+    if(role.includes("escorta") || role.includes("escolta")) return "purple";
+
+    // fallback automático
+    const index = role.length % colores.length;
+    return colores[index];
 }
 
-/* ========================= */
-/* CARGAR ANUNCIOS */
-/* ========================= */
-onValue(ref(db, 'anuncios'), (snap) => {
-    announcements = Object.values(snap.val() || {});
-    console.log('Anuncios cargados:', announcements.length);
-});
+const colorClass = "card-" + getColor(a.role);
+
+const card = `
+<div class="assignment-card ${colorClass}">
+            <div class="role">${a.role}</div>
+            <div class="name">${a.name}</div>
+        </div>`;
+
+        if (a.role.includes("WEST")) {
+            westHTML += card;
+        } else {
+            jetHTML += card;
+        }
+    });
+
+    document.getElementById('gridWestjet').innerHTML = westHTML;
+    document.getElementById('gridJetblue').innerHTML = jetHTML;
+}
 
 /* ========================= */
 /* CAMBIAR VISTA */
 /* ========================= */
 function switchView(view) {
-    // Ocultar todas las vistas
+
+    // ocultar todas
     document.getElementById('flightsView').classList.remove('active');
-    document.getElementById('assignmentsView').classList.remove('active');
+    document.getElementById('westjetView').classList.remove('active');
+    document.getElementById('jetblueView').classList.remove('active');
     document.getElementById('announcementView').classList.remove('active');
     
-    // Mostrar la nueva vista
+
     if (view === 'flights') {
         document.getElementById('flightsView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '📊 VUELOS';
-    } else if (view === 'assignments') {
-        document.getElementById('assignmentsView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '👨‍✈️ ASIGNACIONES';
-    } else if (view === 'announcement') {
-        document.getElementById('announcementView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '📢 ANUNCIO';
-        showAnnouncement();
     }
-    
+
+    else if (view === 'westjet') {
+        document.getElementById('westjetView').classList.add('active');
+    }
+
+    else if (view === 'jetblue') {
+        document.getElementById('jetblueView').classList.add('active');
+    }
+    else if (view === 'announcement') {
+    document.getElementById('announcementView').classList.add('active');
+    showAnnouncement();
+}
+
+
     currentView = view;
 }
 
-/* ========================= */
-/* MOSTRAR ANUNCIO */
-/* ========================= */
-function showAnnouncement() {
-    if (announcements.length === 0) return;
-    
-    const announcement = announcements[currentAnnouncementIndex];
-    const mediaElement = document.getElementById('announcementMedia');
-    const textElement = document.getElementById('announcementText');
-    
-    mediaElement.style.display = 'none';
-    textElement.style.display = 'none';
-    
-    if (announcement.media) {
-        if (announcement.media.includes('.mp4') || announcement.media.includes('video')) {
-            mediaElement.src = announcement.media;
-            mediaElement.style.display = 'block';
-        } else {
-            mediaElement.src = announcement.media;
-            mediaElement.style.display = 'block';
-        }
-    } else if (announcement.texto) {
-        textElement.innerText = announcement.texto;
-        textElement.style.display = 'block';
-    }
-    
-    currentAnnouncementIndex = (currentAnnouncementIndex + 1) % announcements.length;
-}
 
 /* ========================= */
 /* ROTACIÓN AUTOMÁTICA */
 /* ========================= */
 function startRotation() {
-    // Iniciar con VUELOS
+
     switchView('flights');
-    
+
     rotationTimer = setInterval(() => {
+
         if (currentView === 'flights') {
-            switchView('assignments');
-        } else if (currentView === 'assignments') {
+            switchView('westjet');
+        } 
+        else if (currentView === 'westjet') {
+            switchView('jetblue');
+        } 
+        else if (currentView === 'jetblue') {
+
             if (announcements.length > 0) {
                 switchView('announcement');
             } else {
                 switchView('flights');
             }
-        } else if (currentView === 'announcement') {
+        } 
+        else if (currentView === 'announcement') {
             switchView('flights');
         }
+
     }, rotationDelay * 1000);
 }
 

@@ -1,572 +1,894 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" type="image/png" href="Logopn.png">
+    <link rel="icon" href="Logopn.png" sizes="32x32">
+<link rel="icon" href="Logopn.png" sizes="16x16">
+<link rel="apple-touch-icon" href="Logopn.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Airport Board Display</title>
+<title>Airport Board PRO</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 
-body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    color: #00e0ff;
-    font-family: 'Inter', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+
+
+
+    .header{
+    position:relative;
+    z-index:1000000;
+}
+    
+.anuncio-full{
+    position:fixed;
+    top:100px; /* altura del header */
+    left:0;
+    width:100%;
+    height:calc(100% - 100px);
+    background:black;
+    z-index:999999;
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+    
+    .flight-progress{
+    position:relative;
+    height:6px;
+    background:#1e293b;
+    border-radius:10px;
+    margin-top:5px;
 }
 
-/* ========================= */
+.flight-bar{
+    height:100%;
+    background:#22d3ee;
+    border-radius:10px;
+    width:0%;
+}
+
+.plane{
+    position:absolute;
+    top:-10px;
+    font-size:14px;
+    transform:translateX(-50%);
+}
+body{
+    margin:0;
+    background:linear-gradient(180deg,#000,#05080a);
+    color:#7dd3fc;
+    font-family:'Inter', sans-serif;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+}
+
 /* HEADER */
-/* ========================= */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 40px;
-    border-bottom: 2px solid #0ea5e9;
-    background: linear-gradient(180deg, #000, #0a0f1c);
-    z-index: 1000;
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 40px;
+    border-bottom:2px solid #0ea5e9;
 }
 
-.left {
-    display: flex;
-    align-items: center;
-    gap: 20px;
+.left{
+    display:flex;
+    align-items:center;
+    gap:15px;
 }
 
-.logo {
-    height: 50px;
+.logo{ height:42px; }
+
+.title{
+    font-size:38px;
+    font-family:'Orbitron', sans-serif;
+    color:#38bdf8;
 }
 
-.title {
-    font-size: 40px;
-    font-family: 'Orbitron', sans-serif;
-    color: #38bdf8;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+.time{
+    font-size:70px;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    letter-spacing:3px;
+    color:#00ffff;
 }
 
-.time {
-    font-size: 60px;
-    font-weight: 700;
-    color: #00ffff;
-    letter-spacing: 3px;
-    text-align: right;
+/* FULLSCREEN */
+.fullscreen-btn{
+    background:transparent;
+    color:#22d3ee;
+    border:1px solid #22d3ee;
+    padding:6px 10px;
+    border-radius:6px;
 }
 
-.date {
-    font-size: 16px;
-    color: #7dd3fc;
+.slide{
+    display:none;
+    height:100%;
 }
 
-/* ========================= */
-/* CONTENEDOR PRINCIPAL */
-/* ========================= */
-.content-container {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
+.slide.active{
+    display:block;
 }
 
-/* ========================= */
-/* VISTA INDICADOR */
-/* ========================= */
-.view-indicator {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: #0ea5e9;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 14px;
-    z-index: 2000;
-    text-transform: uppercase;
-    font-weight: bold;
+.assignments-title{
+    font-size:30px;
+    text-align:center;
+    margin-bottom:15px;
 }
 
-/* ========================= */
-/* TABLA DE VUELOS */
-/* ========================= */
-.flights-view {
-    width: 100%;
-    height: 100%;
-    display: none;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
+.assignments-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
 }
 
-.flights-view.active {
-    display: flex;
+.assignment-card{
+    background:#e2e8f0;
+    padding:10px;
+    border-radius:6px;
+    min-width:120px;
+    text-align:center;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    flex: 1;
+
+
+/* TABLA */
+
+
+.table-container{ flex:1; overflow:hidden; }
+
+table{ width:100%; border-collapse:collapse; }
+
+th{
+    font-size:24px;
+    padding:12px;
+    border-bottom:1px solid #0ea5e9;
 }
 
-th {
-    font-size: 28px;
-    padding: 15px;
-    border-bottom: 2px solid #0ea5e9;
-    background: rgba(14, 165, 233, 0.1);
-    color: #00e0ff;
-    text-transform: uppercase;
+td{
+    font-size:30px;
+    padding:14px;
+    text-align:center;
 }
 
-td {
-    font-size: 26px;
-    padding: 18px;
-    text-align: center;
-    border-bottom: 1px solid #1e293b;
-    color: #ccc;
+/* ESTADOS */
+.on-time { color:#4ade80; }
+.delayed { color:#f87171; }
+.boarding { color:#38bdf8; }
+.departed { color:#fbbf24; }
+.arrived { color:#94a3b8; }
+
+tr.on-time { background:rgba(0,40,20,0.6); }
+tr.delayed { background:rgba(60,0,0,0.6); }
+tr.boarding { background:rgba(0,30,60,0.6); }
+tr.departed { background:rgba(60,40,0,0.6); }
+tr.arrived { background:rgba(50,50,50,0.5); }
+
+/* EFECTOS */
+.blink{ animation:blink 1s infinite; }
+@keyframes blink{ 50%{opacity:0.4;} }
+
+/* PANELES */
+.positions-wrapper{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
 }
 
-tr:hover {
-    background: rgba(14, 165, 233, 0.05);
+.jetblue{
+    border-top:2px solid #1d4ed8;
+    background:rgba(29,78,216,0.1);
 }
 
-/* ========================= */
-/* TABLA DE ASIGNACIONES */
-/* ========================= */
-.assignments-view {
-    width: 100%;
-    height: 100%;
-    display: none;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto;
+.westjet{
+    border-top:2px solid #16a34a;
+    background:rgba(22,163,74,0.1);
 }
 
-.assignments-view.active {
-    display: flex;
+.positions-panel{
+    padding:6px 10px;
 }
 
-.assignments-title {
-    font-size: 32px;
-    color: #00e0ff;
-    margin-bottom: 20px;
-    text-transform: uppercase;
-    text-align: center;
-    letter-spacing: 2px;
-    border-bottom: 2px solid #0ea5e9;
-    padding-bottom: 10px;
+.panel-title{
+    font-size:14px;
+    margin-bottom:4px;
+    font-weight:bold;
+    letter-spacing:1px;
 }
 
-.assignments-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
-    flex: 1;
+/* GRID */
+.positions-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
 }
 
-.assignment-card {
-    background: rgba(14, 165, 233, 0.1);
-    border: 2px solid #00e0ff;
-    border-radius: 10px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.pos-card{
+    min-width:110px;
+    padding:6px;
+    border-radius:6px;
+    background:#e2e8f0;
+    border:1px solid #94a3b8;
+    text-align:center;
 }
 
-.assignment-role {
-    font-size: 18px;
-    color: #7dd3fc;
-    font-weight: bold;
-    text-transform: uppercase;
+.role{
+    font-size:10px;
+    color:#334155;
 }
 
-.assignment-name {
-    font-size: 24px;
-    color: #00ffff;
-    font-weight: bold;
+.name{
+    font-size:13px;
+    font-weight:bold;
+    color:#0f172a;
 }
 
-/* ========================= */
-/* ANUNCIOS (IMÁGENES/VIDEOS) */
-/* ========================= */
-.announcement-view {
-    width: 100%;
-    height: 100%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-    position: relative;
-}
-
-.announcement-view.active {
-    display: flex;
-}
-
-.announcement-media {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-.announcement-text {
-    font-size: 80px;
-    color: #00e0ff;
-    text-align: center;
-    font-weight: bold;
-    text-shadow: 0 0 20px #00e0ff;
-    padding: 40px;
-}
-
-/* ========================= */
 /* TICKER */
-/* ========================= */
-.ticker {
-    height: 50px;
-    border-top: 2px solid #0ea5e9;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    background: rgba(10, 15, 28, 0.8);
-    z-index: 999;
+.ticker{
+    height:40px;
+    border-top:2px solid #0ea5e9;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
 }
 
-.ticker-text {
-    white-space: nowrap;
-    font-size: 24px;
-    padding-left: 100%;
-    animation: scroll 30s linear infinite;
-    color: #00ffff;
+.ticker-text{
+    white-space:nowrap;
+    font-size:22px;
+    padding-left:100%;
+    animation:scroll 25s linear infinite;
 }
 
-@keyframes scroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-100%); }
+@keyframes scroll{
+    from{transform:translateX(0);}
+    to{transform:translateX(-100%);}
 }
+@media (max-width: 768px){
 
-/* ========================= */
-/* RESPONSIVE */
-/* ========================= */
-@media (max-width: 1024px) {
-    .title {
-        font-size: 28px;
+    .time{
+        font-size:30px;
     }
-    
-    .time {
-        font-size: 40px;
+
+    .title{
+        font-size:20px;
     }
-    
-    th {
-        font-size: 20px;
+
+    th{
+        font-size:14px;
     }
-    
-    td {
-        font-size: 18px;
+
+    td{
+        font-size:16px;
+        padding:8px;
+    }
+
+    .header{
+        padding:10px;
+    }
+
+    table{
+        font-size:12px;
     }
 }
-
+.countdown-green { color:#22c55e !important; }
+.countdown-yellow { color:#facc15 !important; }
+.countdown-red { color:#ef4444 !important; }
 </style>
 </head>
 
 <body>
-
-<div class="view-indicator" id="viewIndicator">📊 VUELOS</div>
-
+<div id="anuncioFull" class="anuncio-full"></div>
 <div class="header">
+    <div id="anuncioFull" style="display:none;"></div>
     <div class="left">
-        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" alt="Logo">
-        <div class="title">🛫 AIRPORT DISPLAY</div>
+        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png">
+        <div class="title">LONGPORT BOARD POP</div>
     </div>
 
-    <div style="text-align: right;">
-        <div class="date" id="date"></div>
-        <div class="time" id="clock"></div>
-    </div>
-</div>
+    <div style="display:flex; align-items:center; gap:25px;">
 
-<div class="content-container">
+    <div style="text-align:right;">
+        <div id="date" style="font-size:20px; color:#7dd3fc;"></div>
+        <div id="clock" class="time"></div>
+    </div>
     
-    <!-- VISTA DE VUELOS -->
-    <div class="flights-view active" id="flightsView">
+
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+
+</div>
+</div>
+<div id="slidesContainer">
+
+    <!-- SLIDE VUELOS -->
+    <div class="slide active" id="slideFlights">
         <table>
-            <thead>
-                <tr>
-                    <th>VUELO</th>
-                    <th>DESTINO</th>
-                    <th>LLEGADA</th>
-                    <th>SALIDA</th>
-                    <th>GATE</th>
-                    <th>ESTADO</th>
-                </tr>
-            </thead>
-            <tbody id="flightsTable"></tbody>
+            ...
         </table>
     </div>
 
-    <!-- VISTA DE ASIGNACIONES -->
-    <div class="assignments-view" id="assignmentsView">
-        <div class="assignments-title" id="assignmentsTitle">ASIGNACIONES</div>
-        <div class="assignments-grid" id="assignmentsGrid"></div>
+    <!-- SLIDE WESTJET -->
+    <div class="slide" id="slideWestjet">
+        <div class="assignments-title" id="titleWestjet"></div>
+        <div id="gridWestjet" class="assignments-grid"></div>
     </div>
 
-    <!-- VISTA DE ANUNCIOS -->
-    <div class="announcement-view" id="announcementView">
-        <img id="announcementMedia" class="announcement-media" alt="Anuncio" style="display:none;">
-        <video id="announcementVideo" class="announcement-media" style="display:none;"></video>
-        <div id="announcementText" class="announcement-text" style="display:none;"></div>
+    <!-- SLIDE JETBLUE -->
+    <div class="slide" id="slideJetblue">
+        <div class="assignments-title" id="titleJetblue"></div>
+        <div id="gridJetblue" class="assignments-grid"></div>
+    </div>
+
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>VUELO</th>
+<th>DESTINO</th>
+<th>LLEGADA</th>
+<th>SALIDA</th>
+<th>GATE</th>
+<th>ESTADO</th>
+</tr>
+</thead>
+<tbody id="board"></tbody>
+</table>
+</div>
+
+<!-- 🔥 PANELES SIN TEXTO FIJO -->
+<div class="positions-wrapper">
+
+    <div class="positions-panel westjet">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsWestjet"></div>
+    </div>
+
+    <div class="positions-panel jetblue">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsJetblue"></div>
     </div>
 
 </div>
 
 <div class="ticker">
-    <div class="ticker-text" id="ticker">Bienvenidos al Aeropuerto • Welcome to the Airport</div>
+    <div class="ticker-text" id="ticker"></div>
 </div>
 
 <script type="module">
 
+    let anunciosActivos = false;
+
+async function verificarEstadoAnuncios() {
+    try {
+        const res = await fetch("https://airportboard.onrender.com/anuncios/estado");
+        const data = await res.json();
+
+        anunciosActivos = data.activos;
+
+    } catch (e) {
+        console.log("Error estado anuncios", e);
+    }
+}
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-    apiKey: "933c97406ad862095eade39aef8a1f5d",
-    authDomain: "airport-board-ee661.firebaseapp.com",
-    databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-    projectId: "airport-board-ee661"
-};
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp({
+  apiKey: "933c97406ad862095eade39aef8a1f5d",
+  authDomain: "airport-board-ee661.firebaseapp.com",
+  databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
+  projectId: "airport-board-ee661"
+});
+
 const db = getDatabase(app);
+onValue(ref(db,"anuncios"), snap=>{
+    anuncios = Object.values(snap.val() || {});
+});
+// 🔥 TITULOS DINAMICOS
 
-/* ========================= */
-/* ESTADO DEL SISTEMA */
-/* ========================= */
-let currentView = 'flights';
-let rotationTimer = null;
-let announcements = [];
-let currentAnnouncementIndex = 0;
-let flights = [];
-let assignments = [];
-const rotationDelay = 10; // segundos
+onValue(ref(db,"titles/westjet"), snap=>{
+    const value = snap.val() || "ASIGNACIONES WESTJET";
+    document.querySelector(".westjet .panel-title").innerText = value;
+});
 
-/* ========================= */
-/* RELOJ Y FECHA */
-/* ========================= */
-function updateClock() {
+onValue(ref(db,"titles/jetblue"), snap=>{
+    const value = snap.val() || "ASIGNACIONES JETBLUE";
+    document.querySelector(".jetblue .panel-title").innerText = value;
+});
+/* RELOJ */
+setInterval(()=>{
+
     const now = new Date();
-    
-    document.getElementById('clock').innerText = now.toLocaleTimeString('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    
-    document.getElementById('date').innerText = now.toLocaleDateString('es-CO', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-    });
-}
 
-updateClock();
-setInterval(updateClock, 1000);
+    // 🕒 HORA
+    document.getElementById("clock").innerText =
+        now.toLocaleTimeString('es-DO');
 
-/* ========================= */
-/* CARGAR TICKER */
-/* ========================= */
-onValue(ref(db, 'ticker/message'), (snap) => {
-    const message = snap.val() || 'Bienvenidos al Aeropuerto • Welcome to the Airport';
-    document.getElementById('ticker').innerText = message;
-});
+    // 📅 FECHA + DÍA
+    document.getElementById("date").innerText =
+        now.toLocaleDateString('es-DO', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
 
-/* ========================= */
-/* CARGAR VUELOS */
-/* ========================= */
-onValue(ref(db, 'flights'), (snap) => {
-    flights = Object.values(snap.val() || {});
-    renderFlights();
-});
+},1000);
 
-function renderFlights() {
-    const tbody = document.getElementById('flightsTable');
-    tbody.innerHTML = '';
-    
-    flights.forEach(flight => {
-        const row = `
-            <tr>
-                <td>${flight.vuelo || 'N/A'}</td>
-                <td>${flight.destino || 'N/A'}</td>
-                <td>${flight.llegada || 'N/A'}</td>
-                <td>${flight.salida || 'N/A'}</td>
-                <td>${flight.gate || 'N/A'}</td>
-                <td>${flight.estado || 'N/A'}</td>
-            </tr>
-        `;
-        tbody.innerHTML += row;
-    });
-}
 
-/* ========================= */
-/* CARGAR ASIGNACIONES */
-/* ========================= */
-onValue(ref(db, 'positions'), (snap) => {
-    const data = snap.val() || {};
-    assignments = Object.entries(data).map(([role, name]) => ({
-        role: role.toUpperCase(),
-        name: name
-    }));
-    renderAssignments();
-});
+function actualizarPantalla() {
 
-onValue(ref(db, 'titles/jetblue'), (snap) => {
-    const title = snap.val() || 'ASIGNACIONES JETBLUE';
-    document.getElementById('assignmentsTitle').innerText = title;
-});
-
-onValue(ref(db, 'titles/westjet'), (snap) => {
-    const title = snap.val() || 'ASIGNACIONES WESTJET';
-    document.getElementById('assignmentsTitle').innerText = title;
-});
-
-function renderAssignments() {
-    const grid = document.getElementById('assignmentsGrid');
-    grid.innerHTML = '';
-    
-    assignments.forEach(assignment => {
-        const card = `
-            <div class="assignment-card">
-                <div class="assignment-role">${assignment.role}</div>
-                <div class="assignment-name">${assignment.name}</div>
-            </div>
-        `;
-        grid.innerHTML += card;
-    });
-}
-
-/* ========================= */
-/* CARGAR ANUNCIOS */
-/* ========================= */
-onValue(ref(db, 'anuncios'), (snap) => {
-    announcements = Object.values(snap.val() || {});
-    console.log('Anuncios cargados:', announcements.length);
-});
-
-/* ========================= */
-/* CAMBIAR VISTA */
-/* ========================= */
-function switchView(view) {
-    // Ocultar todas las vistas
-    document.getElementById('flightsView').classList.remove('active');
-    document.getElementById('assignmentsView').classList.remove('active');
-    document.getElementById('announcementView').classList.remove('active');
-    
-    // Mostrar la nueva vista
-    if (view === 'flights') {
-        document.getElementById('flightsView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '📊 VUELOS';
-    } else if (view === 'assignments') {
-        document.getElementById('assignmentsView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '👨‍✈️ ASIGNACIONES';
-    } else if (view === 'announcement') {
-        document.getElementById('announcementView').classList.add('active');
-        document.getElementById('viewIndicator').innerText = '📢 ANUNCIO';
-        showAnnouncement();
-    }
-    
-    currentView = view;
-}
-
-/* ========================= */
-/* MOSTRAR ANUNCIO */
-/* ========================= */
-function showAnnouncement() {
-    if (announcements.length === 0) return;
-    
-    const announcement = announcements[currentAnnouncementIndex];
-    const imgElement = document.getElementById('announcementMedia');
-    const videoElement = document.getElementById('announcementVideo');
-    const textElement = document.getElementById('announcementText');
-    
-    // Ocultar todo
-    imgElement.style.display = 'none';
-    videoElement.style.display = 'none';
-    textElement.style.display = 'none';
-    
-    if (announcement.media) {
-        if (announcement.media.includes('.mp4') || announcement.media.includes('video')) {
-            videoElement.src = announcement.media;
-            videoElement.style.display = 'block';
-            videoElement.play();
-        } else {
-            imgElement.src = announcement.media;
-            imgElement.style.display = 'block';
-        }
-    } else if (announcement.texto) {
-        textElement.innerText = announcement.texto;
-        textElement.style.display = 'block';
-    }
-    
-    currentAnnouncementIndex = (currentAnnouncementIndex + 1) % announcements.length;
-}
-
-/* ========================= */
-/* ROTACIÓN AUTOMÁTICA */
-/* ========================= */
-function startRotation() {
-    // Iniciar con VUELOS
-    switchView('flights');
-    
-    rotationTimer = setInterval(() => {
-        if (currentView === 'flights') {
-            switchView('assignments');
-        } else if (currentView === 'assignments') {
-            if (announcements.length > 0) {
-                switchView('announcement');
-            } else {
-                switchView('flights');
-            }
-        } else if (currentView === 'announcement') {
-            switchView('flights');
-        }
-    }, rotationDelay * 1000);
-}
-
-/* ========================= */
-/* TECLAS DE CONTROL */
-/* ========================= */
-document.addEventListener('keydown', (e) => {
-    if (e.key === '1') switchView('flights');
-    if (e.key === '2') switchView('assignments');
-    if (e.key === '3') {
-        if (announcements.length > 0) switchView('announcement');
-    }
-});
-
-/* ========================= */
-/* INICIAR SISTEMA */
-/* ========================= */
-window.addEventListener('load', () => {
-    startRotation();
-    // Pantalla completa automática
-    document.documentElement.requestFullscreen().catch(() => {
-        console.log('Pantalla completa no disponible');
-    });
-});
-
-window.toggleFullscreen = function() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+    if (anunciosActivos && anuncios.length > 0) {
+        mostrarAnuncio();
     } else {
+        mostrarVuelos();
+    }
+
+}
+
+async function cargarAnuncios() {
+    const res = await fetch("https://airportboard.onrender.com/anuncios");
+    anuncios = await res.json();
+}
+
+/* VUELOS */
+/* 🔥 VARIABLES GLOBALES */
+async function cargarVuelos(){
+
+    try{
+        const res = await fetch("http://localhost:4000/flights");
+        const apiData = await res.json();
+
+        const snapshot = await get(ref(db,"flights"));
+        const localData = snapshot.val() || {};
+
+        const tabla = document.getElementById("board");
+        tabla.innerHTML = "";
+
+        apiData.forEach((f, i)=>{
+
+            const local = localData["flight"+i] || {};
+
+            const vuelo   = local.vuelo   || f.vuelo;
+            const destino = local.destino || f.destino;
+            const llegada = local.llegada || f.llegada;
+            const salida  = local.salida  || f.salida;
+            const gate    = local.gate    || f.gate;
+            const estado  = local.estado  || f.estado;
+
+            tabla.innerHTML += `
+                <tr>
+                    <td>${vuelo}</td>
+                    <td>${destino}</td>
+                    <td>${llegada}</td>
+                    <td>${salida}</td>
+                    <td>${gate}</td>
+                    <td>${estado}</td>
+                </tr>
+            `;
+        });
+
+    }catch(e){
+        console.error(e);
+    }
+}
+
+
+
+/* 🔥 ESCUCHAR FIREBASE (SOLO DATOS) */
+onValue(ref(db,"flights"),snap=>{
+    vuelosData = Object.values(snap.val() || {});
+});
+
+/* 🔥 RENDER EN TIEMPO REAL */
+let vuelosData = [];
+onValue(ref(db,"flights"),snap=>{
+    vuelosData = Object.values(snap.val() || {});
+});
+function traducirAerolinea(vuelo){
+
+    if(!vuelo) return "";
+
+    const codigo = vuelo.toUpperCase();
+
+    if(codigo.startsWith("WS")) return "WestJet";
+    if(codigo.startsWith("B6")) return "JetBlue";
+
+    return "Vuelo"; // fallback
+}
+function formatearVuelo(vuelo){
+    let numero = vuelo.replace(/\D/g, "");
+    return numero.match(/.{1,2}/g)?.join(" ") || numero;
+}
+function renderVuelos(){
+
+    let html = "";
+
+    vuelosData.forEach(r=>{
+
+        let estadoClase = (r.estado || "").toLowerCase().replace(/\s+/g,"-");
+
+        if(!r.llegada || !r.llegada.includes(":")){
+    return; // evita errores
+}
+
+let [h,m] = r.llegada.split(":").map(Number);
+        let ahora = new Date();
+
+let llegada = new Date();
+llegada.setHours(h, m, 0, 0);
+
+// 🔥 SI YA PASÓ HOY → asumir mañana
+if(llegada < ahora){
+    llegada.setDate(llegada.getDate() + 1);
+}
+
+let diffMs = llegada - ahora;
+let diffMin = Math.floor(diffMs / 60000);
+
+        if(diffMin <= 0){
+            estadoFinal = "ARRIVED";
+            estadoClase = "arrived";
+        }
+
+        if(diffMin <= 30 && diffMin > 0){
+            extraClass = "blink";
+        }
+
+        if(diffMin <= 10 && diffMin > 0){
+            estadoFinal = "ARRIVING";
+        }
+
+        /* 🔊 AVISOS */
+
+        if(diffMin > 0){
+
+            // 30 MIN
+            if(diffMin <= 30 && diffMin > 29){
+                if(!window.avisos[r.vuelo+"_30"]){
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} llegará en 30 minutos`);
+                    window.avisos[r.vuelo+"_30"] = true;
+                }
+            }
+
+            // 10 MIN
+            if(diffMin <= 10 && diffMin > 9){
+                if(!window.avisos[r.vuelo+"_10"]){
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en 10 minutos`);
+                    window.avisos[r.vuelo+"_10"] = true;
+                }
+            }
+
+            // 1 MIN + SEGUNDOS
+            if(diffMin <= 1 && diffMin > 0){
+
+                if(diffMin <= 1 && diffMin > 0){
+
+    if(!window.avisos[r.vuelo+"_1"]){
+        window.avisos[r.vuelo+"_1"] = true;
+
+        if(!countdownActivo[r.vuelo]){
+            countdownActivo[r.vuelo] = true;
+
+            let ultimoSegundo = null;
+
+            let intervalo = setInterval(()=>{
+
+                let diff = llegada.getTime() - Date.now();
+                let segundos = Math.floor(diff / 1000);
+
+                if(segundos !== ultimoSegundo && segundos > 0 && segundos <= 10){
+
+                    speechSynthesis.cancel();
+
+                    hablar(`${traducirAerolinea(r.vuelo)} ${formatearVuelo(r.vuelo)} aterrizando en ${segundos}`);
+
+                    ultimoSegundo = segundos;
+                }
+
+                // 🛬 CUANDO ATERRIZA
+                if(segundos <= 0){
+                    clearInterval(intervalo);
+                    countdownActivo[r.vuelo] = false;
+
+                    hablar(`Aeronave en tierra`);
+                }
+
+            }, 500);
+        }
+    }
+}
+            }
+        }
+
+        /* ⏱ CONTADOR */
+       let countdown = "0 min";
+let countdownClass = "countdown-green";
+
+if(diffMin > 0){
+
+    if(hours > 0){
+        countdown = hours + "h " + minutes + "m";
+    }else{
+        countdown = minutes + " min";
+    }
+
+    // 🎯 COLORES DINÁMICOS
+    if(diffMin <= 60){
+        countdownClass = "countdown-yellow";
+    }
+
+    if(diffMin <= 15){
+        countdownClass = "countdown-red";
+    }
+}
+
+        html += `
+        <tr class="${estadoClase} ${extraClass}">
+        <td>${r.vuelo}</td>
+        <td>${r.destino}</td>
+        <td>
+            ${r.llegada}
+            <br><small class="${countdownClass}">${countdown}</small>
+
+            <div class="flight-progress">
+                <div class="flight-bar" style="width:${progreso}%"></div>
+                <div class="plane" style="left:${progreso}%">✈️</div>
+            </div>
+        </td>
+        <td>${r.salida}</td>
+        <td>${r.gate}</td>
+        <td>${estadoFinal}</td>
+        </tr>`;
+    });
+
+    board.innerHTML = html;
+}
+
+/* 🔥 REFRESH AUTOMÁTICO (CLAVE) */
+setInterval(renderVuelos, 1000);
+
+/* POSICIONES */
+onValue(ref(db,"positions"),snap=>{
+    let data = snap.val() || {};
+
+    let westHTML = "";
+    let jetHTML = "";
+
+    Object.entries(data).forEach(([k,v])=>{
+
+        let card = `
+        <div class="assignment-card">
+            <div>${k.toUpperCase()}</div>
+            <strong>${v}</strong>
+        </div>`;
+
+        if(k.includes("west")){
+            westHTML += card;
+        }else{
+            jetHTML += card;
+        }
+    });
+
+    document.getElementById("gridWestjet").innerHTML = westHTML;
+    document.getElementById("gridJetblue").innerHTML = jetHTML;
+});
+
+onValue(ref(db,"titles/westjet"), snap=>{
+    document.getElementById("titleWestjet").innerText =
+        snap.val() || "ASIGNACIONES WESTJET";
+});
+
+onValue(ref(db,"titles/jetblue"), snap=>{
+    document.getElementById("titleJetblue").innerText =
+        snap.val() || "ASIGNACIONES JETBLUE";
+});
+
+/* TICKER */
+onValue(ref(db,"ticker/message"),snap=>{
+    ticker.innerText=snap.val()||"Bienvenidos";
+});
+
+window.addEventListener("load", ()=>{
+    setTimeout(()=>{
+        document.documentElement.requestFullscreen().catch(()=>{});
+    }, 1500);
+});
+/* FULLSCREEN */
+window.toggleFullscreen=function(){
+    if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen();
+    }else{
         document.exitFullscreen();
     }
 };
+function hablar(texto){
+
+    const ding = document.getElementById("ding");
+    if(ding){
+        ding.currentTime = 0;
+        ding.play();
+    }
+
+    speechSynthesis.cancel();
+
+    const voces = speechSynthesis.getVoices();
+
+    // 🎯 buscar voz en español latino
+    let vozLatinaGlobal = null;
+let hablando = false;
+
+// 🔥 cargar voces UNA SOLA VEZ
+speechSynthesis.onvoiceschanged = () => {
+    const voces = speechSynthesis.getVoices();
+
+    vozLatinaGlobal = voces.find(v => 
+        v.lang === "es-US" || 
+        v.lang === "es-MX" || 
+        v.lang === "es-419"
+    ) || voces.find(v => v.lang.startsWith("es"));
+};
+
+function hablar(texto){
+
+    if(hablando) return; // 🔥 evita solapamiento
+
+    hablando = true;
+
+    const ding = document.getElementById("ding");
+    if(ding){
+        ding.currentTime = 0;
+        ding.play();
+    }
+
+    const msg1 = new SpeechSynthesisUtterance(texto);
+    const msg2 = new SpeechSynthesisUtterance(texto);
+
+    msg1.voice = vozLatinaGlobal;
+    msg2.voice = vozLatinaGlobal;
+
+    msg1.lang = vozLatinaGlobal?.lang || "es-419";
+    msg2.lang = vozLatinaGlobal?.lang || "es-419";
+
+    msg1.rate = 0.95;
+    msg2.rate = 0.95;
+    msg1.pitch = 0.9;
+    msg2.pitch = 0.9;
+
+    // 🔁 repetir sin delay
+    msg1.onend = () => {
+        speechSynthesis.speak(msg2);
+    };
+
+    msg2.onend = () => {
+        hablando = false;
+    };
+
+    speechSynthesis.speak(msg1);
+}
+
+function actualizarPantalla() {
+
+    if (anunciosActivos && anuncios.length > 0) {
+        mostrarAnuncio();
+    } else {
+        mostrarVuelos();
+    }
+
+}
+
+
+window.onload = () => {
+    anunciosActivos = false; // 🔴 SIEMPRE INICIA EN VUELOS
+    iniciarSistema();
+};
+
+
+let anuncios = [];
+let anunciosActivos = false; // 🔴 CONTROL REAL
+
+async function cargarAnuncios() {
+    try {
+        const res = await fetch("https://airportboard.onrender.com/anuncios");
+        anuncios = await res.json();
+        console.log("ANUNCIOS:", anuncios);
+    } catch (e) {
+        console.log("Error anuncios", e);
+    }
+}
+
+function mostrarAnuncio() {
+    if (anuncios.length === 0) return;
+
+    const anuncio = anuncios[indexAnuncio];
+    const contenedor = document.getElementById("anuncioFull");
+
+    contenedor.style.display = "flex";
+    contenedor.innerHTML = "";
+
+    // 🎥 VIDEO
+    if (anuncio.media && anuncio.media.includes(".mp4")) {
+        contenedor.innerHTML = `
+            <video src="${anuncio.media}" autoplay muted style="width:100%; height:100%; object-fit:cover;"></video>
+        `;
+    }
+
+    // 🖼 IMAGEN
+    else if (anuncio.media) {
+        contenedor.innerHTML = `
+            <img src="${anuncio.media}" style="width:100%; height:100%; object-fit:cover;">
+        `;
+    }
+
+    // 📝 TEXTO
+    else {
+        contenedor.innerHTML = `
+            <div style="font-size:60px; text-align:center; color:#00e5ff;">
+                ${anuncio.texto}
+            </div>
+        `;
+    }
+
+    // ⏱ DURACIÓN PERSONALIZADA
+    setTimeout(() => {
+        document.getElementById("anuncioFull").style.display = "none";
+    }, anuncio.duracion * 1000);
+
+    indexAnuncio++;
+    if (indexAnuncio >= anuncios.length) indexAnuncio = 0;
+}
+
+
+function mostrarVuelos() {
+    document.getElementById("anuncioFull").style.display = "none";
+}
+
+let slideActual = 0;
+const slides = ["slideFlights","slideWestjet","slideJetblue"];
+
+function cambiarSlide(){
+
+    // quitar activo
+    slides.forEach(id=>{
+        document.getElementById(id).classList.remove("active");
+    });
+
+    slideActual++;
+    if(slideActual >= slides.length) slideActual = 0;
+
+    document.getElementById(slides[slideActual]).classList.add("active");
+}
+
+// 🔁 cada 15 segundos
+setInterval(cambiarSlide, 15000);
+
+}
 
 </script>
-
+<script src="http://localhost:35729/livereload.js"></script>
 </body>
+<div id="anuncioFull" style="
+    display:none;
+    position:fixed;
+    top:80px;
+    left:0;
+    width:100%;
+    height:calc(100% - 80px);
+    background:black;
+    color:white;
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+">
+</div>
+
 </html>

@@ -972,14 +972,15 @@ function seleccionarVuelo(index, i){
 
     arr[index].manual = true;
 
-    arr[index].salida = vuelo.salida 
-        ? convertirHora(vuelo.salida) 
-        : "";
+    // 🛫 SALIDA (solo si existe)
+if(vuelo.salida){
+    arr[index].salida = convertirHora(vuelo.salida);
+}
 
-    arr[index].llegada = vuelo.llegada 
-        ? convertirHora(vuelo.llegada) 
-        : "";
-
+// 🛬 LLEGADA (solo si existe)
+if(vuelo.llegada){
+    arr[index].llegada = convertirHora(vuelo.llegada);
+}
     arr[index].estado = vuelo.estado || "ON-TIME";
 
     set(ref(db,"flights"), toObj(arr));
@@ -1011,15 +1012,30 @@ async function autoCargarVuelos(){
 
         data.slice(0, arr.length).forEach((vuelo, i) => {
 
-            if(!arr[i] || arr[i].manual) return;
+            if(!arr[i]) return;
 
-            arr[i].vuelo = vuelo.vuelo;
-            arr[i].destino = vuelo.destino || vuelo.origen || "N/A";
+// 🛫 VUELO y DESTINO (siempre actualiza si viene)
+if(vuelo.vuelo){
+    arr[i].vuelo = vuelo.vuelo;
+}
 
-            arr[i].salida = vuelo.salida || "";
-            arr[i].llegada = vuelo.llegada || "";
+if(vuelo.destino || vuelo.origen){
+    arr[i].destino = vuelo.destino || vuelo.origen;
+}
 
-            arr[i].estado = vuelo.estado || "ON-TIME";
+// 🛫 SALIDA (solo si API trae valor real)
+if(vuelo.salida){
+    arr[i].salida = vuelo.salida;
+}
+
+if(vuelo.llegada){
+    arr[i].llegada = vuelo.llegada;
+}
+
+// 📊 ESTADO
+if(vuelo.estado && vuelo.estado !== ""){
+    arr[i].estado = vuelo.estado;
+}
         });
 
         set(ref(db,"flights"), toObj(arr));

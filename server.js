@@ -136,48 +136,91 @@ app.get("/flights", async (req, res) => {
 
     const data = response.data;
 
-    // ✈️ SALIDAS
-    const salidas = (data.departures || []).slice(0, 10).map(f => ({
-      vuelo: f.ident || "N/A",
-      destino: f.destination?.code || "N/A",
-      salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
-      llegada: "",
-      estado: (f.status || "UNKNOWN").replaceAll("_", " ")
-    }));
-
-    // 🛬 LLEGADAS
-    const llegadas = (data.arrivals || []).slice(0, 10).map(f => {
-
-      let hora = "";
-      let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
-
-      if (!f.actual_out) {
-        hora = formatHora(f.scheduled_in);
-
-      } else if (f.actual_out && !f.actual_in) {
-        hora = formatHora(f.estimated_in ?? f.scheduled_in);
-
-      } else if (f.actual_in) {
-        hora = formatHora(f.actual_in);
-        estado = "ARRIVED";
-      }
-
-      if (
-        f.estimated_in &&
-        f.scheduled_in &&
-        f.estimated_in !== f.scheduled_in
-      ) {
-        estado = "DELAYED";
-      }
-
-      return {
-        vuelo: f.ident || "N/A",
-        origen: f.origin?.code || "N/A",
-        llegada: hora,
-        salida: "",
-        estado
-      };
+    // 🗓️ FECHA DE HOY (RD)
+    const hoy = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Santo_Domingo"
     });
+
+    // 🔍 FILTRO FECHA
+    function esHoy(fecha){
+      if(!fecha) return false;
+      return fecha.startsWith(hoy);
+    }
+
+    // ✈️ FILTRO AEROLÍNEA (WS / B6)
+    function esAerolineaValida(ident){
+      if(!ident) return false;
+      return ident.startsWith("WS") || ident.startsWith("B6");
+    }
+
+    // =========================
+    // ✈️ SALIDAS
+    // =========================
+    const salidas = (data.departures || [])
+      .filter(f =>
+        esAerolineaValida(f.ident) &&
+        (
+          esHoy(f.scheduled_out) ||
+          esHoy(f.estimated_out) ||
+          esHoy(f.actual_out)
+        )
+      )
+      .slice(0, 10)
+      .map(f => ({
+        vuelo: f.ident || "N/A",
+        destino: f.destination?.code || "N/A",
+        salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
+        llegada: "",
+        estado: (f.status || "UNKNOWN").replaceAll("_", " ")
+      }));
+
+    // =========================
+    // 🛬 LLEGADAS
+    // =========================
+    const llegadas = (data.arrivals || [])
+      .filter(f =>
+        esAerolineaValida(f.ident) &&
+        (
+          esHoy(f.scheduled_in) ||
+          esHoy(f.estimated_in) ||
+          esHoy(f.actual_in)
+        )
+      )
+      .slice(0, 10)
+      .map(f => {
+
+        let hora = "";
+        let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
+
+        // 🛬 lógica real
+        if (!f.actual_out) {
+          hora = formatHora(f.scheduled_in);
+
+        } else if (f.actual_out && !f.actual_in) {
+          hora = formatHora(f.estimated_in ?? f.scheduled_in);
+
+        } else if (f.actual_in) {
+          hora = formatHora(f.actual_in);
+          estado = "ARRIVED";
+        }
+
+        // ⏱ detectar retraso
+        if (
+          f.estimated_in &&
+          f.scheduled_in &&
+          f.estimated_in !== f.scheduled_in
+        ) {
+          estado = "DELAYED";
+        }
+
+        return {
+          vuelo: f.ident || "N/A",
+          origen: f.origin?.code || "N/A",
+          llegada: hora,
+          salida: "",
+          estado
+        };
+      });
 
     res.json({ salidas, llegadas });
 
@@ -246,3 +289,22 @@ app.post("/asignaciones", (req, res) => {
 app.get("/asignaciones", (req, res) => {
   res.json(asignaciones);
 });
+
+let slideActual = 0;
+const slides = ["slideFlights","slideWestjet","slideJetblue"];
+
+function cambiarSlide(){
+
+    // quitar activo
+    slides.forEach(id=>{
+        document.getElementById(id).classList.remove("active");
+    });
+
+    slideActual++;
+    if(slideActual >= slides.length) slideActual = 0;
+
+    document.getElementById(slides[slideActual]).classList.add("active");
+}
+
+// 🔁 cada 15 segundos
+setInterval(cambiarSlide, 15000);

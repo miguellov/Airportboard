@@ -95,8 +95,10 @@ body {
 }
 
 .date {
-    font-size: 16px;
+    font-size: 22px;
     color: #7dd3fc;
+    font-weight: 600;
+    text-transform: capitalize;
 }
 
 /* ========================= */
@@ -341,6 +343,33 @@ gap: 15px;
 }
 
 /* ========================= */
+/* BOTÓN FULLSCREEN */
+/* ========================= */
+.fullscreen-btn {
+    position: fixed;
+    bottom: 70px;
+    right: 20px;
+    background: rgba(14, 165, 233, 0.2);
+    border: 2px solid #0ea5e9;
+    color: #00ffff;
+    font-size: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    transition: 0.3s;
+}
+
+.fullscreen-btn:hover {
+    background: rgba(14, 165, 233, 0.4);
+    box-shadow: 0 0 20px rgba(0, 224, 255, 0.5);
+}
+
+/* ========================= */
 /* INDICADOR DE VISTA */
 /* ========================= */
 .view-indicator {
@@ -559,6 +588,8 @@ td:first-child {
 
 <div class="view-indicator" id="viewIndicator">📊 VUELOS</div>
 
+<button class="fullscreen-btn" id="fullscreenBtn" title="Pantalla Completa">⛶</button>
+
 <div class="header">
     <div style="display: flex; align-items: center; gap: 20px;">
         <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" alt="Logo">
@@ -639,7 +670,7 @@ let announcements = [];
 let currentAnnouncementIndex = 0;
 let flights = [];
 let assignments = [];
-let rotationDelay = 10; // segundos
+let rotationDelay = 20; // segundos - AUMENTADO de 10 a 20
 
 
 
@@ -659,7 +690,7 @@ function updateClock() {
     document.getElementById('date').innerText = now.toLocaleDateString('es-CO', {
         weekday: 'long',
         day: '2-digit',
-        month: 'short',
+        month: 'long',
         year: 'numeric'
     });
 }
@@ -697,54 +728,54 @@ function actualizarProgreso() {
 
    if (cd) {
 
-    if (diffMin <= 0) {
-        cd.innerText = "0m";
-        if (estado) {
+     if (diffMin <= 0) {
+         cd.innerText = "0m";
+         if (estado) {
 
-    const texto = estado.innerText.toLowerCase();
+     const texto = estado.innerText.toLowerCase();
 
-    estado.classList.remove("estado-aterrizado");
+     estado.classList.remove("estado-aterrizado");
 
-    if (diffMin <= 0) {
+     if (diffMin <= 0) {
 
-        // 🚫 NO sobrescribir estados manuales importantes
-        if (
-            !texto.includes("delayed") &&
-            !texto.includes("cancelled") &&
-            !texto.includes("diverted")
-        ) {
-            estado.innerText = "Aterrizado";
+         // 🚫 NO sobrescribir estados manuales importantes
+         if (
+             !texto.includes("delayed") &&
+             !texto.includes("cancelled") &&
+             !texto.includes("diverted")
+         ) {
+             estado.innerText = "Aterrizado";
 estado.classList.add("estado-aterrizado");
-        }
-    }
+         }
+     }
 }
-    } else {
+     } else {
 
-        const horas = Math.floor(diffMin / 60);
-        const minutos = diffMin % 60;
+         const horas = Math.floor(diffMin / 60);
+         const minutos = diffMin % 60;
 
-        if (horas > 0) {
-            // 🔥 tiene horas
-            const mm = String(minutos).padStart(2, '0');
-            cd.innerText = `${horas}h ${mm}m`;
-        } else {
-            // 🔥 solo minutos
-            cd.innerText = `${minutos}m`;
-        }
-    
-        // 🔥 COLORES + PARPADEO
-        cd.classList.remove("warning", "danger", "blink");
+         if (horas > 0) {
+             // 🔥 tiene horas
+             const mm = String(minutos).padStart(2, '0');
+             cd.innerText = `${horas}h ${mm}m`;
+         } else {
+             // 🔥 solo minutos
+             cd.innerText = `${minutos}m`;
+         }
+     
+         // 🔥 COLORES + PARPADEO
+         cd.classList.remove("warning", "danger", "blink");
 
-        if (diffMin <= 30) {
-            cd.classList.add("warning", "blink"); // ⚠️ amarillo + parpadeo
-        }
+         if (diffMin <= 30) {
+             cd.classList.add("warning", "blink"); // ⚠️ amarillo + parpadeo
+         }
 
-        if (diffMin <= 10) {
-            cd.classList.remove("warning");
-            cd.classList.add("danger", "blink"); // 🔴 rojo + parpadeo fuerte
-        }
+         if (diffMin <= 10) {
+             cd.classList.remove("warning");
+             cd.classList.add("danger", "blink"); // 🔴 rojo + parpadeo fuerte
+         }
 
-        const row = document.getElementById(`row-${f.vuelo}`);
+         const row = document.getElementById(`row-${f.vuelo}`);
 
 if(row){
     row.classList.remove("row-warning", "row-danger");
@@ -757,7 +788,7 @@ if(row){
         row.classList.add("row-danger"); // 🔴 parpadeo fuerte
     }
 }
-    }
+     }
 }
 }
     });
@@ -768,6 +799,17 @@ setInterval(actualizarProgreso, 1000);
 
 updateClock();
 setInterval(updateClock, 1000);
+
+/* ========================= */
+/* FULLSCREEN */
+/* ========================= */
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+});
 
 /* ========================= */
 /* CARGAR TICKER */
@@ -998,17 +1040,17 @@ document.addEventListener('keydown', (e) => {
     if (e.key === '3') {
         if (announcements.length > 0) switchView('announcement');
     }
+    if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
 });
 
-/* ========================= */
-/* INICIAR */
-/* ========================= */
-window.addEventListener('load', () => {
-    startRotation();
-    document.documentElement.requestFullscreen().catch(() => {});
-});
+startRotation();
 
 </script>
-
 </body>
 </html>

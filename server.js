@@ -7,14 +7,13 @@ require("dotenv").config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 let anuncios = [];
 let anunciosActivos = true;
 
 // 📥 GUARDAR ANUNCIO
-app.use(express.json());
-
 app.post("/anuncios", (req, res) => {
   const { tipo, texto, media, duracion } = req.body;
 
@@ -22,7 +21,7 @@ app.post("/anuncios", (req, res) => {
     id: Date.now(),
     tipo,
     texto,
-    media, // URL REAL (imagen o video)
+    media,
     duracion: duracion || 10
   };
 
@@ -51,15 +50,12 @@ app.post("/anuncios/toggle", (req, res) => {
 // 📂 CONFIG ARCHIVOS (ANUNCIOS)
 // =========================
 
-// crear carpeta uploads si no existe
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 
-// servir archivos públicos
 app.use("/uploads", express.static("uploads"));
 
-// configurar multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads"),
   filename: (req, file, cb) => {
@@ -68,7 +64,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // =========================
 // 📦 BASE DE DATOS ANUNCIOS
@@ -136,91 +132,49 @@ app.get("/flights", async (req, res) => {
 
     const data = response.data;
 
-    // 🗓️ FECHA DE HOY (RD)
-    const hoy = new Date().toLocaleDateString("en-CA", {
-      timeZone: "America/Santo_Domingo"
-    });
-
-    // 🔍 FILTRO FECHA
-    function esHoy(fecha){
-      if(!fecha) return false;
-      return fecha.startsWith(hoy);
-    }
-
-    // ✈️ FILTRO AEROLÍNEA (WS / B6)
-    function esAerolineaValida(ident){
-      if(!ident) return false;
-      return ident.startsWith("WS") || ident.startsWith("B6");
-    }
-
-    // =========================
     // ✈️ SALIDAS
-    // =========================
-    const salidas = (data.departures || [])
-      .filter(f =>
-        esAerolineaValida(f.ident) &&
-        (
-          esHoy(f.scheduled_out) ||
-          esHoy(f.estimated_out) ||
-          esHoy(f.actual_out)
-        )
-      )
-      .slice(0, 10)
-      .map(f => ({
-        vuelo: f.ident || "N/A",
-        destino: f.destination?.code || "N/A",
-        salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
-        llegada: "",
-        estado: (f.status || "UNKNOWN").replaceAll("_", " ")
-      }));
+    const salidas = (data.departures || []).slice(0, 10).map(f => ({
+      vuelo: f.ident || "N/A",
+      destino: f.destination?.code || "N/A",
+      salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
+      llegada: "",
+      estado: (f.status || "UNKNOWN").replaceAll("_", " ")
+    }));
 
-    // =========================
     // 🛬 LLEGADAS
-    // =========================
-    const llegadas = (data.arrivals || [])
-      .filter(f =>
-        esAerolineaValida(f.ident) &&
-        (
-          esHoy(f.scheduled_in) ||
-          esHoy(f.estimated_in) ||
-          esHoy(f.actual_in)
-        )
-      )
-      .slice(0, 10)
-      .map(f => {
+    const llegadas = (data.arrivals || []).slice(0, 10).map(f => {
 
-        let hora = "";
-        let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
+      let hora = "";
+      let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
 
-        // 🛬 lógica real
-        if (!f.actual_out) {
-          hora = formatHora(f.scheduled_in);
+      if (!f.actual_out) {
+        hora = formatHora(f.scheduled_in);
 
-        } else if (f.actual_out && !f.actual_in) {
-          hora = formatHora(f.estimated_in ?? f.scheduled_in);
+      } else if (f.actual_out && !f.actual_in) {
+        hora = formatHora(f.estimated_in ?? f.scheduled_in);
 
-        } else if (f.actual_in) {
-          hora = formatHora(f.actual_in);
-          estado = "ARRIVED";
-        }
+      } else if (f.actual_in) {
+        hora = formatHora(f.actual_in);
+        estado = "ARRIVED";
+      }
 
-        // ⏱ detectar retraso
-        if (
-          f.estimated_in &&
-          f.scheduled_in &&
-          f.estimated_in !== f.scheduled_in
-        ) {
-          estado = "DELAYED";
-        }
+      if (
+        f.estimated_in &&
+        f.scheduled_in &&
+        f.estimated_in !== f.scheduled_in
+      ) {
+        estado = "DELAYED";
+      }
 
-        return {
-          vuelo: f.ident || "N/A",
-          origen: f.origin?.code || "N/A",
-          llegada: hora,
-          salida: "",
-          estado
-        };
-      });
+      return {
+        vuelo: f.ident || "N/A",
+        origen: f.origin?.code || "N/A",
+        destino: f.origin?.code || "N/A",
+        llegada: hora,
+        salida: "",
+        estado
+      };
+    });
 
     res.json({ salidas, llegadas });
 
@@ -238,18 +192,15 @@ app.get("/flights", async (req, res) => {
 // 📢 ENDPOINT ANUNCIOS (NUEVO)
 // =========================
 
-// 🔼 subir anuncio
-app.post("/anuncios", upload.single("media"), (req, res) => {
+app.post("/anuncios/upload", upload.single("media"), (req, res) => {
   const anuncios = leerAnuncios();
 
   const nuevo = {
     id: Date.now(),
     tipo: req.body.tipo,
     texto: req.body.texto || "",
-    media: req.file 
-  ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}` 
-  : null,
-    duracion: 10
+    media: req.file ? `/uploads/${req.file.filename}` : null,
+    duracion: parseInt(req.body.duracion) || 10
   };
 
   anuncios.push(nuevo);
@@ -258,8 +209,7 @@ app.post("/anuncios", upload.single("media"), (req, res) => {
   res.json({ ok: true });
 });
 
-// 🔽 obtener anuncios
-app.get("/anuncios", (req, res) => {
+app.get("/anuncios/list", (req, res) => {
   res.json(leerAnuncios());
 });
 
@@ -272,7 +222,8 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log("🔥 Servidor corriendo en puerto " + PORT);
 });
-let asignaciones = {}; // 🔥 base de datos simple
+
+let asignaciones = {};
 
 // 📥 GUARDAR
 app.post("/asignaciones", (req, res) => {
@@ -291,22 +242,3 @@ app.post("/asignaciones", (req, res) => {
 app.get("/asignaciones", (req, res) => {
   res.json(asignaciones);
 });
-
-let slideActual = 0;
-const slides = ["slideFlights","slideWestjet","slideJetblue"];
-
-function cambiarSlide(){
-
-    // quitar activo
-    slides.forEach(id=>{
-        document.getElementById(id).classList.remove("active");
-    });
-
-    slideActual++;
-    if(slideActual >= slides.length) slideActual = 0;
-
-    document.getElementById(slides[slideActual]).classList.add("active");
-}
-
-// 🔁 cada 15 segundos
-setInterval(cambiarSlide, 15000);

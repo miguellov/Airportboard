@@ -1,1055 +1,436 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" type="image/png" href="Logopn.png">
+    <link rel="icon" href="Logopn.png" sizes="32x32">
+<link rel="icon" href="Logopn.png" sizes="16x16">
+<link rel="apple-touch-icon" href="Logopn.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pantalla de Aeropuerto - Display</title>
+<title>Airport Board PRO</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 
-.estado-aterrizado {
-    color: #64748b; /* gris azulado apagado */
-    opacity: 0.8;
+body{
+    margin:0;
+    background:linear-gradient(180deg,#000,#05080a);
+    color:#7dd3fc;
+    font-family:'Inter', sans-serif;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
 }
 
-
-    /* ⚠️ PARPADEO */
-@keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.2; }
-    100% { opacity: 1; }
+.header{
+    position:relative;
+    z-index:1000000;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 40px;
+    border-bottom:2px solid #0ea5e9;
 }
 
-/* ✨ PARPADEO SUAVE */
-@keyframes rowBlink {
-    0% { background-color: rgba(34, 211, 238, 0.05); }
-    50% { background-color: rgba(34, 211, 238, 0.25); }
-    100% { background-color: rgba(34, 211, 238, 0.05); }
+.left{
+    display:flex;
+    align-items:center;
+    gap:15px;
 }
 
-/* 🟡 WARNING */
-.row-warning {
-    animation: rowBlink 1.2s infinite;
+.logo{ height:42px; }
+
+.title{
+    font-size:38px;
+    font-family:'Orbitron', sans-serif;
+    color:#38bdf8;
 }
 
-/* 🔴 CRÍTICO */
-@keyframes rowDanger {
-    0% { background-color: rgba(239, 68, 68, 0.05); }
-    50% { background-color: rgba(239, 68, 68, 0.35); }
-    100% { background-color: rgba(239, 68, 68, 0.05); }
+.time{
+    font-size:70px;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    letter-spacing:3px;
+    color:#00ffff;
 }
 
-.row-danger {
-    animation: rowDanger 0.8s infinite;
-}
-
-
-.blink {
-    animation: blink 1s infinite;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    color: #00e0ff;
-    font-family: 'Inter', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* ========================= */
-/* HEADER */
-/* ========================= */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 40px;
-    border-bottom: 2px solid #0ea5e9;
-    background: linear-gradient(180deg, #000, #0a0f1c);
-    z-index: 1000;
-}
-
-.logo {
-    height: 50px;
-}
-
-.title {
-    font-size: 40px;
-    font-family: 'Orbitron', sans-serif;
-    color: #38bdf8;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-.time {
-    font-size: 60px;
-    font-weight: 700;
-    color: #00ffff;
-    letter-spacing: 3px;
-    text-align: right;
-}
-
-.date {
-    font-size: 22px;
-    color: #7dd3fc;
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-/* ========================= */
-/* CONTENEDOR PRINCIPAL */
-/* ========================= */
-.content-container {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-}
-
-/* ========================= */
-/* TABLA DE VUELOS */
-/* ========================= */
-.flights-view {
-    width: 100%;
-    height: 100%;
-    display: none;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.flight-progress {
-    height: 4px; /* 🔽 más fina */
-    margin-top: 3px;
-}
-
-.flights-view.active {
-    display: flex;
-}
-
-.plane {
-    font-size: 12px;
-    top: -8px;
-}
-
-table {
-    width: 100%;
-    table-layout: fixed; /* 🔥 CLAVE */
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    flex: 1;
-}
-
-th {
-    font-size: 28px;
-    padding: 15px;
-    border-bottom: 2px solid #0ea5e9;
-    background: rgba(14, 165, 233, 0.1);
-    color: #00e0ff;
-    text-transform: uppercase;
-}
-
-td {
-    font-size: 34px; /* 🔥 más grande */
-    padding: 24px;   /* 🔥 más espacio */
-}
-
-tr:hover {
-    background: rgba(14, 165, 233, 0.05);
-}
-
-
-/* VUELO */
-td:nth-child(1), th:nth-child(1) {
-    width: 15%;
-}
-
-/* DESTINO */
-td:nth-child(2), th:nth-child(2) {
-    width: 25%;
-}
-
-/* LLEGADA */
-td:nth-child(3), th:nth-child(3) {
-    width: 15%;
-}
-
-/* SALIDA */
-td:nth-child(4), th:nth-child(4) {
-    width: 15%;
-}
-
-/* GATE */
-td:nth-child(5), th:nth-child(5) {
-    width: 10%;
-}
-
-/* ESTADO */
-td:nth-child(6), th:nth-child(6) {
-    width: 20%;
-}
-
-/* ========================= */
-/* TABLA DE ASIGNACIONES */
-/* ========================= */
-.assignments-view {
-    display: flex;
-flex-direction: column;
-align-items: stretch; /* 🔥 ocupa todo el ancho */
-padding: 20px;
-gap: 15px;
-}
-
-.assignments-view.active {
-    display: flex;
-}
-
-.assignments-title {
-    font-size: 32px;
-    color: #00e0ff;
-    margin-bottom: 20px;
-    text-transform: uppercase;
-    text-align: center;
-    letter-spacing: 2px;
-    border-bottom: 2px solid #0ea5e9;
-    padding-bottom: 10px;
-}
-
-.assignments-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
-    flex: 1;
-}
-
-.assignment-card {
-    width: 100%;
-    height: 140px;
-
-    display: flex;
-    flex-direction: column;
-
-    padding: 15px;
-    border-radius: 10px;
-}
-.assignment-card .role {
-    text-align: center;
-    font-size: 16px;
-    height: 30px; /* 🔥 fija el espacio arriba */
-    color: #7dd3fc; /* 🔵 azul suave */
-    opacity: 0.7;
-    font-size: 16px;
-    text-transform: uppercase;
-}
-
-.assignment-card .name {
-    flex: 1; /* 🔥 ocupa todo el resto */
-    color: #ffc400; /* 💡 cian fuerte (protagonista) */
-    font-size: 26px;
-    font-weight: bold;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.card {
-    width: 100%; /* 🔥 clave */
-    max-width: 900px; /* opcional para no exagerar */
-    margin: 0 auto; /* centra pero ancho completo */
-}
-
-.card {
-    width: 100%;
-    margin: 0;
-}
-
-.assignment-card .name {
-    font-size: 24px;
-    font-weight: bold;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 1; /* 🔥 ocupa el espacio restante */
-    width: 100%;
-    text-align: center;
-}
-
-.assignment-card .name {
-    letter-spacing: 1px;
-}
-
-.assignment-role {
-    font-size: 18px;
-    color: #7dd3fc;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.assignment-name {
-    font-size: 24px;
-    color: #00ffff;
-    font-weight: bold;
-}
-
-/* ========================= */
-/* ANUNCIOS (IMÁGENES/VIDEOS) */
-/* ========================= */
-/* 📢 CONTENEDOR ANUNCIO */
-.announcement-view {
-    display: none;
-    justify-content: center;
-    align-items: center;
-    background: black;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* 🔥 evita desbordes */
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.announcement-view.active {
-    display: flex;
-}
-
-/* 🖼 IMAGEN / VIDEO */
-.announcement-media,
-.announcement-view video {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* 🔥 mantiene proporción */
-}
-
-/* 📝 TEXTO RESPONSIVE */
-.announcement-text {
-    font-size: clamp(30px, 4vw, 60px); /* 🔽 más compacto */
-    text-align: center;
-    max-width: 95%; /* 🔥 más ancho */
-    line-height: 1.1; /* 🔽 menos altura */
-    margin: auto;
-}
-
-/* ========================= */
-/* BOTÓN FULLSCREEN */
-/* ========================= */
-.fullscreen-btn {
-    position: fixed;
-    bottom: 70px;
-    right: 20px;
-    background: rgba(14, 165, 233, 0.2);
-    border: 2px solid #0ea5e9;
-    color: #00ffff;
-    font-size: 20px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+.fullscreen-btn{
+    background:transparent;
+    color:#22d3ee;
+    border:1px solid #22d3ee;
+    padding:6px 10px;
+    border-radius:6px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-    transition: 0.3s;
 }
 
-.fullscreen-btn:hover {
-    background: rgba(14, 165, 233, 0.4);
-    box-shadow: 0 0 20px rgba(0, 224, 255, 0.5);
+.table-container{ flex:1; overflow:hidden; }
+
+table{ width:100%; border-collapse:collapse; }
+
+th{
+    font-size:24px;
+    padding:12px;
+    border-bottom:1px solid #0ea5e9;
 }
 
-/* ========================= */
-/* INDICADOR DE VISTA */
-/* ========================= */
-.view-indicator {
-    display: none;
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: #0ea5e9;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 14px;
-    z-index: 2000;
-    text-transform: uppercase;
+td{
+    font-size:30px;
+    padding:14px;
+    text-align:center;
 }
 
-/* ========================= */
-/* TICKER */
-/* ========================= */
-.ticker {
-    height: 50px;
-    border-top: 2px solid #0ea5e9;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    background: rgba(10, 15, 28, 0.8);
-    z-index: 999;
+.on-time { color:#4ade80; }
+.delayed { color:#f87171; }
+.boarding { color:#38bdf8; }
+.departed { color:#fbbf24; }
+.arrived { color:#94a3b8; }
+
+tr.on-time { background:rgba(0,40,20,0.6); }
+tr.delayed { background:rgba(60,0,0,0.6); }
+tr.boarding { background:rgba(0,30,60,0.6); }
+tr.departed { background:rgba(60,40,0,0.6); }
+tr.arrived { background:rgba(50,50,50,0.5); }
+
+.blink{ animation:blink 1s infinite; }
+@keyframes blink{ 50%{opacity:0.4;} }
+
+.positions-wrapper{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
 }
 
-.ticker-text {
-    white-space: nowrap;
-    font-size: 24px;
-    padding-left: 100%;
-    animation: scroll 30s linear infinite;
-    color: #00ffff;
+.jetblue{
+    border-top:2px solid #1d4ed8;
+    background:rgba(29,78,216,0.1);
 }
 
-@keyframes scroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-100%); }
+.westjet{
+    border-top:2px solid #16a34a;
+    background:rgba(22,163,74,0.1);
 }
 
-/* ========================= */
-/* RESPONSIVE */
-/* ========================= */
-@media (max-width: 1024px) {
-    .title {
-        font-size: 28px;
-    }
-    
-    .time {
-        font-size: 40px;
-    }
-    
-    th {
-    font-size: 32px;
-    padding: 18px;
-}
-    
-    td {
-        font-size: 18px;
-    }
+.positions-wrapper.hidden { display: none; }
+
+.positions-panel{
+    padding:6px 10px;
 }
 
-tr {
-    height: 55px; /* 🔽 compacto */
+.panel-title{
+    font-size:14px;
+    margin-bottom:4px;
+    font-weight:bold;
+    letter-spacing:1px;
 }
 
-td, th {
-    text-align: center;
-    vertical-align: middle;
+.positions-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
 }
 
-td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.pos-card{
+    min-width:110px;
+    padding:6px;
+    border-radius:6px;
+    background:#e2e8f0;
+    border:1px solid #94a3b8;
+    text-align:center;
 }
 
-td {
-    font-size: 26px; /* 🔽 un poco más pequeño */
-    padding: 8px 12px; /* 🔥 menos altura */
-}
-th {
-    font-size: 28px;
+.role{
+    font-size:10px;
+    color:#334155;
 }
 
-td:first-child {
-    font-size: 36px;
-    font-weight: bold;
+.name{
+    font-size:13px;
+    font-weight:bold;
+    color:#0f172a;
 }
 
-.assignment-card {
-    background: rgba(14, 165, 233, 0.1);
-    border: 2px solid #00e0ff;
-    border-radius: 10px;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    transition: 0.3s;
+.ticker{
+    height:40px;
+    border-top:2px solid #0ea5e9;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
 }
 
-
-/* 🎨 variantes de color */
-.card-blue { border-color:#38bdf8; color:#38bdf8; }
-.card-green { border-color:#22c55e; color:#22c55e; }
-.card-yellow { border-color:#facc15; color:#facc15; }
-.card-purple { border-color:#a855f7; color:#a855f7; }
-.card-red { border-color:#ef4444; color:#ef4444; }
-.card-cyan { border-color:#00ffff; color:#00ffff; }
-
-/* 🎬 TRANSICIONES MODO CINE */
-.flights-view,
-.assignments-view,
-.announcement-view {
-    display: none;
-    flex-direction: column;
-    justify-content: flex-start; /* 🔥 arriba */
-    align-items: stretch; /* 🔥 ancho completo */
-    background: black;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    padding: 10px 40px;
-    box-sizing: border-box;
-}
-.flights-view.active,
-.assignments-view.active,
-.announcement-view.active {
-    opacity: 1;
-    position: relative;
+.ticker-text{
+    white-space:nowrap;
+    font-size:22px;
+    padding-left:100%;
+    animation:scroll 25s linear infinite;
 }
 
-/* 🎥 ANUNCIO FULLSCREEN MÁS LIMPIO */
-.announcement-view {
-    background: black;
+@keyframes scroll{
+    from{transform:translateX(0);}
+    to{transform:translateX(-100%);}
 }
 
-.announcement-text {
-    animation: fadeZoom 0.8s ease;
+.anuncio-full{
+    position:fixed;
+    top:100px;
+    left:0;
+    width:100%;
+    height:calc(100% - 100px);
+    background:black;
+    z-index:999999;
+    display:none;
+    align-items:center;
+    justify-content:center;
 }
 
-@keyframes fadeZoom {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+.flight-progress{
+    position:relative;
+    height:6px;
+    background:#1e293b;
+    border-radius:10px;
+    margin-top:5px;
 }
 
-/* 🔥 PROGRESO MEJORADO */
-.flight-progress {
-    position: relative;
-    width: 300px; /* 🔥 MÁS LARGA (puedes subir a 350px) */
-    height: 8px; /* 🔥 MÁS GRUESA */
-    background: #1e293b;
-    border-radius: 10px;
-    margin: 8px auto 0 auto; /* 🔥 centrada */
-    overflow: hidden;
+.flight-bar{
+    height:100%;
+    background:#22d3ee;
+    border-radius:10px;
+    width:0%;
 }
 
-/* 🔵 BARRA */
-.flight-bar {
-    height: 100%;
-    background: #22d3ee;
-    border-radius: 10px;
-    width: 0%;
-    transition: width 0.5s ease;
-
-    /* 🔥 glow */
-    box-shadow: 0 0 10px #22d3ee;
+.plane{
+    position:absolute;
+    top:-10px;
+    font-size:14px;
+    transform:translateX(-50%);
 }
 
-/* ✈️ AVIÓN */
-.plane {
-    position: absolute;
-    top: -14px;
+.countdown-green { color:#22c55e !important; }
+.countdown-yellow { color:#facc15 !important; }
+.countdown-red { color:#ef4444 !important; }
 
-    font-size: 18px; /* 🔥 más grande */
-    color: #ffffff; /* 🔥 blanco para que se vea */
-
-    transform: translateX(-50%);
-    z-index: 2; /* 🔥 encima de la barra */
-
-    text-shadow: 0 0 6px #00ffff; /* 🔥 glow */
+@media (max-width: 768px){
+    .time{ font-size:30px; }
+    .title{ font-size:20px; }
+    th{ font-size:14px; }
+    td{ font-size:16px; padding:8px; }
+    .header{ padding:10px; }
+    table{ font-size:12px; }
 }
-/* ⏱ COUNTDOWN */
-.countdown {
-    font-size: 25px;
-    font-weight: bold;
-    color: #00ffff;
-
-    text-shadow: 0 0 10px #00ffff; /* 🔥 glow pro */
-}
-
-.countdown {
-    color: #22c55e;
-}
-
-.countdown.warning {
-    color: #facc15;
-}
-
-.countdown.danger {
-    color: #ef4444;
-}
-
 </style>
 </head>
 
 <body>
-
-<div class="view-indicator" id="viewIndicator">📊 VUELOS</div>
-
-<button class="fullscreen-btn" id="fullscreenBtn" title="Pantalla Completa">⛶</button>
-
+<div id="anuncioFull" class="anuncio-full"></div>
 <div class="header">
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" alt="Logo">
-        <div class="title">🛫 AIRPORT DISPLAY</div>
+    <div class="left">
+        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png">
+        <div class="title">LONGPORT BOARD POP</div>
     </div>
 
-    <div style="text-align: right;">
-        <div class="date" id="date"></div>
-        <div class="time" id="clock"></div>
+    <div style="display:flex; align-items:center; gap:25px;">
+        <div style="text-align:right;">
+            <div id="date" style="font-size:20px; color:#7dd3fc;"></div>
+            <div id="clock" class="time"></div>
+        </div>
+        <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
     </div>
 </div>
 
-<div class="content-container">
-    
-    <!-- VISTA DE VUELOS -->
-    <div class="flights-view active" id="flightsView">
-        <table>
-            <thead>
-                <tr>
-                    <th>VUELO</th>
-                    <th>DESTINO</th>
-                    <th>LLEGADA</th>
-                    <th>SALIDA</th>
-                    <th>GATE</th>
-                    <th>ESTADO</th>
-                </tr>
-            </thead>
-            <tbody id="flightsTable"></tbody>
-        </table>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>VUELO</th>
+<th>DESTINO</th>
+<th>LLEGADA</th>
+<th>SALIDA</th>
+<th>GATE</th>
+<th>ESTADO</th>
+</tr>
+</thead>
+<tbody id="board"></tbody>
+</table>
+</div>
+
+<div class="positions-wrapper">
+    <div class="positions-panel westjet" id="westjetPanel">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsWestjet"></div>
     </div>
 
-    <!-- VISTA DE ASIGNACIONES -->
-    <!-- 🟢 WESTJET -->
-<div class="assignments-view" id="westjetView">
-    <div class="assignments-title" id="titleWestjet">ASIGNACIONES WESTJET</div>
-    <div class="assignments-grid" id="gridWestjet"></div>
-</div>
-
-<!-- 🔵 JETBLUE -->
-<div class="assignments-view" id="jetblueView">
-    <div class="assignments-title" id="titleJetblue">ASIGNACIONES JETBLUE</div>
-    <div class="assignments-grid" id="gridJetblue"></div>
-</div>
-
-<!-- 📢 ANUNCIOS -->
-<div class="announcement-view" id="announcementView">
-    <img id="announcementMedia" class="announcement-media" style="display:none;">
-    <div id="announcementText" class="announcement-text" style="display:none;"></div>
-</div>
-
+    <div class="positions-panel jetblue" id="jetbluePanel">
+        <div class="panel-title"></div>
+        <div class="positions-grid" id="positionsJetblue"></div>
+    </div>
 </div>
 
 <div class="ticker">
-    <div class="ticker-text" id="ticker">Bienvenidos al Aeropuerto • Welcome to the Airport</div>
+    <div class="ticker-text" id="ticker"></div>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-    apiKey: "933c97406ad862095eade39aef8a1f5d",
-    authDomain: "airport-board-ee661.firebaseapp.com",
-    databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-    projectId: "airport-board-ee661"
-};
+const app = initializeApp({
+  apiKey: "933c97406ad862095eade39aef8a1f5d",
+  authDomain: "airport-board-ee661.firebaseapp.com",
+  databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
+  projectId: "airport-board-ee661"
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* ========================= */
-/* ESTADO DEL SISTEMA */
-/* ========================= */
-let currentView = 'flights'; // flights, assignments, announcements
-let rotationTimer = null;
-let announcements = [];
-let currentAnnouncementIndex = 0;
-let flights = [];
-let assignments = [];
-let rotationDelay = 20; // segundos - AUMENTADO de 10 a 20
+let anuncios = [];
+let anunciosActivos = false;
+let vuelosData = [];
+let window_avisos = {};
+let countdownActivo = {};
+let timerDuracion = 25;
+let timerInterval = null;
+let indexAnuncio = 0;
 
+// 📋 CARGAR DATOS
+onValue(ref(db,"anuncios"), snap => {
+    anuncios = Object.values(snap.val() || {});
+});
 
+onValue(ref(db,"titles/westjet"), snap => {
+    document.querySelector(".westjet .panel-title").innerText = snap.val() || "ASIGNACIONES WESTJET";
+});
 
+onValue(ref(db,"titles/jetblue"), snap => {
+    document.querySelector(".jetblue .panel-title").innerText = snap.val() || "ASIGNACIONES JETBLUE";
+});
 
-/* ========================= */
-/* RELOJ Y FECHA */
-/* ========================= */
-function updateClock() {
+onValue(ref(db,"visibility/jetblue"), snap => {
+    const visible = snap.val() !== false;
+    document.getElementById("jetbluePanel").style.display = visible ? "block" : "none";
+});
+
+onValue(ref(db,"visibility/westjet"), snap => {
+    const visible = snap.val() !== false;
+    document.getElementById("westjetPanel").style.display = visible ? "block" : "none";
+});
+
+onValue(ref(db,"ticker/duration"), snap => {
+    timerDuracion = parseInt(snap.val()) || 25;
+    // Actualizar animación
+    document.documentElement.style.setProperty('--scroll-duration', timerDuracion + 's');
+});
+
+// ⏰ RELOJ
+setInterval(() => {
     const now = new Date();
-    
-    document.getElementById('clock').innerText = now.toLocaleTimeString('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    
-    document.getElementById('date').innerText = now.toLocaleDateString('es-CO', {
+    document.getElementById("clock").innerText = now.toLocaleTimeString('es-DO');
+    document.getElementById("date").innerText = now.toLocaleDateString('es-DO', {
         weekday: 'long',
         day: '2-digit',
-        month: 'long',
+        month: 'short',
         year: 'numeric'
     });
-}
+}, 1000);
 
-function actualizarProgreso() {
+// 🛫 VUELOS
+onValue(ref(db,"flights"), snap => {
+    vuelosData = Object.values(snap.val() || {});
+});
 
-    flights.forEach(f => {
-
-        if(!f.llegada) return;
-
-        let [h,m] = f.llegada.split(":");
+function renderVuelos(){
+    let html = "";
+    vuelosData.forEach(r => {
+        let estadoClase = (r.estado || "").toLowerCase().replace(/\s+/g,"-");
+        let [h,m] = (r.llegada || "00:00").split(":");
         let llegada = new Date();
         llegada.setHours(h,m,0);
 
         let diffMs = llegada.getTime() - Date.now();
         let diffMin = Math.floor(diffMs / 60000);
+        let hours = Math.floor(diffMin / 60);
+        let minutes = diffMin % 60;
 
+        let estadoFinal = r.estado;
+        let extraClass = "";
         let totalMin = 120;
         let progreso = 100 - (diffMin / totalMin * 100);
-
+        
         if(progreso < 0) progreso = 0;
         if(progreso > 100) progreso = 100;
 
-        // 🔥 actualizar barra
-        const bar = document.getElementById(`bar-${f.vuelo}`);
-        const plane = document.getElementById(`plane-${f.vuelo}`);
-        const cd = document.getElementById(`cd-${f.vuelo}`);
-        const estado = document.getElementById(`estado-${f.vuelo}`);
+        if(diffMin <= 0){
+            estadoFinal = "ARRIVED";
+            estadoClase = "arrived";
+        }
+        if(diffMin <= 30 && diffMin > 0) extraClass = "blink";
+        if(diffMin <= 10 && diffMin > 0) estadoFinal = "ARRIVING";
 
-        if(bar) bar.style.width = progreso + "%";
-        if(plane) plane.style.left = progreso + "%";
+        let countdown = "0 min";
+        let countdownClass = "countdown-green";
+        if(diffMin > 0){
+            countdown = hours > 0 ? hours + "h " + minutes + "m" : minutes + " min";
+            if(diffMin <= 60) countdownClass = "countdown-yellow";
+            if(diffMin <= 15) countdownClass = "countdown-red";
+        }
 
-        // ⏱ countdown
-        if (cd) {
-
-   if (cd) {
-
-     if (diffMin <= 0) {
-         cd.innerText = "0m";
-         if (estado) {
-
-     const texto = estado.innerText.toLowerCase();
-
-     estado.classList.remove("estado-aterrizado");
-
-     if (diffMin <= 0) {
-
-         // 🚫 NO sobrescribir estados manuales importantes
-         if (
-             !texto.includes("delayed") &&
-             !texto.includes("cancelled") &&
-             !texto.includes("diverted")
-         ) {
-             estado.innerText = "Aterrizado";
-estado.classList.add("estado-aterrizado");
-         }
-     }
-}
-     } else {
-
-         const horas = Math.floor(diffMin / 60);
-         const minutos = diffMin % 60;
-
-         if (horas > 0) {
-             // 🔥 tiene horas
-             const mm = String(minutos).padStart(2, '0');
-             cd.innerText = `${horas}h ${mm}m`;
-         } else {
-             // 🔥 solo minutos
-             cd.innerText = `${minutos}m`;
-         }
-     
-         // 🔥 COLORES + PARPADEO
-         cd.classList.remove("warning", "danger", "blink");
-
-         if (diffMin <= 30) {
-             cd.classList.add("warning", "blink"); // ⚠️ amarillo + parpadeo
-         }
-
-         if (diffMin <= 10) {
-             cd.classList.remove("warning");
-             cd.classList.add("danger", "blink"); // 🔴 rojo + parpadeo fuerte
-         }
-
-         const row = document.getElementById(`row-${f.vuelo}`);
-
-if(row){
-    row.classList.remove("row-warning", "row-danger");
-
-    if(diffMin <= 30 && diffMin > 10){
-        row.classList.add("row-warning"); // 🟡 parpadeo suave
-    }
-
-    if(diffMin <= 10){
-        row.classList.add("row-danger"); // 🔴 parpadeo fuerte
-    }
-}
-     }
-}
-}
+        html += `
+        <tr class="${estadoClase} ${extraClass}">
+        <td>${r.vuelo}</td>
+        <td>${r.destino}</td>
+        <td>
+            ${r.llegada}
+            <br><small class="${countdownClass}">${countdown}</small>
+            <div class="flight-progress">
+                <div class="flight-bar" style="width:${progreso}%"></div>
+                <div class="plane" style="left:${progreso}%">✈️</div>
+            </div>
+        </td>
+        <td>${r.salida}</td>
+        <td>${r.gate}</td>
+        <td>${estadoFinal}</td>
+        </tr>`;
     });
+    document.getElementById("board").innerHTML = html;
 }
 
+setInterval(renderVuelos, 1000);
 
-setInterval(actualizarProgreso, 1000);
+// 👥 POSICIONES
+onValue(ref(db,"positions"), snap => {
+    let data = snap.val() || {};
+    let west = "";
+    let jet = "";
 
-updateClock();
-setInterval(updateClock, 1000);
+    Object.entries(data).forEach(([k,v]) => {
+        let card = `<div class="pos-card"><div class="role">${k.toUpperCase()}</div><div class="name">${v}</div></div>`;
+        if(k.includes("west") || k.includes("wj")) west += card;
+        else jet += card;
+    });
 
-/* ========================= */
-/* FULLSCREEN */
-/* ========================= */
-document.getElementById('fullscreenBtn').addEventListener('click', () => {
-    if (!document.fullscreenElement) {
+    document.getElementById("positionsWestjet").innerHTML = west;
+    document.getElementById("positionsJetblue").innerHTML = jet;
+});
+
+// 📢 TICKER
+onValue(ref(db,"ticker/message"), snap => {
+    document.getElementById("ticker").innerText = snap.val() || "Bienvenidos";
+});
+
+// 🖥️ FULLSCREEN
+window.toggleFullscreen = function(){
+    if(!document.fullscreenElement){
         document.documentElement.requestFullscreen();
-    } else {
+    }else{
         document.exitFullscreen();
     }
+};
+
+window.addEventListener("load", () => {
+    setTimeout(() => {
+        document.documentElement.requestFullscreen().catch(() => {});
+    }, 1500);
 });
-
-/* ========================= */
-/* CARGAR TICKER */
-/* ========================= */
-onValue(ref(db, 'ticker/message'), (snap) => {
-    const message = snap.val() || 'Bienvenidos al Aeropuerto • Welcome to the Airport';
-    document.getElementById('ticker').innerText = message;
-});
-
-onValue(ref(db, 'anuncios'), (snap) => {
-    announcements = Object.values(snap.val() || {});
-});
-
-/* ========================= */
-/* CARGAR VUELOS */
-/* ========================= */
-onValue(ref(db, 'flights'), (snap) => {
-    flights = Object.values(snap.val() || {});
-    renderFlights();
-});
-
-function renderFlights() {
-    const tbody = document.getElementById('flightsTable');
-    tbody.innerHTML = '';
-    
-    flights.forEach(flight => {
-        const row = `
-            <tr id="row-${flight.vuelo}">
-                <td>${flight.vuelo || 'N/A'}</td>
-                <td>${flight.destino || 'N/A'}</td>
-                <td>
-     ${flight.llegada || "N/A"}
-
-    <div class="flight-progress">
-        <div class="flight-bar" id="bar-${flight.vuelo}"></div>
-        <div class="plane" id="plane-${flight.vuelo}">✈️</div>
-    </div>
-
-    <small class="countdown" id="cd-${flight.vuelo}">--</small>
-</td>
-    <small class="countdown" id="cd-${flight.vuelo}">--</small>
-</div>
-</div>
-</td>
-                <td>${flight.salida || 'N/A'}</td>
-                <td>${flight.gate || 'N/A'}</td>
-                <td id="estado-${flight.vuelo}">${flight.estado || 'N/A'}</td>
-            </tr>
-        `;
-        tbody.innerHTML += row;
-    });
-
-    let countdownClass = "countdown-green";
-
-if(diffMin <= 60){
-    countdownClass = "countdown-yellow";
-}
-
-if(diffMin <= 15){
-    countdownClass = "countdown-red";
-}
-}
-
-function showAnnouncement() {
-
-    if (announcements.length === 0) return;
-
-    const anuncio = announcements[currentAnnouncementIndex];
-
-    const media = document.getElementById('announcementMedia');
-const text = document.getElementById('announcementText');
-
-media.style.display = "none";
-text.style.display = "none";
-
-// VIDEO o IMAGEN
-if (anuncio.media) {
-
-    if (anuncio.media.includes(".mp4")) {
-
-        media.outerHTML = `
-            <video id="announcementMedia" autoplay muted 
-            style="max-width:100%;max-height:100%;object-fit:contain;">
-            <source src="${anuncio.media}" type="video/mp4">
-            </video>
-        `;
-
-    } else {
-        media.src = anuncio.media;
-        media.style.display = "block";
-    }
-}
-
-// TEXTO
-else if (anuncio.texto) {
-    text.innerText = anuncio.texto;
-    text.style.display = "block";
-}
-
-    currentAnnouncementIndex++;
-    if (currentAnnouncementIndex >= announcements.length) {
-        currentAnnouncementIndex = 0;
-    }
-}
-
-/* ========================= */
-/* CARGAR ASIGNACIONES */
-/* ========================= */
-onValue(ref(db, 'positions'), (snap) => {
-    const data = snap.val() || {};
-    assignments = Object.entries(data).map(([role, name]) => ({
-        role: role.toUpperCase(),
-        name: name
-    }));
-    renderAssignments();
-});
-
-function renderAssignments() {
-
-    let westHTML = "";
-    let jetHTML = "";
-
-    assignments.forEach(a => {
-
-        const colores = ["blue","green","yellow","purple","red","cyan"];
-
-// 🎯 función para asignar color
-function getColor(role){
-    role = role.toLowerCase();
-
-    if(role.includes("puerta")) return "blue";
-    if(role.includes("rampa")) return "green";
-    if(role.includes("escorta") || role.includes("escolta")) return "purple";
-
-    // fallback automático
-    const index = role.length % colores.length;
-    return colores[index];
-}
-
-const colorClass = "card-" + getColor(a.role);
-
-const card = `
-<div class="assignment-card ${colorClass}">
-            <div class="role">${a.role}</div>
-            <div class="name">${a.name}</div>
-        </div>`;
-
-        if (a.role.includes("WEST")) {
-            westHTML += card;
-        } else {
-            jetHTML += card;
-        }
-    });
-
-    document.getElementById('gridWestjet').innerHTML = westHTML;
-    document.getElementById('gridJetblue').innerHTML = jetHTML;
-}
-
-/* ========================= */
-/* CAMBIAR VISTA */
-/* ========================= */
-function switchView(view) {
-
-    // ocultar todas
-    document.getElementById('flightsView').classList.remove('active');
-    document.getElementById('westjetView').classList.remove('active');
-    document.getElementById('jetblueView').classList.remove('active');
-    document.getElementById('announcementView').classList.remove('active');
-    
-
-    if (view === 'flights') {
-        document.getElementById('flightsView').classList.add('active');
-    }
-
-    else if (view === 'westjet') {
-        document.getElementById('westjetView').classList.add('active');
-    }
-
-    else if (view === 'jetblue') {
-        document.getElementById('jetblueView').classList.add('active');
-    }
-    else if (view === 'announcement') {
-    document.getElementById('announcementView').classList.add('active');
-    showAnnouncement();
-}
-
-
-    currentView = view;
-}
-
-
-/* ========================= */
-/* ROTACIÓN AUTOMÁTICA */
-/* ========================= */
-function startRotation() {
-
-    switchView('flights');
-
-    rotationTimer = setInterval(() => {
-
-        if (currentView === 'flights') {
-            switchView('westjet');
-        } 
-        else if (currentView === 'westjet') {
-            switchView('jetblue');
-        } 
-        else if (currentView === 'jetblue') {
-
-            if (announcements.length > 0) {
-                switchView('announcement');
-            } else {
-                switchView('flights');
-            }
-        } 
-        else if (currentView === 'announcement') {
-            switchView('flights');
-        }
-
-    }, rotationDelay * 1000);
-}
-
-/* ========================= */
-/* TECLAS DE CONTROL (OPCIONAL) */
-/* ========================= */
-document.addEventListener('keydown', (e) => {
-    if (e.key === '1') switchView('flights');
-    if (e.key === '2') switchView('assignments');
-    if (e.key === '3') {
-        if (announcements.length > 0) switchView('announcement');
-    }
-    if (e.key === 'f' || e.key === 'F') {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            document.exitFullscreen();
-        }
-    }
-});
-
-startRotation();
 
 </script>
 </body>

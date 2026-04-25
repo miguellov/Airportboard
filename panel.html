@@ -43,12 +43,12 @@
     color: #ccc;
 }
 
-
-    .tabs {
+.tabs {
     display: flex;
     justify-content: center;
     gap: 15px;
     margin: 20px 0;
+    flex-wrap: wrap;
 }
 
 .tabs button {
@@ -66,8 +66,7 @@
     color: black;
 }
 
-
-  .card-anuncio{
+.card-anuncio{
     background:#020617;
     border:1px solid #0ea5e9;
     border-radius:10px;
@@ -75,7 +74,7 @@
     display:flex;
     flex-direction:column;
     gap:10px;
-    max-width:700px;
+    max-width:600px;
     margin:auto;
 }
 
@@ -86,125 +85,6 @@
     border:1px solid #334155;
     color:#7dd3fc;
     border-radius:6px;
-}
-
-.file-input-wrapper {
-    position: relative;
-    overflow: hidden;
-    display: inline-block;
-    width: 100%;
-}
-
-.file-input-wrapper input[type=file] {
-    display: none;
-}
-
-.file-input-label {
-    display: block;
-    padding: 10px;
-    background: #1e3a5f;
-    color: #7dd3fc;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
-    border: 1px dashed #00e0ff;
-    transition: 0.3s;
-}
-
-.file-input-label:hover {
-    background: #2a5080;
-}
-
-.file-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: #0f1f30;
-    border-radius: 6px;
-    border-left: 3px solid #00e0ff;
-    margin-top: 10px;
-    color: #7dd3fc;
-    font-size: 12px;
-}
-
-.preview-area {
-    width: 100%;
-    height: 150px;
-    background: #0a0f1c;
-    border: 2px solid #00e0ff;
-    border-radius: 6px;
-    margin: 10px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-}
-
-.preview-area img,
-.preview-area video {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-.preview-placeholder {
-    color: #7dd3fc;
-    font-size: 12px;
-    text-align: center;
-}
-
-.announcements-list {
-    background: #0f1f30;
-    border: 1px solid #00e0ff;
-    border-radius: 10px;
-    padding: 15px;
-    margin-top: 20px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.announcement-item {
-    background: #020617;
-    border-left: 3px solid #00ffff;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.announcement-item-info {
-    flex: 1;
-    font-size: 12px;
-    color: #7dd3fc;
-}
-
-.announcement-item-type {
-    color: #00ffff;
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-.announcement-item-time {
-    color: #888;
-    font-size: 10px;
-}
-
-.btn-delete-announcement {
-    background: #dc2626;
-    border: none;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.btn-delete-announcement:hover {
-    background: #b91c1c;
 }
 
 .search-box{
@@ -221,7 +101,6 @@
     color: white;
 }
 
-/* 🔥 DROPDOWN DE RESULTADOS */
 .results{
     position: absolute;
     top: 100%;
@@ -235,14 +114,12 @@
     overflow-y: auto;
 }
 
-/* ITEMS */
 .results div{
     padding: 8px;
     cursor: pointer;
     border-bottom: 1px solid #1e293b;
 }
 
-/* HOVER */
 .results div:hover{
     background: #1e293b;
 }
@@ -296,6 +173,8 @@ button{
 }
 
 .add{ background:#3b82f6; }
+.toggle-btn { background: #7c3aed; }
+.toggle-btn.visible { background: #10b981; }
 
 #panel{
     display:grid;
@@ -323,9 +202,10 @@ input, select{
 .btn-row{
     display:flex;
     gap:5px;
+    flex-wrap: wrap;
 }
 
-.btn-row button{ flex:1; }
+.btn-row button{ flex:1; min-width: 40px; }
 
 .boarding{background:#2563eb;}
 .delayed{background:#dc2626;}
@@ -334,7 +214,6 @@ input, select{
 .cancelled{background:#475569;}
 .diverted{background:#7c3aed;}
 
-/* TICKER */
 .ticker-box{
     background:#000;
     padding:10px;
@@ -345,18 +224,14 @@ input, select{
 .ticker-box input{
     width:100%;
     margin-bottom:5px;
-}
-
-/* POSICIONES */
-#positionsContainer{
-    margin-top:10px;
+    box-sizing: border-box;
 }
 
 #positionsList,
 #positionsJet,
 #positionsWest{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
     gap:10px;
 }
 
@@ -372,12 +247,56 @@ input, select{
 .pos-actions{
     display:flex;
     gap:5px;
+    flex-wrap: wrap;
 }
 
 .pos-actions button{
     flex:1;
+    min-width: 50px;
 }
 
+.cumple-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.cumple-card {
+    background: #1e293b;
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid #7c3aed;
+}
+
+.cumple-foto {
+    width: 100%;
+    height: 150px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.cumple-info {
+    color: #e5e7eb;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .tabs {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .tabs button {
+        width: 100%;
+    }
+    
+    .top-buttons button {
+        font-size: 12px;
+        padding: 6px;
+    }
+}
 </style>
 </head>
 
@@ -389,6 +308,7 @@ input, select{
     <button onclick="showTab('flightsTab')">🛫 Vuelos</button>
     <button onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
     <button onclick="showTab('anunciosTab')">📢 Anuncios</button>
+    <button onclick="showTab('configTab')">⚙️ Config</button>
 </div>
 
 <!-- ========================= -->
@@ -398,7 +318,10 @@ input, select{
 
     <!-- MENSAJE -->
     <div class="ticker-box">
-        <input id="tickerInput" placeholder="Escribe mensaje del aeropuerto...">
+        <label>📢 Mensaje del Aeropuerto:</label>
+        <input id="tickerInput" placeholder="Escribe mensaje...">
+        <label>Duración (segundos):</label>
+        <input id="tickerDuration" type="number" value="25" min="1" max="120">
         <button onclick="saveTicker()">💾 Guardar Mensaje</button>
     </div>
 
@@ -406,6 +329,7 @@ input, select{
         <button class="add" onclick="addFlight()">➕ Agregar</button>
         <button onclick="undo()">⏪ Undo</button>
         <button onclick="redo()">⏩ Redo</button>
+        <button onclick="changeDateFlights()">📅 Cambiar Fecha</button>
         <button onclick="setTheme('dark')">🌙</button>
         <button onclick="setTheme('light')">🌞</button>
         <button onclick="setTheme('airport')">✈️</button>
@@ -429,17 +353,20 @@ input, select{
         <div id="tablaPanel"></div>
     </div>
 
-    
     <!-- POSICIONES MANUALES -->
     <div class="ticker-box">
 
         <h3>👨‍✈️ POSICIONES</h3>
 
         <!-- 🔵 JETBLUE -->
-        <h4 style="color:#3b82f6;">🔵 JETBLUE</h4>
+        <h4 style="color:#3b82f6;">🔵 JETBLUE
+            <button class="toggle-btn visible" id="toggleJet" onclick="toggleVisibility('jetblue')" style="float: right; font-size: 11px; padding: 4px 8px;">👁️</button>
+        </h4>
 
         <input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
         <button onclick="saveJetblueTitle()">💾 Guardar Título</button>
+        <label>Duración (segundos):</label>
+        <input id="jetblueDuration" type="number" value="10" min="1" max="60">
 
         <input id="posRoleJet" placeholder="Posición JetBlue">
         <input id="posNameJet" placeholder="Nombre empleado">
@@ -450,10 +377,14 @@ input, select{
         <hr style="margin:15px 0; border:1px solid #333;">
 
         <!-- 🟢 WESTJET -->
-        <h4 style="color:#22c55e;">🟢 WESTJET</h4>
+        <h4 style="color:#22c55e;">🟢 WESTJET
+            <button class="toggle-btn visible" id="toggleWest" onclick="toggleVisibility('westjet')" style="float: right; font-size: 11px; padding: 4px 8px;">👁️</button>
+        </h4>
 
         <input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS2507">
         <button onclick="saveWestjetTitle()">💾 Guardar Título</button>
+        <label>Duración (segundos):</label>
+        <input id="westjetDuration" type="number" value="10" min="1" max="60">
 
         <input id="posRoleWest" placeholder="Posición WestJet">
         <input id="posNameWest" placeholder="Nombre empleado">
@@ -474,54 +405,68 @@ input, select{
 
     <div class="card-anuncio">
 
-        <label>Tipo de Anuncio</label>
-        <select id="tipoAnuncio">
+        <label>Tipo</label>
+        <select id="tipoAnuncio" onchange="cambiarTipoAnuncio()">
             <option value="mensaje">Mensaje</option>
             <option value="cumple">Cumpleaños</option>
             <option value="asignacion">Asignación</option>
-            <option value="promocion">Promoción</option>
         </select>
 
-        <label>Texto (opcional)</label>
-        <input id="textoAnuncio" placeholder="Texto del anuncio">
-
-        <label>📤 Cargar Imagen o Video</label>
-        <div class="file-input-wrapper">
+        <!-- Mensaje -->
+        <div id="msgFields">
+            <input id="textoAnuncio" placeholder="Texto">
             <input type="file" id="fileAnuncio" accept="image/*,video/*">
-            <label class="file-input-label" for="fileAnuncio">
-                📁 Toca para seleccionar archivo (JPG, PNG, MP4, WebM)
-            </label>
+            <label>Vista Previa:</label>
+            <div id="previewMsg" style="min-height: 100px; border: 1px solid #334155; border-radius: 6px; padding: 10px; color: #7dd3fc;">Aquí aparecerá la vista previa</div>
         </div>
 
-        <div class="file-info" id="fileInfo" style="display: none;">
-            <span id="fileName">Archivo seleccionado</span>
-            <span id="fileSize">0 KB</span>
+        <!-- Cumpleaños -->
+        <div id="cumpleFields" style="display: none;">
+            <h4>Agregar Cumpleañero:</h4>
+            <input id="cumpleNombre" placeholder="Nombre de la persona" maxlength="50">
+            <input id="cumpleFecha" type="date">
+            <input type="file" id="cumpleFoto" accept="image/*">
+            <label>Foto Vista Previa:</label>
+            <img id="previewFoto" src="" style="max-width: 150px; border-radius: 6px; display: none;">
+            <button onclick="agregarCumpleañero()">➕ Agregar a Cumpleañeros</button>
+            <div id="cumpleLista" class="cumple-list"></div>
         </div>
 
-        <label>👁️ Vista Previa</label>
-        <div class="preview-area" id="previewArea">
-            <div class="preview-placeholder">Aquí aparecerá la vista previa</div>
-        </div>
-
-        <label>⏱️ Duración (segundos)</label>
+        <!-- Duración general -->
+        <label>Duración (segundos):</label>
         <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10" min="1" max="120">
 
-        <button onclick="guardarAnuncio()" style="background: #16a34a; padding: 12px; font-size: 14px; font-weight: bold;">
-            💾 GUARDAR ANUNCIO
-        </button>
-
-        <button onclick="limpiarFormulario()" style="background: #1e3a5f; padding: 12px; font-size: 14px;">
-            🔄 LIMPIAR FORMULARIO
-        </button>
+        <button onclick="guardarAnuncio()">💾 Guardar</button>
+        <button onclick="toggleAnuncios()">🛑 Encender / Apagar</button>
 
     </div>
 
-    <!-- LISTA DE ANUNCIOS GUARDADOS -->
-    <div class="announcements-list" id="announcementsList">
-        <h3 style="color: #00e0ff; margin-top: 0;">📋 Anuncios Guardados</h3>
-        <div id="announcementsGrid">
-            <p style="color: #888;">Cargando anuncios...</p>
-        </div>
+</div>
+
+<!-- ========================= -->
+<!-- ⚙️ TAB CONFIGURACIÓN -->
+<!-- ========================= -->
+<div id="configTab" style="display:none;">
+
+    <h2>⚙️ Configuración</h2>
+
+    <div class="card-anuncio">
+
+        <h3>Configuración General</h3>
+
+        <label>Duración por defecto (segundos):</label>
+        <input id="defaultDuration" type="number" value="10" min="1" max="120">
+        <button onclick="saveConfig()">💾 Guardar</button>
+
+        <hr style="margin: 15px 0; border: 1px solid #334155;">
+
+        <h3>Auto-cambio de Vuelos</h3>
+        <label>
+            <input type="checkbox" id="autoChangeFlights">
+            Auto-cambiar vuelos a las 12:00 AM
+        </label>
+        <button onclick="saveConfig()">💾 Guardar</button>
+
     </div>
 
 </div>
@@ -529,239 +474,247 @@ input, select{
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "933c97406ad862095eade39aef8a1f5d",
   authDomain: "airport-board-ee661.firebaseapp.com",
   databaseURL: "https://airport-board-ee661-default-rtdb.firebaseio.com",
-  projectId: "airport-board-ee661",
-  storageBucket: "airport-board-ee661.appspot.com"
+  projectId: "airport-board-ee661"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const storage = getStorage(app);
 
 const flightsRef = ref(db,"flights");
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
-const anunciosRef = ref(db,"anuncios");
-
-/* ========================= */
-/* CARGA DE ARCHIVOS */
-/* ========================= */
-document.getElementById("fileAnuncio").addEventListener("change", function(e) {
-    const file = e.target.files[0];
-    
-    if (!file) return;
-
-    // Mostrar información del archivo
-    const fileSize = (file.size / 1024).toFixed(2);
-    document.getElementById("fileName").innerText = file.name;
-    document.getElementById("fileSize").innerText = fileSize + " KB";
-    document.getElementById("fileInfo").style.display = "flex";
-
-    // Vista previa
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const previewArea = document.getElementById("previewArea");
-        previewArea.innerHTML = "";
-
-        if (file.type.startsWith("image/")) {
-            const img = document.createElement("img");
-            img.src = event.target.result;
-            previewArea.appendChild(img);
-        } else if (file.type.startsWith("video/")) {
-            const video = document.createElement("video");
-            video.src = event.target.result;
-            video.controls = true;
-            previewArea.appendChild(video);
-        }
-    };
-    reader.readAsDataURL(file);
-});
-
-/* ========================= */
-/* GUARDAR ANUNCIO */
-/* ========================= */
-window.guardarAnuncio = async () => {
-    const tipo = document.getElementById("tipoAnuncio").value;
-    const texto = document.getElementById("textoAnuncio").value;
-    const duracion = document.getElementById("duracionAnuncio").value;
-    const file = document.getElementById("fileAnuncio").files[0];
-
-    if (!texto && !file) {
-        alert("❌ Por favor, escribe un texto o selecciona una imagen/video");
-        return;
-    }
-
-    let mediaUrl = "";
-
-    // Subir archivo a Firebase Storage
-    if (file) {
-        try {
-            const fileName = Date.now() + "_" + file.name;
-            const fileRef = storageRef(storage, "anuncios/" + fileName);
-            
-            await uploadBytes(fileRef, file);
-            mediaUrl = await getDownloadURL(fileRef);
-            
-            console.log("✅ Archivo subido:", mediaUrl);
-        } catch (error) {
-            console.error("❌ Error subiendo archivo:", error);
-            alert("❌ Error subiendo el archivo. Intenta de nuevo.");
-            return;
-        }
-    }
-
-    const anuncio = {
-        tipo,
-        texto,
-        media: mediaUrl,
-        duracion: Number(duracion),
-        fechaCreacion: new Date().toLocaleString("es-CO")
-    };
-
-    const id = Date.now();
-
-    try {
-        set(ref(db, "anuncios/" + id), anuncio);
-        alert("✅ Anuncio guardado correctamente");
-        limpiarFormulario();
-    } catch (error) {
-        console.error("❌ Error guardando anuncio:", error);
-        alert("❌ Error guardando el anuncio");
-    }
-};
-
-/* ========================= */
-/* LIMPIAR FORMULARIO */
-/* ========================= */
-window.limpiarFormulario = () => {
-    document.getElementById("tipoAnuncio").value = "mensaje";
-    document.getElementById("textoAnuncio").value = "";
-    document.getElementById("fileAnuncio").value = "";
-    document.getElementById("duracionAnuncio").value = "10";
-    document.getElementById("fileInfo").style.display = "none";
-    document.getElementById("previewArea").innerHTML = '<div class="preview-placeholder">Aquí aparecerá la vista previa</div>';
-};
-
-/* ========================= */
-/* CARGAR LISTA DE ANUNCIOS */
-/* ========================= */
-onValue(anunciosRef, (snap) => {
-    const data = snap.val() || {};
-    const grid = document.getElementById("announcementsGrid");
-    
-    const anuncios = Object.entries(data);
-    
-    if (anuncios.length === 0) {
-        grid.innerHTML = '<p style="color: #888; text-align: center;">No hay anuncios guardados</p>';
-        return;
-    }
-
-    grid.innerHTML = "";
-
-    anuncios.forEach(([id, anuncio]) => {
-        const tipo = anuncio.tipo || "mensaje";
-        const texto = (anuncio.texto || "").substring(0, 40);
-        const duracion = anuncio.duracion || 10;
-        const fecha = anuncio.fechaCreacion || "Reciente";
-
-        const item = `
-            <div class="announcement-item">
-                <div class="announcement-item-info">
-                    <div class="announcement-item-type">🔹 ${tipo.toUpperCase()}</div>
-                    <div>${texto}${anuncio.texto && anuncio.texto.length > 40 ? "..." : ""}</div>
-                    <div class="announcement-item-time">⏱️ ${duracion}s • ${fecha}</div>
-                </div>
-                <button class="btn-delete-announcement" onclick="eliminarAnuncio('${id}')">
-                    🗑️ Eliminar
-                </button>
-            </div>
-        `;
-        grid.innerHTML += item;
-    });
-});
-
-/* ========================= */
-/* ELIMINAR ANUNCIO */
-/* ========================= */
-window.eliminarAnuncio = (id) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este anuncio?")) {
-        remove(ref(db, "anuncios/" + id));
-        alert("✅ Anuncio eliminado");
-    }
-};
+const configRef = ref(db,"config");
+const cumpleanosRef = ref(db,"cumpleanos");
+const visibilityRef = ref(db,"visibility");
 
 /* 🔥 TABS */
 window.showTab = (tab)=>{
     document.getElementById("flightsTab").style.display = "none";
     document.getElementById("positionsTab").style.display = "none";
     document.getElementById("anunciosTab").style.display = "none";
+    document.getElementById("configTab").style.display = "none";
     document.getElementById(tab).style.display = "block";
 };
 
-/* MENSAJE */
-window.saveTicker = ()=>{
-    set(tickerRef, document.getElementById("tickerInput").value);
+/* CAMBIAR TIPO DE ANUNCIO */
+window.cambiarTipoAnuncio = () => {
+    const tipo = document.getElementById("tipoAnuncio").value;
+    document.getElementById("msgFields").style.display = tipo === "mensaje" ? "block" : "none";
+    document.getElementById("cumpleFields").style.display = tipo === "cumple" ? "block" : "none";
 };
 
-onValue(tickerRef,(snap)=>{
+/* VISTA PREVIA FOTO CUMPLE */
+document.getElementById("cumpleFoto")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            document.getElementById("previewFoto").src = ev.target.result;
+            document.getElementById("previewFoto").style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+/* AGREGAR CUMPLEAÑERO */
+window.agregarCumpleañero = async () => {
+    const nombre = document.getElementById("cumpleNombre").value;
+    const fecha = document.getElementById("cumpleFecha").value;
+    const fotoFile = document.getElementById("cumpleFoto").files[0];
+
+    if(!nombre || !fecha || !fotoFile) {
+        alert("Completa todos los campos");
+        return;
+    }
+
+    // Convertir foto a Base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const cumpleano = {
+            id: Date.now(),
+            nombre,
+            fecha,
+            foto: e.target.result
+        };
+
+        set(ref(db, "cumpleanos/" + cumpleano.id), cumpleano);
+
+        document.getElementById("cumpleNombre").value = "";
+        document.getElementById("cumpleFecha").value = "";
+        document.getElementById("cumpleFoto").value = "";
+        document.getElementById("previewFoto").style.display = "none";
+
+        alert("✅ Cumpleañero agregado");
+        cargarCumpleañeros();
+    };
+    reader.readAsDataURL(fotoFile);
+};
+
+/* CARGAR CUMPLEAÑEROS */
+function cargarCumpleañeros() {
+    onValue(cumpleanosRef, (snap) => {
+        const data = snap.val() || {};
+        let html = "";
+
+        Object.entries(data).forEach(([id, cumple]) => {
+            html += `
+            <div class="cumple-card">
+                <img src="${cumple.foto}" class="cumple-foto">
+                <div class="cumple-info">
+                    <strong>${cumple.nombre}</strong><br>
+                    📅 ${new Date(cumple.fecha).toLocaleDateString('es-DO')}
+                </div>
+                <button onclick="eliminarCumple('${id}')" style="width: 100%; margin-top: 10px; background: #dc2626;">🗑 Eliminar</button>
+            </div>
+            `;
+        });
+
+        document.getElementById("cumpleLista").innerHTML = html;
+    });
+}
+
+window.eliminarCumple = (id) => {
+    if(confirm("¿Eliminar cumpleañero?")) {
+        set(ref(db, "cumpleanos/" + id), null);
+    }
+};
+
+/* GUARDAR ANUNCIO */
+window.guardarAnuncio = async () => {
+    const tipo = document.getElementById("tipoAnuncio").value;
+    const duracion = parseInt(document.getElementById("duracionAnuncio").value) || 10;
+
+    if(tipo === "mensaje") {
+        const texto = document.getElementById("textoAnuncio").value;
+        const fileAnuncio = document.getElementById("fileAnuncio").files[0];
+
+        let media = "";
+        if(fileAnuncio) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                media = e.target.result;
+                const anuncio = { id: Date.now(), tipo, texto, media, duracion };
+                set(ref(db,"anuncios/" + anuncio.id), anuncio);
+                alert("✅ Anuncio guardado");
+            };
+            reader.readAsDataURL(fileAnuncio);
+        } else {
+            const anuncio = { id: Date.now(), tipo, texto, media: "", duracion };
+            set(ref(db,"anuncios/" + anuncio.id), anuncio);
+            alert("✅ Anuncio guardado");
+        }
+    } else if(tipo === "cumple") {
+        alert("✅ Cumpleañeros guardados");
+    }
+};
+
+/* MENSAJE */
+window.saveTicker = () => {
+    const msg = document.getElementById("tickerInput").value;
+    const duration = document.getElementById("tickerDuration").value;
+    set(tickerRef, msg);
+    set(ref(db, "ticker/duration"), parseInt(duration));
+    alert("✅ Mensaje guardado");
+};
+
+onValue(tickerRef, (snap) => {
     document.getElementById("tickerInput").value = snap.val() || "";
 });
 
+/* CAMBIAR VISIBILIDAD */
+window.toggleVisibility = (airline) => {
+    const btn = document.getElementById("toggle" + (airline === "jetblue" ? "Jet" : "West"));
+    const isVisible = btn.classList.contains("visible");
+    
+    btn.classList.toggle("visible");
+    set(ref(db, "visibility/" + airline), !isVisible);
+};
+
 /* 🔵 JETBLUE */
-window.savePositionJet = ()=>{
+window.savePositionJet = () => {
     const role = document.getElementById("posRoleJet").value.toLowerCase();
     const name = document.getElementById("posNameJet").value;
     if(!role) return;
     set(ref(db,"positions/"+role), name);
-    posRoleJet.value="";
-    posNameJet.value="";
+    document.getElementById("posRoleJet").value="";
+    document.getElementById("posNameJet").value="";
 };
 
 /* 🟢 WESTJET */
-window.savePositionWest = ()=>{ 
+window.savePositionWest = () => { 
     const role = document.getElementById("posRoleWest").value.toLowerCase()+"_west";
     const name = document.getElementById("posNameWest").value;
     if(!role) return;
     set(ref(db,"positions/"+role), name);
-    posRoleWest.value="";
-    posNameWest.value="";
+    document.getElementById("posRoleWest").value="";
+    document.getElementById("posNameWest").value="";
 };
 
 /* MOSTRAR POSICIONES */
-onValue(positionsRef,(snap)=>{
+onValue(positionsRef, (snap) => {
     const data = snap.val() || {};
 
-    positionsJet.innerHTML="";
-    positionsWest.innerHTML="";
+    document.getElementById("positionsJet").innerHTML="";
+    document.getElementById("positionsWest").innerHTML="";
 
-    Object.entries(data).forEach(([role,name])=>{
-
+    Object.entries(data).forEach(([role,name]) => {
         const card=`
 <div class="pos-item">
-    <input value="${role}" 
-        onchange="updatePosition('${role}','role',this.value)">
-
-    <input value="${name}" 
-        onchange="updatePosition('${role}','name',this.value)">
-    
+    <input value="${role}" onchange="updatePosition('${role}','role',this.value)">
+    <input value="${name}" onchange="updatePosition('${role}','name',this.value)">
     <div class="pos-actions">
         <button onclick="deletePosition('${role}')">🗑</button>
     </div>
 </div>`;
 
         if(role.includes("west")){
-            positionsWest.innerHTML += card;
-        }else{
-            positionsJet.innerHTML += card;
+            document.getElementById("positionsWest").innerHTML += card;
+        } else {
+            document.getElementById("positionsJet").innerHTML += card;
         }
     });
 });
+
+window.deletePosition = (role) => {
+    if(confirm("Eliminar esta posición?")){
+        set(ref(db,"positions/"+role), null);
+    }
+};
+
+window.updatePosition = (oldRole, field, value) => {
+    const currentRef = ref(db, "positions/" + oldRole);
+
+    if(field === "name"){
+        set(currentRef, value);
+    }
+
+    if(field === "role"){
+        const newRole = value.toLowerCase().trim();
+        if(!newRole) return;
+
+        onValue(currentRef, (snap) => {
+            const currentName = snap.val();
+            set(currentRef, null);
+            set(ref(db,"positions/"+newRole), currentName);
+        }, {onlyOnce:true});
+    }
+};
+
+window.saveJetblueTitle = () => {
+    const value = document.getElementById("jetblueTitle").value;
+    set(ref(db,"titles/jetblue"), value);
+};
+
+window.saveWestjetTitle = () => {
+    const value = document.getElementById("westjetTitle").value;
+    set(ref(db,"titles/westjet"), value);
+};
 
 /* VUELOS */
 let history=[], redoStack=[], currentData={};
@@ -780,19 +733,7 @@ function toObj(arr){
     return o;
 }
 
-// WESTJET
-window.saveWestjetTitle = ()=>{
-    const value = document.getElementById("westjetTitle").value;
-    set(ref(db,"titles/westjet"), value);
-};
-
-// JETBLUE
-window.saveJetblueTitle = ()=>{
-    const value = document.getElementById("jetblueTitle").value;
-    set(ref(db,"titles/jetblue"), value);
-};
-
-onValue(flightsRef,snap=>{
+onValue(flightsRef, snap => {
     const data=snap.val()||{};
     const panel=document.getElementById("panel");
     panel.innerHTML="";
@@ -800,7 +741,7 @@ onValue(flightsRef,snap=>{
     currentData=data;
     saveState(data);
 
-    getArray(data).forEach((r,i)=>{
+    getArray(data).forEach((r,i) => {
         let div=document.createElement("div");
         div.className="card";
 
@@ -827,6 +768,9 @@ onValue(flightsRef,snap=>{
 <input type="time" value="${r.llegada}" onchange="updateField(${i},'llegada',this.value)">
 <input type="time" value="${r.salida}" onchange="updateField(${i},'salida',this.value)">
 
+<label>Duración (seg):</label>
+<input type="number" value="${r.duracion || 10}" min="1" max="60" onchange="updateField(${i},'duracion',this.value)">
+
 <div class="btn-row">
     <button class="boarding" onclick="setStatus(${i},'BOARDING')">B</button>
     <button class="delayed" onclick="setStatus(${i},'DELAYED')">D</button>
@@ -846,34 +790,59 @@ onValue(flightsRef,snap=>{
     });
 });
 
-window.updateField=(i,f,v)=>{saveState(currentData);let a=getArray(currentData);a[i][f]=v;set(flightsRef,toObj(a));};
-window.setStatus=(i,s)=>{
-    console.log("CLICK:", i, s);
-
+window.updateField = (i,f,v) => {
+    saveState(currentData);
     let a = getArray(currentData);
-
-    if(!a[i]) return;
-
-    a[i].estado = s;
-
+    a[i][f] = v;
     set(flightsRef, toObj(a));
 };
 
-window.addFlight=(i=null)=>{
+window.setStatus = (i,s) => {
     saveState(currentData);
-    let a=getArray(currentData);
-    let n={vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME"};
-    i==null?a.push(n):a.splice(i+1,0,n);
-    set(flightsRef,toObj(a));
+    let a = getArray(currentData);
+    if(!a[i]) return;
+    a[i].estado = s;
+    set(flightsRef, toObj(a));
+    currentData = toObj(a);
 };
 
-window.deleteFlight=i=>{saveState(currentData);let a=getArray(currentData);a.splice(i,1);set(flightsRef,toObj(a));};
+window.addFlight = (i=null) => {
+    saveState(currentData);
+    let a = getArray(currentData);
+    let n = {vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME",duracion:10};
+    i==null ? a.push(n) : a.splice(i+1,0,n);
+    set(flightsRef, toObj(a));
+};
 
-window.undo=()=>{if(history.length<2)return;redoStack.push(history.pop());set(flightsRef,JSON.parse(history[history.length-1]));};
-window.redo=()=>{if(!redoStack.length)return;let n=JSON.parse(redoStack.pop());history.push(JSON.stringify(n));set(flightsRef,n);};
+window.deleteFlight = i => {
+    saveState(currentData);
+    let a = getArray(currentData);
+    a.splice(i,1);
+    set(flightsRef, toObj(a));
+};
+
+window.undo = () => {
+    if(history.length < 2) return;
+    redoStack.push(history.pop());
+    set(flightsRef, JSON.parse(history[history.length-1]));
+};
+
+window.redo = () => {
+    if(!redoStack.length) return;
+    let n = JSON.parse(redoStack.pop());
+    history.push(JSON.stringify(n));
+    set(flightsRef, n);
+};
+
+window.changeDateFlights = () => {
+    const dateStr = prompt("Ingresa la fecha (YYYY-MM-DD):");
+    if(!dateStr) return;
+    set(ref(db, "config/selectedDate"), dateStr);
+    alert("📅 Fecha cambiada a: " + dateStr);
+};
 
 /* TEMA */
-window.setTheme=(m)=>{
+window.setTheme = (m) => {
     document.body.classList.remove("light","airport");
     if(m==="light")document.body.classList.add("light");
     if(m==="airport")document.body.classList.add("airport");
@@ -883,43 +852,7 @@ window.setTheme=(m)=>{
 let saved=localStorage.getItem("theme");
 if(saved) setTheme(saved);
 
-window.deletePosition = (role)=>{
-    if(confirm("Eliminar esta posición?")){
-        set(ref(db,"positions/"+role), null);
-    }
-};
-
-window.updatePosition = (oldRole, field, value) => {
-
-    const currentRef = ref(db, "positions/" + oldRole);
-
-    if(field === "name"){
-        set(currentRef, value);
-    }
-
-    if(field === "role"){
-        const newRole = value.toLowerCase().trim();
-        if(!newRole) return;
-
-        onValue(currentRef, (snap)=>{
-            const currentName = snap.val();
-
-            set(currentRef, null);
-            set(ref(db,"positions/"+newRole), currentName);
-
-        }, {onlyOnce:true});
-    }
-};
-
-// 🔥 HACER FUNCIONES GLOBALES
-window.buscarVuelo = buscarVuelo;
-window.seleccionarVuelo = seleccionarVuelo;
-
-window.vuelosTemp = [];
-
-// 🔍 BUSCAR
-async function buscarVuelo(input, index){
-
+window.buscarVuelo = async (input, index) => {
     const query = input.value.toLowerCase();
     const resultsDiv = document.getElementById("results"+index);
 
@@ -940,14 +873,12 @@ async function buscarVuelo(input, index){
             (f.vuelo || "").toLowerCase().includes(query)
         );
 
-        window.vuelosTemp = filtrados;
-
         let html = "";
 
         filtrados.forEach((f, i) => {
             html += `
-                <div onclick="seleccionarVuelo(${index}, ${i})">
-                    ${f.vuelo} - ${f.destino || f.origen}
+                <div onclick="seleccionarVuelo(${index}, ${i}, '${f.vuelo}', '${f.destino || f.origen}', '${f.llegada}', '${f.salida}')">
+                    ${f.vuelo} - ${f.destino || f.origen} | ${f.llegada || ''}
                 </div>
             `;
         });
@@ -957,115 +888,39 @@ async function buscarVuelo(input, index){
     }catch(e){
         console.error("ERROR BUSCANDO:", e);
     }
-}
+};
 
-// 🎯 SELECCIONAR
-function seleccionarVuelo(index, i){
-
-    const vuelo = window.vuelosTemp[i];
-
+window.seleccionarVuelo = (index, i, vuelo, destino, llegada, salida) => {
     let arr = Object.values(currentData);
     if(!arr[index]) return;
 
-    arr[index].vuelo = vuelo.vuelo;
-    arr[index].destino = vuelo.destino || vuelo.origen || "N/A";
-
+    arr[index].vuelo = vuelo;
+    arr[index].destino = destino;
+    arr[index].llegada = llegada || "";
+    arr[index].salida = salida || "";
     arr[index].manual = true;
 
-    // 🛫 SALIDA (solo si existe)
-if(vuelo.salida){
-    arr[index].salida = convertirHora(vuelo.salida);
-}
-
-// 🛬 LLEGADA (solo si existe)
-if(vuelo.llegada){
-    arr[index].llegada = convertirHora(vuelo.llegada);
-}
-    arr[index].estado = vuelo.estado || "ON-TIME";
-
     set(ref(db,"flights"), toObj(arr));
-
     document.getElementById("results"+index).innerHTML = "";
-}
+};
 
-async function autoCargarVuelos(){
-    try{
-        const res = await fetch("https://airportboard.onrender.com/flights");
+window.saveConfig = () => {
+    const defaultDuration = parseInt(document.getElementById("defaultDuration").value) || 10;
+    const autoChange = document.getElementById("autoChangeFlights").checked;
+    
+    set(configRef, {
+        defaultDuration,
+        autoChangeFlights: autoChange
+    });
+    
+    alert("✅ Configuración guardada");
+};
 
-        if(!res.ok){
-            console.error("❌ Error HTTP:", res.status);
-            return;
-        }
+cargarCumpleañeros();
 
-        const json = await res.json();
-
-        console.log("🔥 DATA API:", json);
-
-        if(!json.salidas || !json.llegadas){
-            console.error("❌ Formato incorrecto");
-            return;
-        }
-
-        const data = [...json.salidas, ...json.llegadas];
-
-        let arr = Object.values(currentData);
-
-        data.slice(0, arr.length).forEach((vuelo, i) => {
-
-            if(!arr[i]) return;
-
-// 🛫 VUELO y DESTINO (siempre actualiza si viene)
-if(vuelo.vuelo){
-    arr[i].vuelo = vuelo.vuelo;
-}
-
-if(vuelo.destino || vuelo.origen){
-    arr[i].destino = vuelo.destino || vuelo.origen;
-}
-
-// 🛫 SALIDA (solo si API trae valor real)
-if(vuelo.salida){
-    arr[i].salida = vuelo.salida;
-}
-
-if(vuelo.llegada){
-    arr[i].llegada = vuelo.llegada;
-}
-
-// 📊 ESTADO
-if(vuelo.estado && vuelo.estado !== ""){
-    arr[i].estado = vuelo.estado;
-}
-        });
-
-        set(ref(db,"flights"), toObj(arr));
-
-        console.log("✅ PANEL ACTUALIZADO");
-
-    }catch(e){
-        console.error("💥 ERROR:", e);
-    }
-}
-
-// 🔁 AUTO REFRESH
-setInterval(autoCargarVuelos, 20000);
-
-// 🔥 FIX FORMATO ESPAÑOL
-function convertirHora(hora12) {
-    if(!hora12) return "";
-
-    let limpia = hora12
-        .replace("a. m.", "AM")
-        .replace("p. m.", "PM");
-
-    const date = new Date("1970-01-01 " + limpia);
-
-    if(isNaN(date)) return "";
-
-    return date.toTimeString().slice(0,5);
-}
-
-window.showTab("flightsTab");
+window.onload = () => {
+    showTab("flightsTab");
+};
 
 </script>
 

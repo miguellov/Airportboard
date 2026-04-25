@@ -118,6 +118,7 @@
     padding: 8px;
     cursor: pointer;
     border-bottom: 1px solid #1e293b;
+    font-size: 12px;
 }
 
 .results div:hover{
@@ -533,7 +534,6 @@ window.agregarCumpleañero = async () => {
         return;
     }
 
-    // Convertir foto a Base64
     const reader = new FileReader();
     reader.onload = async (e) => {
         const cumpleano = {
@@ -765,8 +765,11 @@ onValue(flightsRef, snap => {
     <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
 </select>
 
-<input type="time" value="${r.llegada}" onchange="updateField(${i},'llegada',this.value)">
-<input type="time" value="${r.salida}" onchange="updateField(${i},'salida',this.value)">
+<label>Llegada (HH:MM):</label>
+<input type="time" value="${r.llegada || ''}" onchange="updateField(${i},'llegada',this.value)">
+
+<label>Salida (HH:MM):</label>
+<input type="time" value="${r.salida || ''}" onchange="updateField(${i},'salida',this.value)">
 
 <label>Duración (seg):</label>
 <input type="number" value="${r.duracion || 10}" min="1" max="60" onchange="updateField(${i},'duracion',this.value)">
@@ -809,7 +812,7 @@ window.setStatus = (i,s) => {
 window.addFlight = (i=null) => {
     saveState(currentData);
     let a = getArray(currentData);
-    let n = {vuelo:"",destino:"",llegada:"10:00",salida:"10:30",gate:"",estado:"ON-TIME",duracion:10};
+    let n = {vuelo:"",destino:"",llegada:"",salida:"",gate:"",estado:"ON-TIME",duracion:10};
     i==null ? a.push(n) : a.splice(i+1,0,n);
     set(flightsRef, toObj(a));
 };
@@ -852,6 +855,40 @@ window.setTheme = (m) => {
 let saved=localStorage.getItem("theme");
 if(saved) setTheme(saved);
 
+// 🔥 CONVERTIR HORA 12 HORAS A 24 HORAS
+function convertirHora24(horaCadena) {
+    if(!horaCadena) return "";
+    
+    // Limpia la cadena
+    let hora = horaCadena.trim();
+    
+    // Si ya está en formato 24h (HH:MM), devuelve como está
+    if(/^\d{1,2}:\d{2}$/.test(hora)) {
+        return hora;
+    }
+    
+    // Convierte formato 12h (12:30 p.m., 10:45 a.m., etc.)
+    let match = hora.match(/(\d{1,2}):(\d{2})\s*(a\.m\.|am|p\.m\.|pm)?/i);
+    if(!match) return "";
+    
+    let horas = parseInt(match[1]);
+    let minutos = match[2];
+    let periodo = (match[3] || "").toLowerCase();
+    
+    // Detecta si es p.m. o p. m.
+    if(periodo.includes("p")) {
+        if(horas !== 12) horas += 12;
+    } else if(periodo.includes("a")) {
+        if(horas === 12) horas = 0;
+    } else {
+        // Si no hay período, asume que está en 24h
+        return `${String(horas).padStart(2, '0')}:${minutos}`;
+    }
+    
+    return `${String(horas).padStart(2, '0')}:${minutos}`;
+}
+
+// 🔍 BUSCAR VUELO
 window.buscarVuelo = async (input, index) => {
     const query = input.value.toLowerCase();
     const resultsDiv = document.getElementById("results"+index);
@@ -876,9 +913,13 @@ window.buscarVuelo = async (input, index) => {
         let html = "";
 
         filtrados.forEach((f, i) => {
+            // Convierte horas
+            let horaLlegada = convertirHora24(f.llegada || "");
+            let horaSalida = convertirHora24(f.salida || "");
+            
             html += `
-                <div onclick="seleccionarVuelo(${index}, ${i}, '${f.vuelo}', '${f.destino || f.origen}', '${f.llegada}', '${f.salida}')">
-                    ${f.vuelo} - ${f.destino || f.origen} | ${f.llegada || ''}
+                <div onclick="seleccionarVuelo(${index}, '${f.vuelo}', '${f.destino || f.origen || ''}', '${horaLlegada}', '${horaSalida}')">
+                    ${f.vuelo} - ${f.destino || f.origen} | Llega: ${horaLlegada || 'N/A'}
                 </div>
             `;
         });
@@ -890,14 +931,15 @@ window.buscarVuelo = async (input, index) => {
     }
 };
 
-window.seleccionarVuelo = (index, i, vuelo, destino, llegada, salida) => {
+// 🎯 SELECCIONAR VUELO
+window.seleccionarVuelo = (index, vuelo, destino, llegada, salida) => {
     let arr = Object.values(currentData);
     if(!arr[index]) return;
 
     arr[index].vuelo = vuelo;
     arr[index].destino = destino;
-    arr[index].llegada = llegada || "";
-    arr[index].salida = salida || "";
+    arr[index].llegada = llegada;
+    arr[index].salida = salida;
     arr[index].manual = true;
 
     set(ref(db,"flights"), toObj(arr));

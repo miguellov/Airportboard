@@ -176,6 +176,8 @@ button{
 .add{ background:#3b82f6; }
 .toggle-btn { background: #7c3aed; }
 .toggle-btn.visible { background: #10b981; }
+.anuncios-toggle.on { background: #16a34a; }
+.anuncios-toggle.off { background: #dc2626; }
 
 #panel{
     display:grid;
@@ -230,7 +232,8 @@ input, select{
 
 #positionsList,
 #positionsJet,
-#positionsWest{
+#positionsWest,
+#positionsExtraAdmin{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
     gap:10px;
@@ -268,6 +271,34 @@ input, select{
     padding: 15px;
     border-radius: 8px;
     border: 2px solid #7c3aed;
+}
+
+.anuncios-activos {
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.anuncio-item {
+    background: #0b1220;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.anuncio-item h4 {
+    margin: 0;
+    color: #38bdf8;
+    font-size: 14px;
+}
+
+.anuncio-meta {
+    font-size: 12px;
+    color: #94a3b8;
 }
 
 .cumple-foto {
@@ -324,6 +355,10 @@ input, select{
         <label>Duración (segundos):</label>
         <input id="tickerDuration" type="number" value="25" min="1" max="120">
         <button onclick="saveTicker()">💾 Guardar Mensaje</button>
+        <hr style="margin: 12px 0; border: 1px solid #334155;">
+        <label>Tiempo que se muestra la sección Vuelos (segundos):</label>
+        <input id="flightSectionSeconds" type="number" value="15" min="5" max="180">
+        <button onclick="saveFlightSectionConfig()">🕒 Guardar Tiempo de Sección</button>
     </div>
 
     <div class="top-buttons">
@@ -393,6 +428,21 @@ input, select{
 
         <div id="positionsWest"></div>
 
+        <hr style="margin:15px 0; border:1px solid #333;">
+
+        <!-- 🆕 OTROS VUELOS -->
+        <h4 style="color:#f59e0b;">🆕 OTROS VUELOS / AEROLINEAS</h4>
+        <input id="newAirlineName" placeholder="Ej: Arajet / Copa / Delta">
+        <button onclick="addExtraAirline()">➕ Crear Vuelo</button>
+
+        <label>Seleccionar vuelo:</label>
+        <select id="airlineSelector"></select>
+        <input id="posRoleExtra" placeholder="Posicion del vuelo seleccionado">
+        <input id="posNameExtra" placeholder="Nombre empleado">
+        <button onclick="savePositionExtra()">➕ Agregar a Vuelo Seleccionado</button>
+        <div id="positionsExtraAdmin"></div>
+        <div id="positionsExtraList"></div>
+
     </div>
 
 </div>
@@ -424,12 +474,15 @@ input, select{
         <!-- Cumpleaños -->
         <div id="cumpleFields" style="display: none;">
             <h4>Agregar Cumpleañero:</h4>
+            <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">
+                Aqui veras la lista de cumpleanos activos. Si esta vacia, agrega uno nuevo.
+            </div>
             <input id="cumpleNombre" placeholder="Nombre de la persona" maxlength="50">
             <input id="cumpleFecha" type="date">
             <input type="file" id="cumpleFoto" accept="image/*">
             <label>Foto Vista Previa:</label>
             <img id="previewFoto" src="" style="max-width: 150px; border-radius: 6px; display: none;">
-            <button onclick="agregarCumpleañero()">➕ Agregar a Cumpleañeros</button>
+            <button onclick="agregarCumpleanero()">➕ Agregar a Cumpleañeros</button>
             <div id="cumpleLista" class="cumple-list"></div>
         </div>
 
@@ -437,9 +490,18 @@ input, select{
         <label>Duración (segundos):</label>
         <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10" min="1" max="120">
 
-        <button onclick="guardarAnuncio()">💾 Guardar</button>
-        <button onclick="toggleAnuncios()">🛑 Encender / Apagar</button>
+        <label>Tamaño de imagen en pantalla (<span id="anuncioSizeValue">60</span>%)</label>
+        <input id="anuncioImageScale" type="range" min="30" max="100" step="5" value="60" oninput="updateAnuncioScaleLabel(this.value)">
+        <button onclick="saveAnuncioImageScale()">🖼️ Guardar Tamaño Imagen</button>
 
+        <button onclick="guardarAnuncio()">💾 Guardar</button>
+        <button id="toggleAnunciosBtn" class="anuncios-toggle on" onclick="toggleAnuncios()">🟢 Encendido</button>
+
+    </div>
+
+    <div class="card-anuncio">
+        <h3>📋 Mensajes Activos</h3>
+        <div id="anunciosActivos" class="anuncios-activos"></div>
     </div>
 
 </div>
@@ -487,12 +549,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const flightsRef = ref(db,"flights");
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
 const configRef = ref(db,"config");
 const cumpleanosRef = ref(db,"cumpleanos");
 const visibilityRef = ref(db,"visibility");
+const anunciosRef = ref(db, "anuncios");
+const anunciosVisibilityRef = ref(db, "visibility/anuncios");
+const airlinesExtraRef = ref(db, "airlinesExtra");
+
+let airlinesExtraData = {};
+let visibilityData = {};
+let selectedDate = new Date().toISOString().slice(0, 10);
+let unsubscribeFlightsByDate = null;
 
 /* 🔥 TABS */
 window.showTab = (tab)=>{
@@ -510,6 +579,11 @@ window.cambiarTipoAnuncio = () => {
     document.getElementById("cumpleFields").style.display = tipo === "cumple" ? "block" : "none";
 };
 
+window.updateAnuncioScaleLabel = (value) => {
+    const label = document.getElementById("anuncioSizeValue");
+    if(label) label.innerText = value;
+};
+
 /* VISTA PREVIA FOTO CUMPLE */
 document.getElementById("cumpleFoto")?.addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -524,7 +598,7 @@ document.getElementById("cumpleFoto")?.addEventListener("change", (e) => {
 });
 
 /* AGREGAR CUMPLEAÑERO */
-window.agregarCumpleañero = async () => {
+window.agregarCumpleanero = async () => {
     const nombre = document.getElementById("cumpleNombre").value;
     const fecha = document.getElementById("cumpleFecha").value;
     const fotoFile = document.getElementById("cumpleFoto").files[0];
@@ -575,6 +649,16 @@ function cargarCumpleañeros() {
             `;
         });
 
+        if(!html){
+            html = `
+            <div class="cumple-card">
+                <div class="cumple-info">
+                    No hay cumpleaneros cargados todavia.
+                </div>
+            </div>
+            `;
+        }
+
         document.getElementById("cumpleLista").innerHTML = html;
     });
 }
@@ -584,6 +668,74 @@ window.eliminarCumple = (id) => {
         set(ref(db, "cumpleanos/" + id), null);
     }
 };
+
+function leerUnaVez(pathRef){
+    return new Promise((resolve) => {
+        onValue(pathRef, (snap) => resolve(snap.val() || {}), { onlyOnce: true });
+    });
+}
+
+function formatearFechaBonita(fechaISO){
+    if(!fechaISO) return "";
+    const fecha = new Date(fechaISO + "T00:00:00");
+    const texto = fecha.toLocaleDateString("es-DO", { day: "numeric", month: "long" });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function cargarAnunciosActivos() {
+    onValue(anunciosRef, (snap) => {
+        const data = snap.val() || {};
+        const contenedor = document.getElementById("anunciosActivos");
+        let html = "";
+
+        Object.entries(data).forEach(([id, anuncio]) => {
+            const tipo = anuncio?.tipo || "mensaje";
+            const texto = anuncio?.texto || "(sin texto)";
+            const duracion = anuncio?.duracion || 10;
+            const mediaInfo = anuncio?.media ? "Con imagen/video" : "Sin media";
+
+            html += `
+            <div class="anuncio-item">
+                <h4>${tipo.toUpperCase()}</h4>
+                <div>${texto}</div>
+                <div class="anuncio-meta">Duracion: ${duracion}s · ${mediaInfo}</div>
+                <button onclick="eliminarAnuncio('${id}')" style="background:#dc2626;">🗑 Eliminar</button>
+            </div>
+            `;
+        });
+
+        if(!html) {
+            html = `<div class="anuncio-item"><div>No hay anuncios activos.</div></div>`;
+        }
+
+        contenedor.innerHTML = html;
+    });
+}
+
+window.eliminarAnuncio = (id) => {
+    if(confirm("¿Eliminar este anuncio activo?")) {
+        set(ref(db, "anuncios/" + id), null);
+    }
+};
+
+function actualizarBotonAnuncios(encendido){
+    const btn = document.getElementById("toggleAnunciosBtn");
+    if(!btn) return;
+    btn.classList.toggle("on", encendido);
+    btn.classList.toggle("off", !encendido);
+    btn.textContent = encendido ? "🟢 Encendido" : "🔴 Apagado";
+}
+
+window.toggleAnuncios = () => {
+    const btn = document.getElementById("toggleAnunciosBtn");
+    const encendido = btn?.classList.contains("on");
+    set(anunciosVisibilityRef, !encendido);
+};
+
+onValue(anunciosVisibilityRef, (snap) => {
+    const encendido = snap.val() !== false;
+    actualizarBotonAnuncios(encendido);
+});
 
 /* GUARDAR ANUNCIO */
 window.guardarAnuncio = async () => {
@@ -610,7 +762,51 @@ window.guardarAnuncio = async () => {
             alert("✅ Anuncio guardado");
         }
     } else if(tipo === "cumple") {
-        alert("✅ Cumpleañeros guardados");
+        const cumpleData = await leerUnaVez(cumpleanosRef);
+        const cumpleList = Object.values(cumpleData || {});
+        const mesActual = new Date().getMonth();
+        const cumpleMes = cumpleList.filter((cumple) => {
+            if(!cumple?.fecha) return false;
+            const fecha = new Date(cumple.fecha + "T00:00:00");
+            return fecha.getMonth() === mesActual;
+        });
+
+        if(!cumpleMes.length){
+            alert("No hay cumpleaneros para publicar en este mes.");
+            return;
+        }
+
+        const anunciosData = await leerUnaVez(anunciosRef);
+        Object.entries(anunciosData).forEach(([id, anuncio]) => {
+            const texto = (anuncio?.texto || "").toLowerCase();
+            if(
+                anuncio?.tipo === "cumple" ||
+                anuncio?.origen === "cumpleanos" ||
+                (anuncio?.tipo === "mensaje" && texto.includes("feliz cumpleaños"))
+            ) {
+                set(ref(db, "anuncios/" + id), null);
+            }
+        });
+
+        const cumpleaneros = cumpleMes.map((cumple) => ({
+            nombre: cumple.nombre || "",
+            fecha: cumple.fecha || "",
+            fechaTexto: formatearFechaBonita(cumple.fecha),
+            foto: cumple.foto || ""
+        }));
+
+        const anuncioId = Date.now();
+        const anuncio = {
+            id: anuncioId,
+            tipo: "cumple",
+            texto: "Cumpleanos del mes",
+            cumpleaneros,
+            duracion,
+            origen: "cumpleanos"
+        };
+        set(ref(db, "anuncios/" + anuncioId), anuncio);
+
+        alert(`✅ Publicado panel de ${cumpleMes.length} cumpleaneros del mes`);
     }
 };
 
@@ -621,6 +817,19 @@ window.saveTicker = () => {
     set(tickerRef, msg);
     set(ref(db, "ticker/duration"), parseInt(duration));
     alert("✅ Mensaje guardado");
+};
+
+window.saveFlightSectionConfig = () => {
+    const seconds = parseInt(document.getElementById("flightSectionSeconds").value) || 15;
+    set(ref(db, "config/flightSectionSeconds"), Math.max(5, Math.min(180, seconds)));
+    alert("✅ Tiempo de sección guardado");
+};
+
+window.saveAnuncioImageScale = () => {
+    const scale = parseInt(document.getElementById("anuncioImageScale").value) || 60;
+    set(ref(db, "config/anuncioImageScale"), scale);
+    updateAnuncioScaleLabel(scale);
+    alert("✅ Tamaño de imagen guardado");
 };
 
 onValue(tickerRef, (snap) => {
@@ -635,6 +844,125 @@ window.toggleVisibility = (airline) => {
     btn.classList.toggle("visible");
     set(ref(db, "visibility/" + airline), !isVisible);
 };
+
+function slugifyAirline(name){
+    return (name || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+window.addExtraAirline = () => {
+    const nameInput = document.getElementById("newAirlineName");
+    const name = (nameInput.value || "").trim();
+    if(!name){
+        alert("Escribe el nombre del vuelo/aerolinea.");
+        return;
+    }
+
+    let slug = slugifyAirline(name);
+    if(!slug){
+        alert("Nombre invalido.");
+        return;
+    }
+    if(airlinesExtraData[slug]){
+        alert("Ese vuelo ya existe.");
+        return;
+    }
+
+    set(ref(db, "airlinesExtra/" + slug), { name });
+    set(ref(db, "titles/" + slug), "ASIGNACIONES " + name.toUpperCase());
+    set(ref(db, "visibility/" + slug), true);
+    nameInput.value = "";
+};
+
+window.savePositionExtra = () => {
+    const slug = document.getElementById("airlineSelector").value;
+    const role = (document.getElementById("posRoleExtra").value || "").toLowerCase().trim();
+    const name = (document.getElementById("posNameExtra").value || "").trim();
+    if(!slug || !role){
+        alert("Selecciona vuelo y posicion.");
+        return;
+    }
+    set(ref(db, "positions/" + role + "__" + slug), name);
+    document.getElementById("posRoleExtra").value = "";
+    document.getElementById("posNameExtra").value = "";
+};
+
+window.saveExtraTitle = (slug, value) => {
+    set(ref(db, "titles/" + slug), value);
+};
+
+window.renameExtraAirline = (slug, value) => {
+    set(ref(db, "airlinesExtra/" + slug + "/name"), value);
+};
+
+window.toggleExtraVisibility = (slug, checked) => {
+    set(ref(db, "visibility/" + slug), checked);
+};
+
+window.deleteExtraAirline = (slug) => {
+    if(!confirm("Eliminar este vuelo extra y sus posiciones?")) return;
+    set(ref(db, "airlinesExtra/" + slug), null);
+    set(ref(db, "titles/" + slug), null);
+    set(ref(db, "visibility/" + slug), null);
+
+    onValue(positionsRef, (snap) => {
+        const data = snap.val() || {};
+        Object.keys(data).forEach((roleKey) => {
+            if(roleKey.endsWith("__" + slug)){
+                set(ref(db, "positions/" + roleKey), null);
+            }
+        });
+    }, { onlyOnce: true });
+};
+
+function renderAirlineSelector(){
+    const select = document.getElementById("airlineSelector");
+    if(!select) return;
+    const extras = Object.entries(airlinesExtraData || {});
+    select.innerHTML = `
+        <option value="">Selecciona vuelo</option>
+        ${extras.map(([slug, item]) => `<option value="${slug}">${item?.name || slug}</option>`).join("")}
+    `;
+}
+
+function renderExtraAirlinesAdmin(){
+    const cont = document.getElementById("positionsExtraAdmin");
+    if(!cont) return;
+
+    const extras = Object.entries(airlinesExtraData || {});
+    if(!extras.length){
+        cont.innerHTML = `<div class="pos-item">No hay vuelos extras creados.</div>`;
+        return;
+    }
+
+    cont.innerHTML = extras.map(([slug, item]) => `
+        <div class="pos-item">
+            <div style="font-weight:bold; color:#f8fafc;">${item?.name || slug}</div>
+            <input value="${(item?.name || "").replace(/"/g, "&quot;")}" onchange="renameExtraAirline('${slug}', this.value)">
+            <input value="ASIGNACIONES ${(item?.name || slug).toUpperCase()}" onchange="saveExtraTitle('${slug}', this.value)">
+            <label style="display:flex; gap:8px; align-items:center;">
+                <input type="checkbox" ${visibilityData[slug] !== false ? "checked" : ""} onchange="toggleExtraVisibility('${slug}', this.checked)">
+                Visible en pantalla
+            </label>
+            <button style="background:#dc2626;" onclick="deleteExtraAirline('${slug}')">🗑 Eliminar Vuelo</button>
+        </div>
+    `).join("");
+}
+
+onValue(airlinesExtraRef, (snap) => {
+    airlinesExtraData = snap.val() || {};
+    renderAirlineSelector();
+    renderExtraAirlinesAdmin();
+});
+
+onValue(visibilityRef, (snap) => {
+    visibilityData = snap.val() || {};
+    renderExtraAirlinesAdmin();
+});
 
 /* 🔵 JETBLUE */
 window.savePositionJet = () => {
@@ -662,6 +990,7 @@ onValue(positionsRef, (snap) => {
 
     document.getElementById("positionsJet").innerHTML="";
     document.getElementById("positionsWest").innerHTML="";
+    const extraBuckets = {};
 
     Object.entries(data).forEach(([role,name]) => {
         const card=`
@@ -673,12 +1002,29 @@ onValue(positionsRef, (snap) => {
     </div>
 </div>`;
 
-        if(role.includes("west")){
+        if(role.includes("__")){
+            const slug = role.split("__")[1];
+            if(!extraBuckets[slug]) extraBuckets[slug] = "";
+            extraBuckets[slug] += card;
+        } else if(role.includes("west")){
             document.getElementById("positionsWest").innerHTML += card;
         } else {
             document.getElementById("positionsJet").innerHTML += card;
         }
     });
+
+    const cont = document.getElementById("positionsExtraList");
+    if(cont && Object.keys(extraBuckets).length){
+        const extrasHtml = Object.entries(extraBuckets).map(([slug, html]) => `
+            <div class="pos-item">
+                <div style="font-weight:bold; color:#f59e0b; margin-bottom:6px;">${(airlinesExtraData[slug]?.name || slug).toUpperCase()}</div>
+                <div style="display:grid; gap:8px;">${html}</div>
+            </div>
+        `).join("");
+        cont.innerHTML = extrasHtml;
+    } else if(cont){
+        cont.innerHTML = "";
+    }
 });
 
 window.deletePosition = (role) => {
@@ -733,8 +1079,18 @@ function toObj(arr){
     return o;
 }
 
-onValue(flightsRef, snap => {
-    const data=snap.val()||{};
+function getFlightsByDateRef(dateStr){
+    return ref(db, "flightsByDate/" + dateStr);
+}
+
+function saveFlightsForSelectedDate(data){
+    const obj = data || {};
+    set(getFlightsByDateRef(selectedDate), obj);
+    // Mantiene compatibilidad con la pantalla principal vieja
+    set(ref(db, "flights"), obj);
+}
+
+function renderFlightsPanel(data){
     const panel=document.getElementById("panel");
     panel.innerHTML="";
 
@@ -791,13 +1147,27 @@ onValue(flightsRef, snap => {
 
         panel.appendChild(div);
     });
+}
+
+function watchFlightsForSelectedDate(){
+    if(unsubscribeFlightsByDate) unsubscribeFlightsByDate();
+    unsubscribeFlightsByDate = onValue(getFlightsByDateRef(selectedDate), snap => {
+        const data = snap.val() || {};
+        renderFlightsPanel(data);
+    });
+}
+
+onValue(ref(db, "config/selectedDate"), (snap) => {
+    const cfgDate = snap.val();
+    if(cfgDate) selectedDate = cfgDate;
+    watchFlightsForSelectedDate();
 });
 
 window.updateField = (i,f,v) => {
     saveState(currentData);
     let a = getArray(currentData);
     a[i][f] = v;
-    set(flightsRef, toObj(a));
+    saveFlightsForSelectedDate(toObj(a));
 };
 
 window.setStatus = (i,s) => {
@@ -805,7 +1175,7 @@ window.setStatus = (i,s) => {
     let a = getArray(currentData);
     if(!a[i]) return;
     a[i].estado = s;
-    set(flightsRef, toObj(a));
+    saveFlightsForSelectedDate(toObj(a));
     currentData = toObj(a);
 };
 
@@ -814,34 +1184,39 @@ window.addFlight = (i=null) => {
     let a = getArray(currentData);
     let n = {vuelo:"",destino:"",llegada:"",salida:"",gate:"",estado:"ON-TIME",duracion:10};
     i==null ? a.push(n) : a.splice(i+1,0,n);
-    set(flightsRef, toObj(a));
+    saveFlightsForSelectedDate(toObj(a));
 };
 
 window.deleteFlight = i => {
     saveState(currentData);
     let a = getArray(currentData);
     a.splice(i,1);
-    set(flightsRef, toObj(a));
+    saveFlightsForSelectedDate(toObj(a));
 };
 
 window.undo = () => {
     if(history.length < 2) return;
     redoStack.push(history.pop());
-    set(flightsRef, JSON.parse(history[history.length-1]));
+    saveFlightsForSelectedDate(JSON.parse(history[history.length-1]));
 };
 
 window.redo = () => {
     if(!redoStack.length) return;
     let n = JSON.parse(redoStack.pop());
     history.push(JSON.stringify(n));
-    set(flightsRef, n);
+    saveFlightsForSelectedDate(n);
 };
 
 window.changeDateFlights = () => {
-    const dateStr = prompt("Ingresa la fecha (YYYY-MM-DD):");
+    const dateStr = prompt("Ingresa la fecha (YYYY-MM-DD):", selectedDate);
     if(!dateStr) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+        alert("Formato invalido. Usa YYYY-MM-DD");
+        return;
+    }
+    selectedDate = dateStr;
     set(ref(db, "config/selectedDate"), dateStr);
-    alert("📅 Fecha cambiada a: " + dateStr);
+    alert("📅 Fecha cambiada a: " + dateStr + " (cargando vuelos de esa fecha)");
 };
 
 /* TEMA */
@@ -942,7 +1317,7 @@ window.seleccionarVuelo = (index, vuelo, destino, llegada, salida) => {
     arr[index].salida = salida;
     arr[index].manual = true;
 
-    set(ref(db,"flights"), toObj(arr));
+    saveFlightsForSelectedDate(toObj(arr));
     document.getElementById("results"+index).innerHTML = "";
 };
 
@@ -958,10 +1333,31 @@ window.saveConfig = () => {
     alert("✅ Configuración guardada");
 };
 
+onValue(configRef, (snap) => {
+    const conf = snap.val() || {};
+    if(typeof conf.defaultDuration === "number"){
+        document.getElementById("defaultDuration").value = conf.defaultDuration;
+    }
+    if(typeof conf.autoChangeFlights === "boolean"){
+        document.getElementById("autoChangeFlights").checked = conf.autoChangeFlights;
+    }
+    const scale = parseInt(conf.anuncioImageScale);
+    if(!Number.isNaN(scale) && scale >= 30 && scale <= 100){
+        document.getElementById("anuncioImageScale").value = scale;
+        updateAnuncioScaleLabel(scale);
+    }
+    const flightSectionSeconds = parseInt(conf.flightSectionSeconds);
+    if(!Number.isNaN(flightSectionSeconds) && flightSectionSeconds >= 5 && flightSectionSeconds <= 180){
+        document.getElementById("flightSectionSeconds").value = flightSectionSeconds;
+    }
+});
+
 cargarCumpleañeros();
+cargarAnunciosActivos();
 
 window.onload = () => {
     showTab("flightsTab");
+    cambiarTipoAnuncio();
 };
 
 </script>

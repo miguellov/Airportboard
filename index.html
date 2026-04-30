@@ -660,6 +660,26 @@ window.addEventListener("load", () => {
     setTimeout(() => {
         document.documentElement.requestFullscreen().catch(() => {});
     }, 1500);
+    
+});
+
+let cursorTimer;
+
+function ocultarCursor() {
+    document.body.style.cursor = "none";
+}
+
+function mostrarCursor() {
+    document.body.style.cursor = "default";
+}
+
+document.addEventListener("mousemove", () => {
+    mostrarCursor();
+
+    clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(() => {
+        ocultarCursor();
+    }, 2000); // se oculta después de 2 segundos sin mover
 });
 
 </script>

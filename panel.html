@@ -369,6 +369,7 @@ input, select{
         <button onclick="setTheme('dark')">🌙</button>
         <button onclick="setTheme('light')">🌞</button>
         <button onclick="setTheme('airport')">✈️</button>
+        <button onclick="toggleFullScreen()">🖥️ Full</button>
     </div>
 
     <br>
@@ -799,7 +800,7 @@ window.guardarAnuncio = async () => {
         const anuncio = {
             id: anuncioId,
             tipo: "cumple",
-            texto: "Cumpleanos del mes",
+            texto: "Cumpleaños del mes",
             cumpleaneros,
             duracion,
             origen: "cumpleanos"
@@ -1358,6 +1359,14 @@ cargarAnunciosActivos();
 window.onload = () => {
     showTab("flightsTab");
     cambiarTipoAnuncio();
+};
+
+window.toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
 };
 
 </script>

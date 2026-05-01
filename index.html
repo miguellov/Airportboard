@@ -87,6 +87,15 @@ td{
 .departed { color:#fbbf24; }
 .arrived { color:#94a3b8; }
 
+.ruta-origen{
+    display:block;
+    margin-top:4px;
+    font-size:0.5em;
+    color:#38bdf8;
+    font-weight:600;
+    letter-spacing:0.02em;
+}
+
 tr.on-time { background:rgba(0,40,20,0.6); }
 tr.delayed { background:rgba(60,0,0,0.6); }
 tr.boarding { background:rgba(0,30,60,0.6); }
@@ -537,7 +546,6 @@ function mostrarAnuncios(){
 function renderVuelos(){
     let html = "";
     vuelosData.forEach(r => {
-        let estadoClase = (r.estado || "").toLowerCase().replace(/\s+/g,"-");
         let [h,m] = (r.llegada || "00:00").split(":");
         let llegada = new Date();
         llegada.setHours(h,m,0);
@@ -547,7 +555,11 @@ function renderVuelos(){
         let hours = Math.floor(diffMin / 60);
         let minutes = diffMin % 60;
 
-        let estadoFinal = r.estado;
+        let estadoNorm = (r.estado || "").toString().toUpperCase().replace(/\s+/g,"-").replace(/_/g,"-");
+        let estadoManual = ["BOARDING","DEPARTED","DELAYED","CANCELLED","DIVERTED"].includes(estadoNorm);
+
+        let estadoFinal = r.estado || "ON-TIME";
+        let estadoClase = estadoFinal.toLowerCase().replace(/\s+/g,"-");
         let extraClass = "";
         let totalMin = 120;
         let progreso = 100 - (diffMin / totalMin * 100);
@@ -555,12 +567,16 @@ function renderVuelos(){
         if(progreso < 0) progreso = 0;
         if(progreso > 100) progreso = 100;
 
-        if(diffMin <= 0){
-            estadoFinal = "ARRIVED";
-            estadoClase = "arrived";
+        if(!estadoManual){
+            if(diffMin <= 0){
+                estadoFinal = "ARRIVED";
+                estadoClase = "arrived";
+            }
+            if(diffMin <= 30 && diffMin > 0) extraClass = "blink";
+            if(diffMin <= 10 && diffMin > 0) estadoFinal = "ARRIVING";
+        } else if(diffMin <= 30 && diffMin > 0) {
+            extraClass = "blink";
         }
-        if(diffMin <= 30 && diffMin > 0) extraClass = "blink";
-        if(diffMin <= 10 && diffMin > 0) estadoFinal = "ARRIVING";
 
         let countdown = "0 min";
         let countdownClass = "countdown-green";
@@ -576,6 +592,7 @@ function renderVuelos(){
         <td>${r.destino}</td>
         <td>
             ${r.llegada}
+            ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${r.salidaOrigen}</small>` : ""}
             <br><small class="${countdownClass}">${countdown}</small>
             <div class="flight-progress">
                 <div class="flight-bar" style="width:${progreso}%"></div>

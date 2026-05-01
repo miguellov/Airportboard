@@ -87,9 +87,14 @@
     border-radius:6px;
 }
 
-.search-box{
+/* Mismo z-index base: el bloque de abajo (Salida) tapaba el desplegable de Llegada.
+   El que tiene foco (o clic dentro) sube y queda delante. */
+.card .search-box{
     position: relative;
-    z-index: 10;
+    z-index: 1;
+}
+.card .search-box:focus-within{
+    z-index: 100;
 }
 
 .search-box input{
@@ -101,6 +106,37 @@
     color: white;
 }
 
+.api-search-hint{
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 2px 0;
+}
+
+.fld-label{
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 6px;
+    margin-bottom: 2px;
+}
+
+.preset-ruta{
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    margin-bottom: 4px;
+}
+
+.fld-vuelo, .fld-destino{
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
 .results{
     position: absolute;
     top: 100%;
@@ -109,9 +145,10 @@
     background: #0f172a;
     border: 1px solid #1e293b;
     border-radius: 6px;
-    z-index: 99999;
+    z-index: 5;
     max-height: 150px;
     overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
 }
 
 .results div{
@@ -192,6 +229,16 @@ button{
     display:flex;
     flex-direction:column;
     gap:5px;
+}
+
+/* Por encima del desplegable de búsqueda (z-index 99999) para poder pulsar B / DEP, etc. */
+.card .btn-row{
+    position:relative;
+    z-index:100000;
+}
+.card > button:last-child{
+    position:relative;
+    z-index:100000;
 }
 
 input, select{
@@ -1064,6 +1111,54 @@ window.saveWestjetTitle = () => {
 };
 
 /* VUELOS */
+/** Rutas frecuentes: al elegir en el desplegable se rellenan vuelo + destino (sigue pudiendo editar a mano). */
+const PRESET_RUTAS = [
+    { vuelo: "B6 627/1528", destino: "JFK-JFK (New York)" },
+    { vuelo: "WS 2740/2741", destino: "YYZ-YYZ (Toronto)" },
+    { vuelo: "WS 2506/2507", destino: "YYZ-YYZ (Toronto)" },
+    { vuelo: "WS 2908/2909", destino: "YUL-YUL (Montréal)" }
+];
+
+function ensurePresetDatalist() {
+    if (document.getElementById("presetVuelosLista")) return;
+    const dl = document.createElement("datalist");
+    dl.id = "presetVuelosLista";
+    PRESET_RUTAS.forEach((p) => {
+        const op = document.createElement("option");
+        op.value = p.vuelo;
+        op.label = p.destino;
+        dl.appendChild(op);
+    });
+    document.body.appendChild(dl);
+}
+
+function aplicarPresetEnFila(index, p) {
+    saveState(currentData);
+    const a = getArray(currentData);
+    if (!a[index]) return;
+    a[index].vuelo = p.vuelo;
+    a[index].destino = p.destino;
+    a[index].manual = true;
+    saveFlightsForSelectedDate(toObj(a));
+    currentData = toObj(a);
+}
+
+window.aplicarPresetRuta = (index, sel) => {
+    if (sel.value === "") return;
+    const p = PRESET_RUTAS[parseInt(sel.value, 10)];
+    if (!p) return;
+    aplicarPresetEnFila(index, p);
+    sel.selectedIndex = 0;
+};
+
+/** Si escribes el vuelo exacto de una ruta (o lo eliges del datalist), rellena destino. */
+window.onVueloPresetMatch = (index, input) => {
+    const v = input.value.trim();
+    const match = PRESET_RUTAS.find((p) => p.vuelo === v);
+    if (match) aplicarPresetEnFila(index, match);
+    else updateField(index, "vuelo", v);
+};
+
 let history=[], redoStack=[], currentData={};
 
 function saveState(d){
@@ -1097,19 +1192,40 @@ function renderFlightsPanel(data){
 
     currentData=data;
     saveState(data);
+    ensurePresetDatalist();
+
+    const optsPreset = PRESET_RUTAS.map(
+        (p, idx) => `<option value="${idx}">${p.vuelo} — ${p.destino}</option>`
+    ).join("");
 
     getArray(data).forEach((r,i) => {
         let div=document.createElement("div");
         div.className="card";
 
         div.innerHTML=`
+<p class="api-search-hint">Llegada: busca el vuelo que <strong>aterriza</strong> (ej. 627). Salida: el que <strong>sale</strong> (ej. 1528).</p>
 <div class="search-box">
-    <input placeholder="🔍 Buscar vuelo..." oninput="buscarVuelo(this, ${i})">
-    <div id="results${i}" class="results"></div>
+    <input placeholder="🔽 Llegadas API — ej. 627" oninput="buscarVueloLlegada(this, ${i})">
+    <div id="resultsLlegada${i}" class="results" onmousedown="event.preventDefault()"></div>
+</div>
+<div class="search-box">
+    <input placeholder="🔼 Salidas API — ej. 1528 (nº en tablero)" oninput="buscarVueloSalida(this, ${i})">
+    <div id="resultsSalida${i}" class="results" onmousedown="event.preventDefault()"></div>
 </div>
 
-<input value="${r.vuelo}" onchange="updateField(${i},'vuelo',this.value)">
-<input value="${r.destino}" onchange="updateField(${i},'destino',this.value)">
+<label class="fld-label">Ruta frecuente</label>
+<select class="preset-ruta" onchange="aplicarPresetRuta(${i}, this)">
+    <option value="">— Elegir o escribir abajo manual —</option>
+    ${optsPreset}
+</select>
+
+<label class="fld-label">Vuelo</label>
+<input class="fld-vuelo" list="presetVuelosLista" value="${(r.vuelo || "").replace(/"/g, "&quot;")}" placeholder="Ej. B6 627/1528" onchange="onVueloPresetMatch(${i}, this)">
+
+<label class="fld-label">Destino</label>
+<input class="fld-destino" value="${(r.destino || "").replace(/"/g, "&quot;")}" placeholder="Ej. JFK-JFK (New York)" onchange="updateField(${i},'destino',this.value)">
+
+<label class="fld-label">Gate</label>
 <select onchange="updateField(${i},'gate',this.value)">
     <option value="">GATE</option>
     <option value="A2" ${r.gate==="A2"?"selected":""}>A2</option>
@@ -1122,10 +1238,13 @@ function renderFlightsPanel(data){
     <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
 </select>
 
-<label>Llegada (HH:MM):</label>
+<label>Llegada POP (HH:MM):</label>
 <input type="time" value="${r.llegada || ''}" onchange="updateField(${i},'llegada',this.value)">
 
-<label>Salida (HH:MM):</label>
+<label>Salida origen → POP (en ruta, HH:MM):</label>
+<input type="time" value="${r.salidaOrigen || ''}" onchange="updateField(${i},'salidaOrigen',this.value)">
+
+<label>Salida vuelo (HH:MM):</label>
 <input type="time" value="${r.salida || ''}" onchange="updateField(${i},'salida',this.value)">
 
 <label>Duración (seg):</label>
@@ -1176,6 +1295,7 @@ window.setStatus = (i,s) => {
     let a = getArray(currentData);
     if(!a[i]) return;
     a[i].estado = s;
+    a[i].manual = true;
     saveFlightsForSelectedDate(toObj(a));
     currentData = toObj(a);
 };
@@ -1183,7 +1303,7 @@ window.setStatus = (i,s) => {
 window.addFlight = (i=null) => {
     saveState(currentData);
     let a = getArray(currentData);
-    let n = {vuelo:"",destino:"",llegada:"",salida:"",gate:"",estado:"ON-TIME",duracion:10};
+    let n = {vuelo:"",vueloLlegada:"",salidaOrigen:"",destino:"",llegada:"",salida:"",gate:"",estado:"ON-TIME",duracion:10};
     i==null ? a.push(n) : a.splice(i+1,0,n);
     saveFlightsForSelectedDate(toObj(a));
 };
@@ -1231,95 +1351,135 @@ window.setTheme = (m) => {
 let saved=localStorage.getItem("theme");
 if(saved) setTheme(saved);
 
-// 🔥 CONVERTIR HORA 12 HORAS A 24 HORAS
+// 🔥 CONVERTIR HORA 12 HORAS A 24 HORAS (acepta HH:MM, y es-DO: "2:30 p. m.", "2:30 p.m.")
 function convertirHora24(horaCadena) {
     if(!horaCadena) return "";
-    
-    // Limpia la cadena
-    let hora = horaCadena.trim();
-    
-    // Si ya está en formato 24h (HH:MM), devuelve como está
+
+    let hora = horaCadena.trim().replace(/\u202f|\u00a0/g, " ");
+
     if(/^\d{1,2}:\d{2}$/.test(hora)) {
-        return hora;
+        const [h, m] = hora.split(":");
+        return `${String(parseInt(h, 10)).padStart(2, "0")}:${m}`;
     }
-    
-    // Convierte formato 12h (12:30 p.m., 10:45 a.m., etc.)
-    let match = hora.match(/(\d{1,2}):(\d{2})\s*(a\.m\.|am|p\.m\.|pm)?/i);
+
+    const match = hora.match(/^(\d{1,2}):(\d{2})\s*(.*)$/i);
     if(!match) return "";
-    
-    let horas = parseInt(match[1]);
-    let minutos = match[2];
-    let periodo = (match[3] || "").toLowerCase();
-    
-    // Detecta si es p.m. o p. m.
-    if(periodo.includes("p")) {
+
+    let horas = parseInt(match[1], 10);
+    const minutos = match[2];
+    const sufijo = (match[3] || "").toLowerCase().replace(/\s+/g, "");
+
+    const esPm = sufijo === "pm" || /^p\.?m/.test(sufijo);
+    const esAm = sufijo === "am" || /^a\.?m/.test(sufijo);
+
+    if(esPm) {
         if(horas !== 12) horas += 12;
-    } else if(periodo.includes("a")) {
+    } else if(esAm) {
         if(horas === 12) horas = 0;
     } else {
-        // Si no hay período, asume que está en 24h
-        return `${String(horas).padStart(2, '0')}:${minutos}`;
+        return `${String(horas).padStart(2, "0")}:${minutos}`;
     }
-    
-    return `${String(horas).padStart(2, '0')}:${minutos}`;
+
+    return `${String(horas).padStart(2, "0")}:${minutos}`;
 }
 
-// 🔍 BUSCAR VUELO
-window.buscarVuelo = async (input, index) => {
-    const query = input.value.toLowerCase();
-    const resultsDiv = document.getElementById("results"+index);
+const FLIGHTS_API_URL = "https://airportboard.onrender.com/flights";
 
-    if(!resultsDiv) return;
+function escapeDataAttr(s) {
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;");
+}
 
-    if(query.length < 1){
+// 🔍 Llegadas (hora de aterrizaje de otro #, ej. 627)
+window.buscarVueloLlegada = async (input, index) => {
+    const query = input.value.toLowerCase().trim();
+    const resultsDiv = document.getElementById("resultsLlegada" + index);
+    if (!resultsDiv) return;
+    if (query.length < 1) {
         resultsDiv.innerHTML = "";
         return;
     }
-
-    try{
-        const res = await fetch("https://airportboard.onrender.com/flights");
-        const { salidas, llegadas } = await res.json();
-
-        const data = [...salidas, ...llegadas];
-
-        const filtrados = data.filter(f =>
+    try {
+        const res = await fetch(FLIGHTS_API_URL);
+        const { llegadas } = await res.json();
+        const filtrados = (llegadas || []).filter((f) =>
             (f.vuelo || "").toLowerCase().includes(query)
         );
-
-        let html = "";
-
-        filtrados.forEach((f, i) => {
-            // Convierte horas
-            let horaLlegada = convertirHora24(f.llegada || "");
-            let horaSalida = convertirHora24(f.salida || "");
-            
-            html += `
-                <div onclick="seleccionarVuelo(${index}, '${f.vuelo}', '${f.destino || f.origen || ''}', '${horaLlegada}', '${horaSalida}')">
-                    ${f.vuelo} - ${f.destino || f.origen} | Llega: ${horaLlegada || 'N/A'}
-                </div>
-            `;
-        });
-
-        resultsDiv.innerHTML = html;
-
-    }catch(e){
-        console.error("ERROR BUSCANDO:", e);
+        resultsDiv.innerHTML = filtrados
+            .map((f) => {
+                const hora = convertirHora24(f.llegada || "");
+                const so = convertirHora24(f.salidaOrigen || "");
+                const orig = f.origen || f.destino || "";
+                const ruta = f.enRuta ? " · EN RUTA" : "";
+                const txtSo = so ? ` · salió ${so}${ruta}` : "";
+                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-so="${escapeDataAttr(so)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+            })
+            .join("");
+    } catch (e) {
+        console.error("ERROR BUSCANDO LLEGADAS:", e);
     }
 };
 
-// 🎯 SELECCIONAR VUELO
-window.seleccionarVuelo = (index, vuelo, destino, llegada, salida) => {
-    let arr = Object.values(currentData);
-    if(!arr[index]) return;
+// 🔍 Salidas (nº principal en tablero + hora de salida, ej. 1528)
+window.buscarVueloSalida = async (input, index) => {
+    const query = input.value.toLowerCase().trim();
+    const resultsDiv = document.getElementById("resultsSalida" + index);
+    if (!resultsDiv) return;
+    if (query.length < 1) {
+        resultsDiv.innerHTML = "";
+        return;
+    }
+    try {
+        const res = await fetch(FLIGHTS_API_URL);
+        const { salidas } = await res.json();
+        const filtrados = (salidas || []).filter((f) =>
+            (f.vuelo || "").toLowerCase().includes(query)
+        );
+        resultsDiv.innerHTML = filtrados
+            .map((f) => {
+                const hora = convertirHora24(f.salida || "");
+                const dest = f.destino || "";
+                const gate = f.gate || "";
+                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
+            })
+            .join("");
+    } catch (e) {
+        console.error("ERROR BUSCANDO SALIDAS:", e);
+    }
+};
 
-    arr[index].vuelo = vuelo;
-    arr[index].destino = destino;
-    arr[index].llegada = llegada;
-    arr[index].salida = salida;
+window.seleccionarLlegadaApi = (index, el) => {
+    const arr = Object.values(currentData);
+    if (!arr[index]) return;
+    const v = el.getAttribute("data-v") || "";
+    const l = el.getAttribute("data-l") || "";
+    const so = el.getAttribute("data-so") || "";
+    arr[index].llegada = l;
+    arr[index].vueloLlegada = v;
+    arr[index].salidaOrigen = so;
     arr[index].manual = true;
-
     saveFlightsForSelectedDate(toObj(arr));
-    document.getElementById("results"+index).innerHTML = "";
+    const box = document.getElementById("resultsLlegada" + index);
+    if (box) box.innerHTML = "";
+};
+
+window.seleccionarSalidaApi = (index, el) => {
+    const arr = Object.values(currentData);
+    if (!arr[index]) return;
+    const v = el.getAttribute("data-v") || "";
+    const dest = el.getAttribute("data-d") || "";
+    const s = el.getAttribute("data-s") || "";
+    const g = el.getAttribute("data-g") || "";
+    arr[index].vuelo = v;
+    arr[index].destino = dest;
+    arr[index].salida = s;
+    if (g) arr[index].gate = g;
+    arr[index].manual = true;
+    saveFlightsForSelectedDate(toObj(arr));
+    const box = document.getElementById("resultsSalida" + index);
+    if (box) box.innerHTML = "";
 };
 
 window.saveConfig = () => {

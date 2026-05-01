@@ -521,14 +521,18 @@ input, select{
 
         <!-- Cumpleaños -->
         <div id="cumpleFields" style="display: none;">
-            <h4>Agregar Cumpleañero:</h4>
-            <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">
-                Aqui veras la lista de cumpleanos activos. Si esta vacia, agrega uno nuevo.
+            <h4>Cumpleañeros del mes</h4>
+            <div style="font-size:13px; color:#bae6fd; margin-bottom:10px; line-height:1.45; max-width:520px;">
+                Solo completa <strong>foto</strong>, <strong>nombre</strong> y <strong>fecha</strong> por persona. Esa información es la que verás en el tablero (foto circular, nombre y fecha estilo cartelera).
+                Publica con el botón de abajo cuando quieras mostrar el panel en pantalla.
             </div>
-            <input id="cumpleNombre" placeholder="Nombre de la persona" maxlength="50">
+            <label>Nombre</label>
+            <input id="cumpleNombre" placeholder="Nombre completo" maxlength="50">
+            <label>Fecha de cumpleaños</label>
             <input id="cumpleFecha" type="date">
+            <label>Foto (desde tu galería)</label>
             <input type="file" id="cumpleFoto" accept="image/*">
-            <label>Foto Vista Previa:</label>
+            <label>Vista previa</label>
             <img id="previewFoto" src="" style="max-width: 150px; border-radius: 6px; display: none;">
             <button onclick="agregarCumpleanero()">➕ Agregar a Cumpleañeros</button>
             <div id="cumpleLista" class="cumple-list"></div>

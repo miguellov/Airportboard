@@ -10,6 +10,7 @@
 <title>Airport Board PRO</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Great+Vibes&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 
 <style>
 
@@ -89,11 +90,66 @@ td{
 
 .ruta-origen{
     display:block;
-    margin-top:4px;
-    font-size:0.5em;
-    color:#38bdf8;
-    font-weight:600;
-    letter-spacing:0.02em;
+    margin-top:3px;
+    margin-bottom:0;
+    font-size:0.34em;
+    color:rgba(125,211,252,.72);
+    font-weight:500;
+    letter-spacing:0.03em;
+    line-height:1.2;
+}
+
+.td-llegada{
+    line-height:1.1;
+    vertical-align:middle;
+    padding-top:10px;
+    padding-bottom:10px;
+}
+
+.td-llegada .hora-llegada{
+    display:block;
+    line-height:1.05;
+}
+
+.td-llegada .countdown-line{
+    display:block;
+    margin-top:8px;
+    line-height:1.2;
+}
+
+/* Conteo regresivo: protagonista */
+.countdown-pill{
+    display:inline-block;
+    font-family:'Inter', sans-serif;
+    font-size:clamp(22px, 2.6vw, 34px);
+    font-weight:800;
+    letter-spacing:0.06em;
+    padding:8px 18px;
+    border-radius:14px;
+    border:2px solid transparent;
+    text-shadow:0 0 28px currentColor;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 4px 18px rgba(0,0,0,.35);
+}
+
+.countdown-pill.countdown-green{
+    color:#4ade80 !important;
+    background:rgba(34,197,94,.18);
+    border-color:rgba(74,222,128,.5);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 32px rgba(34,197,94,.25), 0 4px 18px rgba(0,0,0,.35);
+}
+
+.countdown-pill.countdown-yellow{
+    color:#facc15 !important;
+    background:rgba(234,179,8,.16);
+    border-color:rgba(250,204,21,.55);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 28px rgba(250,204,21,.22), 0 4px 18px rgba(0,0,0,.35);
+}
+
+.countdown-pill.countdown-red{
+    color:#f87171 !important;
+    background:rgba(239,68,68,.18);
+    border-color:rgba(248,113,113,.55);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 32px rgba(239,68,68,.28), 0 4px 18px rgba(0,0,0,.35);
 }
 
 tr.on-time { background:rgba(0,40,20,0.6); }
@@ -193,12 +249,215 @@ tr.arrived { background:rgba(50,50,50,0.5); }
     justify-content:center;
 }
 
+.anuncio-full.anuncio-full--cumple{
+    background:transparent;
+}
+
+/* —— Vista cumpleañeros (estilo cartelera crema / oro / marino) —— */
+.cumple-celebracion{
+    width:100%;
+    height:100%;
+    min-height:100%;
+    box-sizing:border-box;
+    padding:clamp(12px,2vw,28px) clamp(16px,3vw,48px) 24px;
+    overflow:auto;
+    background:
+        linear-gradient(90deg, rgba(201,162,39,.12) 0%, transparent 18%),
+        linear-gradient(270deg, rgba(201,162,39,.12) 0%, transparent 18%),
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(255,248,235,.9) 0%, #f5f0e8 45%, #ebe4d8 100%);
+    color:#1e3a5f;
+    position:relative;
+}
+
+.cumple-celebracion::before,
+.cumple-celebracion::after{
+    content:"✦";
+    position:absolute;
+    font-size:clamp(14px,2vw,22px);
+    color:rgba(201,162,39,.45);
+    pointer-events:none;
+}
+.cumple-celebracion::before{ top:8%; left:4%; }
+.cumple-celebracion::after{ bottom:12%; right:5%; }
+
+.cumple-deco-balloon{
+    position:absolute;
+    font-size:clamp(28px,4vw,44px);
+    opacity:.35;
+    pointer-events:none;
+    filter:grayscale(.2);
+}
+.cumple-deco-balloon.b1{ top:6%; left:2%; }
+.cumple-deco-balloon.b2{ top:10%; right:8%; }
+
+.cumple-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    max-width:1200px;
+    margin:0 auto 8px;
+    padding-bottom:clamp(8px,1.5vw,16px);
+    border-bottom:1px solid rgba(30,58,95,.12);
+}
+
+.cumple-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.cumple-brand img{
+    height:clamp(36px,5vw,52px);
+    object-fit:contain;
+}
+
+.cumple-brand span{
+    font-family:'Montserrat',sans-serif;
+    font-weight:800;
+    font-size:clamp(14px,1.8vw,20px);
+    color:#1e4a7a;
+    letter-spacing:.04em;
+}
+
+.cumple-clock{
+    text-align:right;
+    font-family:'Inter',sans-serif;
+    color:#0891b2;
+    line-height:1.2;
+}
+.cumple-clock .d{ font-size:clamp(12px,1.4vw,16px); font-weight:600; text-transform:capitalize; }
+.cumple-clock .t{ font-size:clamp(22px,3.5vw,42px); font-weight:700; letter-spacing:.06em; }
+
+.cumple-hero{
+    text-align:center;
+    max-width:900px;
+    margin:clamp(8px,2vw,20px) auto clamp(16px,3vw,32px);
+}
+
+.cumple-hero h1{
+    margin:0;
+    font-family:'Montserrat',sans-serif;
+    font-weight:800;
+    font-size:clamp(32px,6vw,56px);
+    letter-spacing:.06em;
+    color:#0f2942;
+    line-height:1.05;
+}
+
+.cumple-hero .script{
+    display:block;
+    font-family:'Great Vibes',cursive;
+    font-size:clamp(36px,7vw,64px);
+    color:#b8860b;
+    margin-top:4px;
+    line-height:1.1;
+}
+
+.cumple-hero .script::after{
+    content:" ♥";
+    font-size:.55em;
+    vertical-align:middle;
+    opacity:.85;
+}
+
+.cumple-sub{
+    margin:clamp(10px,2vw,18px) auto 0;
+    max-width:720px;
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(14px,1.8vw,19px);
+    font-style:italic;
+    color:#334e68;
+    letter-spacing:.02em;
+}
+
+.cumple-grid{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-end;
+    gap:clamp(16px,3vw,32px);
+    max-width:1280px;
+    margin:0 auto;
+    padding-bottom:16px;
+}
+
+.cumple-person{
+    flex:0 1 auto;
+    width:clamp(140px,18vw,200px);
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+.cumple-person.stagger{ transform:translateY(14px); }
+
+.cumple-photo-ring{
+    width:clamp(120px,16vw,180px);
+    height:clamp(120px,16vw,180px);
+    border-radius:50%;
+    padding:5px;
+    background:#fff;
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,.95),
+        0 4px 14px rgba(30,58,95,.18),
+        inset 0 1px 0 rgba(255,255,255,.9);
+    margin-bottom:10px;
+}
+
+.cumple-photo-ring img{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+}
+
+.cumple-plaque{
+    width:100%;
+    background:linear-gradient(180deg,#1a3a5c 0%, #0f2744 100%);
+    border-radius:14px;
+    padding:12px 10px 14px;
+    box-shadow:0 8px 20px rgba(15,39,68,.35);
+    border:1px solid rgba(201,162,39,.25);
+}
+
+.cumple-plaque-name{
+    font-family:'Montserrat',sans-serif;
+    font-weight:800;
+    font-size:clamp(11px,1.35vw,15px);
+    color:#fff;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    line-height:1.25;
+    margin-bottom:6px;
+    word-break:break-word;
+}
+
+.cumple-plaque-date{
+    font-family:'Montserrat',sans-serif;
+    font-weight:600;
+    font-size:clamp(10px,1.2vw,13px);
+    color:#d4af37;
+    letter-spacing:.12em;
+}
+
+/* Avioncito en la punta del progreso — simple y coqueto */
+@keyframes plane-wiggle{
+    0%,100%{ transform:translateX(-50%) translateY(0) rotate(-6deg); }
+    50%{ transform:translateX(-50%) translateY(-2px) rotate(6deg); }
+}
+
 .flight-progress{
     position:relative;
-    height:6px;
+    height:7px;
     background:#1e293b;
     border-radius:10px;
-    margin-top:5px;
+    margin-top:8px;
+    margin-bottom:4px;
+    overflow:visible;
 }
 
 .flight-bar{
@@ -206,24 +465,73 @@ tr.arrived { background:rgba(50,50,50,0.5); }
     background:#22d3ee;
     border-radius:10px;
     width:0%;
+    box-shadow:0 0 10px rgba(34,211,238,.35);
 }
 
 .plane{
     position:absolute;
-    top:-10px;
-    font-size:14px;
-    transform:translateX(-50%);
+    bottom:100%;
+    margin-bottom:3px;
+    font-size:clamp(17px, 2.2vw, 22px);
+    line-height:1;
+    z-index:2;
+    filter:
+        drop-shadow(0 2px 3px rgba(0,0,0,.55))
+        drop-shadow(0 0 10px rgba(34,211,238,.55));
+    animation:plane-wiggle 2.4s ease-in-out infinite;
+    transform-origin:center bottom;
+    pointer-events:none;
 }
 
-.countdown-green { color:#22c55e !important; }
-.countdown-yellow { color:#facc15 !important; }
-.countdown-red { color:#ef4444 !important; }
+@media (prefers-reduced-motion: reduce){
+    .plane{ animation:none; transform:translateX(-50%); }
+}
+
+/* Aviso alternativo si la voz del navegador no funciona (ej. Samsung TV) */
+.flight-arrival-toast{
+    position:fixed;
+    bottom:52px;
+    left:50%;
+    transform:translateX(-50%) translateY(160%);
+    z-index:999998;
+    min-width:min(92vw, 520px);
+    padding:16px 22px;
+    border-radius:16px;
+    background:linear-gradient(145deg, rgba(15,23,42,.97), rgba(30,41,59,.98));
+    border:2px solid rgba(34,211,238,.55);
+    box-shadow:0 12px 40px rgba(0,0,0,.55), 0 0 32px rgba(34,211,238,.2);
+    color:#e0f2fe;
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    pointer-events:none;
+    opacity:0;
+    transition:transform .45s cubic-bezier(.2,.9,.2,1), opacity .35s ease;
+}
+.flight-arrival-toast.visible{
+    transform:translateX(-50%) translateY(0);
+    opacity:1;
+}
+.flight-arrival-toast .toast-title{
+    font-size:clamp(12px,1.4vw,15px);
+    font-weight:700;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:#67e8f9;
+    margin-bottom:8px;
+}
+.flight-arrival-toast .toast-body{
+    font-size:clamp(20px,2.8vw,32px);
+    font-weight:800;
+    line-height:1.25;
+    color:#fff;
+}
 
 @media (max-width: 768px){
     .time{ font-size:30px; }
     .title{ font-size:20px; }
     th{ font-size:14px; }
     td{ font-size:16px; padding:8px; }
+    .countdown-pill{ font-size:clamp(18px,4.5vw,26px); padding:6px 12px; }
     .header{ padding:10px; }
     table{ font-size:12px; }
 }
@@ -313,6 +621,208 @@ let positionsData = {};
 let selectedDate = new Date().toISOString().slice(0, 10);
 let unsubscribeFlightsByDate = null;
 
+/** Evita repetir el mismo aviso de voz (clave: fecha|vuelo|minutos restantes) */
+let speechArrivalFlags = Object.create(null);
+const ARRIVAL_SPEECH_MINUTES = [30, 10, 1];
+
+/** Tras un toque/tecla: desbloquea voz TTS + Web Audio (Samsung TV suele exigirlo) */
+let mediaUnlocked = false;
+
+function prepareSpeechSynth() {
+    if (!window.speechSynthesis) return;
+    try {
+        if (speechSynthesis.paused) speechSynthesis.resume();
+    } catch (e) { /* noop */ }
+}
+
+function pickLatinoSpanishVoice() {
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    const pick = (re) => voices.find((v) => re.test(v.lang));
+    return pick(/^es-MX/i)
+        || pick(/^es-419/i)
+        || pick(/^es-US/i)
+        || pick(/^es-AR/i)
+        || pick(/^es-CO/i)
+        || pick(/^es-CL/i)
+        || pick(/^es-PE/i)
+        || voices.find((v) => v.lang.startsWith("es") && !/^es-ES/i.test(v.lang))
+        || voices.find((v) => v.lang.startsWith("es"));
+}
+
+/** Números en grupos de 2 (impar: 1 dígito + pares). Ej: 627→6,27 | 1528→15,28 | 61528→6,15,28 */
+function chunkDigitRun(run) {
+    const d = String(run).replace(/\D/g, "");
+    if (d.length <= 2) return d;
+    const parts = [];
+    let i = 0;
+    if (d.length % 2 === 1) {
+        parts.push(d.slice(0, 1));
+        i = 1;
+    }
+    while (i < d.length) {
+        parts.push(d.slice(i, i + 2));
+        i += 2;
+    }
+    return parts.join(", ");
+}
+
+/** Para voz: no leer 1528 como entero; ej. B6 627/1528 → B6, 6, 27. 15, 28 */
+function formatVueloForSpeech(vuelo) {
+    const s = (vuelo || "").replace(/\s+/g, " ").trim();
+    if (!s) return "desconocido";
+    const legs = s.split("/").map((x) => x.trim()).filter(Boolean);
+
+    function formatOneLeg(leg) {
+        const t = leg.trim();
+        const m = t.match(/^(.+?)\s+(\d{2,})$/);
+        if (m) {
+            return `${m[1].trim()}, ${chunkDigitRun(m[2])}`;
+        }
+        if (/^\d+$/.test(t)) {
+            return chunkDigitRun(t);
+        }
+        return t.replace(/\d{3,}/g, (r) => chunkDigitRun(r));
+    }
+
+    return legs.map(formatOneLeg).join(". ");
+}
+
+function buildArrivalPhrase(vuelo, minutes) {
+    const v = formatVueloForSpeech(vuelo);
+    const tiempo = minutes === 1 ? "1 minuto" : `${minutes} minutos`;
+    return `Vuelo ${v}. Aterrizando en ${tiempo}.`;
+}
+
+function speakTwiceLatino(text) {
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return;
+    prepareSpeechSynth();
+    const voice = pickLatinoSpanishVoice();
+    const lang = voice?.lang?.startsWith("es") ? voice.lang : "es-MX";
+
+    const mk = () => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        u.rate = 0.88;
+        u.pitch = 1;
+        if (voice) u.voice = voice;
+        return u;
+    };
+
+    const u1 = mk();
+    u1.onend = () => {
+        prepareSpeechSynth();
+        try {
+            speechSynthesis.speak(mk());
+        } catch (e) { /* noop */ }
+    };
+    u1.onerror = () => {
+        try {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = "es";
+            u.rate = 0.88;
+            speechSynthesis.speak(u);
+        } catch (e2) { /* noop */ }
+    };
+    try {
+        speechSynthesis.speak(u1);
+    } catch (e) {
+        try {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = "es";
+            u.rate = 0.88;
+            speechSynthesis.speak(u);
+        } catch (e2) { /* noop */ }
+    }
+}
+
+function showArrivalToast(vuelo, minutes) {
+    const el = document.getElementById("flightArrivalToast");
+    if (!el) return;
+    el.innerHTML = "";
+    const t1 = document.createElement("div");
+    t1.className = "toast-title";
+    t1.textContent = "Aviso llegada";
+    const t2 = document.createElement("div");
+    t2.className = "toast-body";
+    const minTxt = minutes === 1 ? "1 minuto" : `${minutes} minutos`;
+    t2.textContent = `Vuelo ${vuelo} · ${minTxt}`;
+    el.appendChild(t1);
+    el.appendChild(t2);
+    el.classList.add("visible");
+    clearTimeout(showArrivalToast._hide);
+    showArrivalToast._hide = setTimeout(() => el.classList.remove("visible"), 12000);
+}
+
+function playArrivalBeep() {
+    try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        let ctx = window.__boardAudioCtx;
+        if (!ctx) {
+            ctx = new Ctx();
+            window.__boardAudioCtx = ctx;
+        }
+        if (ctx.state === "suspended") {
+            ctx.resume().catch(() => {});
+        }
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(720, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.08);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.11, ctx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t0 = ctx.currentTime;
+        o.start(t0);
+        o.stop(t0 + 0.2);
+    } catch (e) { /* noop */ }
+}
+
+function tryArrivalSpeech(r, diffMin, dateStr) {
+    if (diffMin <= 0 || !r?.llegada) return;
+    if (!ARRIVAL_SPEECH_MINUTES.includes(diffMin)) return;
+    const vuelo = (r.vuelo || "").trim() || "N/A";
+    const key = `${dateStr}|${vuelo}|${diffMin}`;
+    if (speechArrivalFlags[key]) return;
+    speechArrivalFlags[key] = true;
+
+    showArrivalToast(vuelo, diffMin);
+    playArrivalBeep();
+
+    if (mediaUnlocked && window.speechSynthesis) {
+        speakTwiceLatino(buildArrivalPhrase(vuelo, diffMin));
+    }
+}
+
+function unlockMediaFromUser() {
+    if (mediaUnlocked) return;
+    mediaUnlocked = true;
+    prepareSpeechSynth();
+    if (window.speechSynthesis) speechSynthesis.getVoices();
+    try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx && !window.__boardAudioCtx) {
+            window.__boardAudioCtx = new Ctx();
+        }
+        if (window.__boardAudioCtx?.state === "suspended") {
+            window.__boardAudioCtx.resume().catch(() => {});
+        }
+    } catch (e) { /* noop */ }
+}
+
+window.addEventListener("pointerdown", unlockMediaFromUser, { once: true, passive: true });
+window.addEventListener("keydown", unlockMediaFromUser, { once: true });
+
+if (window.speechSynthesis) {
+    speechSynthesis.getVoices();
+    window.addEventListener("voiceschanged", () => speechSynthesis.getVoices());
+    [100, 400, 1200].forEach((ms) => setTimeout(() => speechSynthesis.getVoices(), ms));
+}
+
 // 📋 CARGAR DATOS
 onValue(ref(db,"anuncios"), snap => {
     anuncios = Object.values(snap.val() || {}).filter(a => a && (a.tipo === "mensaje" || a.tipo === "cumple"));
@@ -363,6 +873,7 @@ onValue(ref(db, "visibility/anuncios"), snap => {
     if(!anunciosActivos){
         const contenedor = document.getElementById("anuncioFull");
         contenedor.style.display = "none";
+        contenedor.classList.remove("anuncio-full--cumple");
     }else{
         mostrarAnuncios();
     }
@@ -414,19 +925,45 @@ function watchFlightsForDate(dateStr){
 }
 
 onValue(ref(db, "config/selectedDate"), snap => {
+    const prev = selectedDate;
     const cfgDate = snap.val();
-    if(cfgDate) selectedDate = cfgDate;
+    if (cfgDate) selectedDate = cfgDate;
+    if (prev !== selectedDate) speechArrivalFlags = Object.create(null);
     watchFlightsForDate(selectedDate);
 });
 
 function mostrarAnuncios(){
     const contenedor = document.getElementById("anuncioFull");
 
+    function escapeHtml(s){
+        return String(s ?? "")
+            .replace(/&/g,"&amp;")
+            .replace(/</g,"&lt;")
+            .replace(/"/g,"&quot;");
+    }
+
     function formatearFechaBonita(fechaISO){
         if(!fechaISO) return "";
         const fecha = new Date(fechaISO + "T00:00:00");
         const texto = fecha.toLocaleDateString("es-DO", { day: "numeric", month: "long" });
         return texto.charAt(0).toUpperCase() + texto.slice(1);
+    }
+
+    function formatearFechaCartulina(fechaISO){
+        if(!fechaISO) return "";
+        const fecha = new Date(fechaISO + "T12:00:00");
+        const d = fecha.getDate();
+        const mes = fecha.toLocaleDateString("es-DO", { month: "long" });
+        return `${String(d).padStart(2,"0")} DE ${mes.toUpperCase()}`;
+    }
+
+    function relojCumpleBloque(){
+        const now = new Date();
+        return `
+            <div class="cumple-clock">
+                <div class="d">${now.toLocaleDateString("es-DO",{ weekday:"long", day:"2-digit", month:"long", year:"numeric" })}</div>
+                <div class="t">${now.toLocaleTimeString("es-DO")}</div>
+            </div>`;
     }
 
     function extraerNombreDesdeTexto(texto){
@@ -448,51 +985,87 @@ function mostrarAnuncios(){
     }
 
     function renderCumpleCard(a){
+        const logoSrc = "https://trainingreport.longportsecurity.com.co/pix/logolongport.png";
         const lista = Array.isArray(a.cumpleaneros) ? a.cumpleaneros : [];
         if(lista.length){
-            const cards = lista.map((item) => {
-                const nombre = item?.nombre || "Cumpleañero";
+            const cards = lista.map((item, idx) => {
+                const nombre = escapeHtml(item?.nombre || "Cumpleañero");
                 const foto = item?.foto || "";
-                const fechaBonita = item?.fechaTexto || formatearFechaBonita(item?.fecha) || "";
+                const fechaShowRaw = item?.fecha
+                    ? formatearFechaCartulina(item.fecha)
+                    : (item?.fechaTexto || formatearFechaBonita(item?.fecha) || "");
+                const fechaShow = escapeHtml(fechaShowRaw);
+                const staggerClass = idx === 2 ? "cumple-person stagger" : "cumple-person";
+                const imgHtml = foto
+                    ? `<img src="${foto}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+                    : `<div style="width:100%;height:100%;border-radius:50%;background:#e2e8f0;"></div>`;
                 return `
-                    <div style="background:linear-gradient(180deg,#0f172a,#111827); border:2px solid #334155; border-radius:16px; padding:14px; text-align:center; min-height:300px; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; box-shadow:0 10px 25px rgba(2,6,23,.45);">
-                        ${foto ? `<img src="${foto}" style="width:175px; height:175px; object-fit:cover; border-radius:14px; border:2px solid #38bdf8; margin-bottom:12px;">` : `<div style="width:175px; height:175px; border-radius:14px; border:2px dashed #334155; margin-bottom:12px;"></div>`}
-                        <div style="font-size:26px; font-weight:800; color:#f8fafc; line-height:1.1; margin-bottom:8px; word-break:break-word;">${nombre}</div>
-                        <div style="margin-top:auto; font-size:17px; font-weight:600; color:#a5f3fc; background:rgba(14,165,233,.12); border:1px solid rgba(56,189,248,.35); border-radius:999px; padding:6px 12px;">${fechaBonita}</div>
-                    </div>
-                `;
+                    <div class="${staggerClass}">
+                        <div class="cumple-photo-ring">${imgHtml}</div>
+                        <div class="cumple-plaque">
+                            <div class="cumple-plaque-name">${nombre}</div>
+                            <div class="cumple-plaque-date">${fechaShow}</div>
+                        </div>
+                    </div>`;
             }).join("");
 
             contenedor.innerHTML = `
-                <div style="display:flex; flex-direction:column; justify-content:flex-start; width:100%; height:100%; align-items:center; padding:72px 16px 24px 16px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; width:min(1220px, 96vw);">
-                        <div style="font-size:clamp(30px, 4vw, 50px); line-height:1.05; letter-spacing:1px; color:#67e8f9; font-weight:900;">CUMPLEANOS DE ESTE MES</div>
-                        <div style="font-size:clamp(14px, 1.7vw, 20px); color:#bae6fd; border:1px solid rgba(125,211,252,.45); border-radius:999px; padding:6px 12px; background:rgba(14,165,233,.14);">${lista.length} celebrando</div>
+                <div class="cumple-celebracion">
+                    <span class="cumple-deco-balloon b1" aria-hidden="true">🎈</span>
+                    <span class="cumple-deco-balloon b2" aria-hidden="true">🎈</span>
+                    <div class="cumple-topbar">
+                        <div class="cumple-brand">
+                            <img src="${logoSrc}" alt="">
+                            <span>LONGPORT BOARD POP</span>
+                        </div>
+                        ${relojCumpleBloque()}
                     </div>
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:16px; width:min(1220px, 96vw);">
-                        ${cards}
+                    <div class="cumple-hero">
+                        <h1>CUMPLEAÑEROS</h1>
+                        <span class="script">Del mes</span>
+                        <p class="cumple-sub">Celebramos tu vida, tu talento y todo lo que aportas cada día.</p>
                     </div>
-                </div>
-            `;
+                    <div class="cumple-grid">${cards}</div>
+                </div>`;
             return;
         }
 
         const nombreInferido = a.nombre || extraerNombreDesdeTexto(a.texto);
         const cumpleMatch = buscarCumplePorNombre(nombreInferido);
-        const nombre = nombreInferido || cumpleMatch?.nombre || "Cumpleañero";
+        const nombre = escapeHtml(nombreInferido || cumpleMatch?.nombre || "Cumpleañero");
         const foto = a.media || a.foto || cumpleMatch?.foto || "";
-        const fechaBonita = a.fechaTexto || formatearFechaBonita(a.fecha || cumpleMatch?.fecha) || "";
+        const fechaRaw = a.fecha || cumpleMatch?.fecha;
+        const fechaShow = escapeHtml(
+            fechaRaw ? formatearFechaCartulina(fechaRaw) : (a.fechaTexto || formatearFechaBonita(cumpleMatch?.fecha) || "")
+        );
+        const imgHtml = foto
+            ? `<img src="${foto}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+            : `<div style="width:100%;height:100%;border-radius:50%;background:#e2e8f0;"></div>`;
 
         contenedor.innerHTML = `
-            <div style="display:flex; justify-content:center; width:100%;">
-                <div style="background:#0b1220; border:2px solid #22d3ee; border-radius:16px; padding:20px; width:min(460px, 90vw); text-align:center; color:#e0f2fe; box-shadow:0 0 25px rgba(34,211,238,.25);">
-                    <div style="font-size:24px; color:#67e8f9; margin-bottom:10px; font-weight:700;">Cumpleaños de este Mes</div>
-                    ${foto ? `<div style="display:flex; justify-content:center; margin-bottom:12px;"><img src="${foto}" style="width:180px; height:180px; object-fit:cover; border-radius:12px; border:2px solid #38bdf8;"></div>` : ""}
-                    <div style="font-size:32px; font-weight:700; color:#ffffff;">${nombre}</div>
-                    <div style="margin-top:6px; font-size:20px; color:#a5f3fc;">${fechaBonita}</div>
+            <div class="cumple-celebracion">
+                <span class="cumple-deco-balloon b1" aria-hidden="true">🎈</span>
+                <div class="cumple-topbar">
+                    <div class="cumple-brand">
+                        <img src="${logoSrc}" alt="">
+                        <span>LONGPORT BOARD POP</span>
+                    </div>
+                    ${relojCumpleBloque()}
                 </div>
-            </div>
-        `;
+                <div class="cumple-hero">
+                    <h1>CUMPLEAÑEROS</h1>
+                    <span class="script">Del mes</span>
+                </div>
+                <div class="cumple-grid">
+                    <div class="cumple-person">
+                        <div class="cumple-photo-ring">${imgHtml}</div>
+                        <div class="cumple-plaque">
+                            <div class="cumple-plaque-name">${nombre}</div>
+                            <div class="cumple-plaque-date">${fechaShow}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
     }
 
     if(anuncioLoopInterval){
@@ -506,12 +1079,14 @@ function mostrarAnuncios(){
 
     if(!anuncios.length || !anunciosActivos){
         contenedor.style.display = "none";
+        contenedor.classList.remove("anuncio-full--cumple");
         return;
     }
 
     function loop(){
         if(!anuncios.length || !anunciosActivos){
             contenedor.style.display = "none";
+            contenedor.classList.remove("anuncio-full--cumple");
             return;
         }
         const a = anuncios[indexAnuncio];
@@ -520,6 +1095,7 @@ function mostrarAnuncios(){
         contenedor.style.display = "flex";
 
         if(a.tipo === "mensaje" && !esMensajeCumple){
+            contenedor.classList.remove("anuncio-full--cumple");
             contenedor.innerHTML = `
                 <div style="text-align:center; color:#00ffff; font-size:40px;">
                     ${a.texto || ""}
@@ -529,6 +1105,7 @@ function mostrarAnuncios(){
         }
 
         if(a.tipo === "cumple" || esMensajeCumple){
+            contenedor.classList.add("anuncio-full--cumple");
             renderCumpleCard(a);
         }
 
@@ -586,17 +1163,19 @@ function renderVuelos(){
             if(diffMin <= 15) countdownClass = "countdown-red";
         }
 
+        tryArrivalSpeech(r, diffMin, selectedDate);
+
         html += `
         <tr class="${estadoClase} ${extraClass}">
         <td>${r.vuelo}</td>
         <td>${r.destino}</td>
-        <td>
-            ${r.llegada}
+        <td class="td-llegada">
+            <span class="hora-llegada">${r.llegada}</span>
             ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${r.salidaOrigen}</small>` : ""}
-            <br><small class="${countdownClass}">${countdown}</small>
+            <span class="countdown-line"><span class="countdown-pill ${countdownClass}">${countdown}</span></span>
             <div class="flight-progress">
                 <div class="flight-bar" style="width:${progreso}%"></div>
-                <div class="plane" style="left:${progreso}%">✈️</div>
+                <div class="plane" style="left:${progreso}%" title="En ruta — vuelo comercial">✈️</div>
             </div>
         </td>
         <td>${r.salida}</td>

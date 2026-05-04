@@ -244,13 +244,269 @@ tr.arrived { background:rgba(50,50,50,0.5); }
     height:calc(100% - 100px);
     background:black;
     z-index:999999;
-    display:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .5s ease;
+}
+
+.anuncio-full.active{
+    opacity:1;
+    pointer-events:auto;
+}
+
+/* Canvas con vídeo embebido (YouTube/Vimeo): cubre reloj, cabecera y ticker */
+.anuncio-full.anuncio-full--embed-fs{
+    top:0;
+    left:0;
+    width:100vw;
+    height:100vh;
+    max-height:100vh;
+    z-index:1000001;
+    align-items:stretch;
+    padding:0;
+}
+@supports (height: 100dvh){
+    .anuncio-full.anuncio-full--embed-fs{
+        width:100dvw;
+        height:100dvh;
+        max-height:100dvh;
+    }
+}
+
+/* Mensaje solo imagen/vídeo: mismo borde a borde que embed; ocultamos chrome vía body.board--msg-media-full */
+.anuncio-full.anuncio-full--msg-media-full{
+    top:0;
+    left:0;
+    width:100vw;
+    height:100vh;
+    max-height:100vh;
+    z-index:1000001;
+    align-items:stretch;
+    padding:0;
+}
+@supports (height: 100dvh){
+    .anuncio-full.anuncio-full--msg-media-full{
+        width:100dvw;
+        height:100dvh;
+        max-height:100dvh;
+    }
+}
+
+.anuncio-msg-media-shell{
+    flex:1;
+    width:100%;
+    height:100%;
+    min-height:0;
+    background:#000;
+    display:flex;
     align-items:center;
     justify-content:center;
 }
 
+.anuncio-msg-media-fit{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+body.board--msg-media-full .header,
+body.board--msg-media-full .table-container,
+body.board--msg-media-full .positions-wrapper,
+body.board--msg-media-full .ticker{
+    display:none;
+}
+
+body.board--msg-media-full .flight-arrival-toast{
+    z-index:1000002;
+}
+
+.anuncio-embed-shell{
+    position:relative;
+    flex:1;
+    width:100%;
+    height:100%;
+    min-height:0;
+    background:#000;
+}
+
+.anuncio-embed-iframe{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:0;
+}
+
+.anuncio-embed-video{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:#000;
+}
+
+.anuncio-canvas{
+    position:relative;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.anuncio-canvas-media{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:0;
+}
+
+.anuncio-canvas-overlay{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, rgba(2,6,23,.15), rgba(2,6,23,.58));
+    z-index:1;
+}
+
+.anuncio-canvas-content{
+    position:relative;
+    z-index:2;
+    max-width:min(90vw, 1200px);
+    padding:24px;
+}
+
+.anuncio-canvas-content.pos-left{ text-align:left; margin-right:auto; }
+.anuncio-canvas-content.pos-center{ text-align:center; margin:0 auto; }
+.anuncio-canvas-content.pos-right{ text-align:right; margin-left:auto; }
+
+.anuncio-canvas-title{
+    margin:0 0 16px;
+    font-size:clamp(42px, 8vw, 110px);
+    font-weight:800;
+    line-height:1.04;
+    letter-spacing:.02em;
+}
+
+.anuncio-canvas-subtitle{
+    margin:0;
+    font-size:clamp(20px, 3vw, 48px);
+    line-height:1.2;
+    font-weight:600;
+}
+
+.anuncio-canvas--free{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.anuncio-canvas-board-stage{
+    position:relative;
+    overflow:hidden;
+    width:min(100vw, calc((100vh - 100px) * 16 / 9));
+    height:min(calc(100vh - 100px), calc(100vw * 9 / 16));
+}
+
+.anuncio-canvas-board-bg{
+    position:absolute;
+    transform:translate(-50%, -50%);
+    overflow:hidden;
+    z-index:0;
+    box-sizing:border-box;
+}
+
+.anuncio-canvas-board-bg img,
+.anuncio-canvas-board-bg video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+.anuncio-canvas-board-overlay{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+}
+
+.anuncio-canvas-board-texts{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    pointer-events:none;
+}
+
+.anuncio-canvas-text-layer{
+    position:absolute;
+    transform:translate(-50%, -50%);
+    padding:6px 10px;
+    line-height:1.25;
+    word-wrap:break-word;
+    box-sizing:border-box;
+    white-space:pre-wrap;
+}
+
+.canvas-anim-fade-up{
+    animation:canvasFadeUp var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
+}
+
+.canvas-anim-zoom-in{
+    animation:canvasZoomIn var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
+}
+
+.canvas-anim-slide-left{
+    animation:canvasSlideLeft var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
+}
+
+.canvas-anim-glow{
+    animation:canvasGlow var(--canvas-anim-seconds,3s) ease-in-out both;
+}
+
+@keyframes canvasFadeUp{
+    from{ opacity:0; transform:translateY(30px); }
+    to{ opacity:1; transform:translateY(0); }
+}
+
+@keyframes canvasZoomIn{
+    from{ opacity:0; transform:scale(.86); }
+    to{ opacity:1; transform:scale(1); }
+}
+
+@keyframes canvasSlideLeft{
+    from{ opacity:0; transform:translateX(40px); }
+    to{ opacity:1; transform:translateX(0); }
+}
+
+@keyframes canvasGlow{
+    0%{ opacity:0; text-shadow:none; }
+    100%{ opacity:1; text-shadow:0 0 20px rgba(255,255,255,.42), 0 0 40px rgba(56,189,248,.22); }
+}
+
 .anuncio-full.anuncio-full--cumple{
     background:transparent;
+}
+
+.empty-state{
+    text-align:center;
+    padding:80px 0;
+    color:#1e3a5f;
+    font-size:clamp(16px,2vw,22px);
+    letter-spacing:.1em;
+    font-family:'Orbitron',sans-serif;
+    animation:pulse-dim 3s ease-in-out infinite;
+}
+@keyframes pulse-dim{
+    0%,100%{opacity:.4;}
+    50%{opacity:.75;}
 }
 
 /* —— Vista cumpleañeros (estilo cartelera crema / oro / marino) —— */
@@ -485,6 +741,12 @@ tr.arrived { background:rgba(50,50,50,0.5); }
 
 @media (prefers-reduced-motion: reduce){
     .plane{ animation:none; transform:translateX(-50%); }
+    .canvas-anim-fade-up,
+    .canvas-anim-zoom-in,
+    .canvas-anim-slide-left,
+    .canvas-anim-glow{
+        animation:none !important;
+    }
 }
 
 /* Aviso alternativo si la voz del navegador no funciona (ej. Samsung TV) */
@@ -601,8 +863,87 @@ const app = initializeApp({
 
 const db = getDatabase(app);
 
+/** YouTube / Vimeo → URL de embed con autoplay silenciado (mejor que pegar solo watch). */
+function tryYoutubeVimeoEmbedUrl(u) {
+    const h = u.hostname.toLowerCase().replace(/^www\./, "");
+    const ytQ = "autoplay=1&mute=1&rel=0&playsinline=1&modestbranding=1";
+
+    if(h === "youtu.be") {
+        const id = u.pathname.replace(/^\//, "").split("/")[0];
+        if(!id || !/^[a-zA-Z0-9_-]{6,32}$/.test(id)) return null;
+        return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${ytQ}`;
+    }
+    if(h === "youtube.com" || h === "m.youtube.com" || h === "youtube-nocookie.com" || h === "music.youtube.com") {
+        const base = h === "youtube-nocookie.com" ? "https://www.youtube-nocookie.com" : "https://www.youtube.com";
+        if(u.pathname.startsWith("/embed/")) {
+            const id = u.pathname.slice(7).split("/")[0];
+            if(!id || !/^[a-zA-Z0-9_-]{6,32}$/.test(id)) return null;
+            return `${base}/embed/${encodeURIComponent(id)}?${ytQ}`;
+        }
+        const v = u.searchParams.get("v");
+        if(v && /^[a-zA-Z0-9_-]{6,32}$/.test(v)) {
+            return `${base}/embed/${encodeURIComponent(v)}?${ytQ}`;
+        }
+        const shorts = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{6,32})/);
+        if(shorts) return `${base}/embed/${encodeURIComponent(shorts[1])}?${ytQ}`;
+        return null;
+    }
+    if(h === "vimeo.com") {
+        const m = u.pathname.match(/^\/(\d{5,20})(?:\/|$)/);
+        if(m) return `https://player.vimeo.com/video/${m[1]}?autoplay=1&muted=1&playsinline=1`;
+        return null;
+    }
+    if(h === "player.vimeo.com") {
+        const m = u.pathname.match(/\/video\/(\d{5,20})/);
+        if(m) return `https://player.vimeo.com/video/${m[1]}?autoplay=1&muted=1&playsinline=1`;
+        return null;
+    }
+    return null;
+}
+
+/** Cualquier http(s) válido; mejora enlaces YouTube/Vimeo. No acepta javascript:, data:, etc. */
+function sanitizeBoardEmbedUrl(raw) {
+    const s0 = String(raw || "").trim();
+    if(!s0) return null;
+    const low = s0.toLowerCase();
+    if(low.startsWith("data:") || low.startsWith("javascript:") || low.startsWith("vbscript:") || low.startsWith("file:")) {
+        return null;
+    }
+    const s = /^https?:\/\//i.test(s0) ? s0 : "https://" + s0;
+    let u;
+    try {
+        u = new URL(s);
+    } catch {
+        return null;
+    }
+    if(u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const special = tryYoutubeVimeoEmbedUrl(u);
+    if(special) return special;
+    return u.href;
+}
+
+/** Cómo mostrar la URL ya guardada: archivo de vídeo vs página embebida. */
+function classifyBoardEmbedForRender(urlStr) {
+    if(!urlStr || typeof urlStr !== "string") return null;
+    const low = urlStr.trim().toLowerCase();
+    if(low.startsWith("data:") || low.startsWith("javascript:") || low.startsWith("vbscript:")) return null;
+    let u;
+    try {
+        u = new URL(urlStr);
+    } catch {
+        return null;
+    }
+    if(u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const path = u.pathname.toLowerCase();
+    if(/\.(mp4|webm|ogg|m4v|mov|ogv|m3u8)(\?[^#]*)?(#|$)/i.test(path)) {
+        return { kind: "video", url: urlStr };
+    }
+    return { kind: "iframe", url: urlStr };
+}
+
 let anuncios = [];
-let anunciosActivos = false;
+/** Misma lógica que el panel: falta de clave en RTDB = encendido (null !== false). */
+let anunciosActivos = true;
 let vuelosData = [];
 let window_avisos = {};
 let countdownActivo = {};
@@ -620,6 +961,34 @@ let airlinesExtraData = {};
 let positionsData = {};
 let selectedDate = new Date().toISOString().slice(0, 10);
 let unsubscribeFlightsByDate = null;
+
+/** Hora de llegada a POP (RD, UTC-4 fijo, sin DST). */
+const BOARD_ARRIVAL_TZ = "-04:00";
+
+/** Hora efectiva: aterrizó → estimada → guardada → programada. */
+function effectiveArrivalHhmm(r) {
+    const x = r || {};
+    return (
+        String(x.llegadaReal || "").trim() ||
+        String(x.llegadaEstimada || "").trim() ||
+        String(x.llegada || "").trim() ||
+        String(x.llegadaProgramada || "").trim() ||
+        "00:00"
+    );
+}
+
+/** Interpreta HH:MM del día `dateStr` en hora local de llegada al aeropuerto (POP). */
+function parseLlegadaInstant(dateStr, hhmm) {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ""))) return new Date(NaN);
+    const raw = String(hhmm || "00:00").trim();
+    const m = raw.match(/^(\d{1,2}):(\d{2})/);
+    if(!m) return new Date(NaN);
+    const h = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+    const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+    return new Date(
+        `${dateStr}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}:00${BOARD_ARRIVAL_TZ}`
+    );
+}
 
 /** Evita repetir el mismo aviso de voz (clave: fecha|vuelo|minutos restantes) */
 let speechArrivalFlags = Object.create(null);
@@ -783,7 +1152,7 @@ function playArrivalBeep() {
 }
 
 function tryArrivalSpeech(r, diffMin, dateStr) {
-    if (diffMin <= 0 || !r?.llegada) return;
+    if(diffMin <= 0 || effectiveArrivalHhmm(r) === "00:00") return;
     if (!ARRIVAL_SPEECH_MINUTES.includes(diffMin)) return;
     const vuelo = (r.vuelo || "").trim() || "N/A";
     const key = `${dateStr}|${vuelo}|${diffMin}`;
@@ -825,7 +1194,12 @@ if (window.speechSynthesis) {
 
 // 📋 CARGAR DATOS
 onValue(ref(db,"anuncios"), snap => {
-    anuncios = Object.values(snap.val() || {}).filter(a => a && (a.tipo === "mensaje" || a.tipo === "cumple"));
+    anuncios = Object.values(snap.val() || {}).filter((a) => {
+        if(!a) return false;
+        if(a.enPantalla === false) return false;
+        if(a.canvas && typeof a.canvas === "object") return true;
+        return a.tipo === "mensaje" || a.tipo === "cumple" || a.tipo === "canvas";
+    });
     indexAnuncio = 0;
     mostrarAnuncios();
     if(!anunciosActivos) return;
@@ -873,7 +1247,8 @@ onValue(ref(db, "visibility/anuncios"), snap => {
     if(!anunciosActivos){
         const contenedor = document.getElementById("anuncioFull");
         contenedor.style.display = "none";
-        contenedor.classList.remove("anuncio-full--cumple");
+        contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+        document.body.classList.remove("board--msg-media-full");
     }else{
         mostrarAnuncios();
     }
@@ -972,6 +1347,144 @@ function mostrarAnuncios(){
             .replace(/feliz cumpleaños/ig, "")
             .replace(/feliz cumple/ig, "")
             .trim();
+    }
+
+    /** RTDB puede devolver `texts` como objeto con claves "0","1" en lugar de array. */
+    function normalizeCanvasLayoutTexts(layout){
+        if(!layout || layout.texts == null) return [];
+        const t = layout.texts;
+        if(Array.isArray(t)) return t;
+        if(typeof t === "object") {
+            return Object.keys(t)
+                .filter((k) => /^\d+$/.test(k))
+                .sort((a, b) => Number(a) - Number(b))
+                .map((k) => t[k])
+                .filter((x) => x && typeof x === "object");
+        }
+        return [];
+    }
+
+    /** `layout.bg` a veces llega incompleto; `canvas.mediaFrame` es la copia de respaldo del panel. */
+    function normalizeCanvasMediaRect(layout, canvas){
+        const d = { x: 50, y: 50, w: 100, h: 100 };
+        const L = layout && layout.bg && typeof layout.bg === "object" ? layout.bg : null;
+        const M = canvas && canvas.mediaFrame && typeof canvas.mediaFrame === "object" ? canvas.mediaFrame : null;
+        ["x", "y", "w", "h"].forEach((k) => {
+            const v = L && L[k] != null ? Number(L[k]) : NaN;
+            if(Number.isFinite(v)) d[k] = v;
+        });
+        ["x", "y", "w", "h"].forEach((k) => {
+            const v = M && M[k] != null ? Number(M[k]) : NaN;
+            if(Number.isFinite(v)) d[k] = v;
+        });
+        return d;
+    }
+
+    function renderCanvasCard(a){
+        const c = a?.canvas || {};
+        contenedor.classList.remove("anuncio-full--embed-fs");
+        const storedEmbed = (c.embedUrl || "").trim();
+        const mode = storedEmbed ? classifyBoardEmbedForRender(storedEmbed) : null;
+        if(mode) {
+            const embedFs = c.embedFullscreen === true;
+            contenedor.classList.toggle("anuncio-full--embed-fs", embedFs);
+            if(mode.kind === "video") {
+                contenedor.innerHTML = `<div class="anuncio-embed-shell"><video class="anuncio-embed-video" playsinline controls></video></div>`;
+                const v = contenedor.querySelector("video");
+                if(v) {
+                    v.setAttribute("src", mode.url);
+                    v.setAttribute("muted", "");
+                    v.muted = true;
+                    v.setAttribute("autoplay", "");
+                    v.loop = true;
+                }
+            } else {
+                contenedor.innerHTML = `<div class="anuncio-embed-shell"><iframe class="anuncio-embed-iframe" title="Contenido embebido" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe></div>`;
+                const ifr = contenedor.querySelector("iframe");
+                if(ifr) ifr.setAttribute("src", mode.url);
+            }
+            return;
+        }
+
+        const layout = c.layout;
+        const textsNorm = normalizeCanvasLayoutTexts(layout);
+        if(layout && layout.v === 1 && textsNorm.length) {
+            const bgColor = c.bgColor || "#0f172a";
+            const overlayOpacityValue = parseInt(c.overlayOpacity);
+            const overlayOpacity = Math.max(0, Math.min(80, Number.isNaN(overlayOpacityValue) ? 35 : overlayOpacityValue)) / 100;
+            const seconds = Math.max(1, Math.min(12, parseInt(c.duracionTexto) || 3));
+            const anim = (c.animacion || "fade-up").toLowerCase();
+            const animClass = `canvas-anim-${
+                ["fade-up", "zoom-in", "slide-left", "glow"].includes(anim) ? anim : "fade-up"
+            }`;
+            const media = a.media || "";
+            const mediaType = a.mediaType || "";
+            const hasVideo = media && (mediaType.startsWith("video/") || media.startsWith("data:video"));
+            const b = normalizeCanvasMediaRect(layout, c);
+            const mediaBlock = media
+                ? (hasVideo
+                    ? `<video src="${media}" autoplay muted loop playsinline></video>`
+                    : `<img src="${media}" alt="" loading="lazy" referrerpolicy="no-referrer">`)
+                : "";
+            const textsHtml = textsNorm.map((t) => {
+                const raw = (t.text || "").trim();
+                const inner = raw ? escapeHtml(t.text || "") : "\u00a0";
+                const fs = parseFloat(t.fontSize) || 4;
+                const fontSize = `clamp(10px, ${fs * 0.42}vw, ${fs * 0.65}vh)`;
+                const align = ["left", "center", "right"].includes(t.align) ? t.align : "center";
+                const col = escapeHtml(t.color || "#ffffff");
+                const ff = t.fontFamily || "Inter, Arial, sans-serif";
+                const fw = t.fontWeight || "600";
+                const lid = String(t.id || "").replace(/"/g, "");
+                return `<div class="anuncio-canvas-text-layer ${animClass}" data-layer-id="${lid}" style="left:${t.x}%;top:${t.y}%;width:${t.w}%;text-align:${align};color:${col};font-family:${ff};font-weight:${fw};font-size:${fontSize};">${inner}</div>`;
+            }).join("");
+
+            contenedor.innerHTML = `
+            <div class="anuncio-canvas anuncio-canvas--free" style="background:${bgColor}; --canvas-anim-seconds:${seconds}s;">
+                <div class="anuncio-canvas-board-stage">
+                    ${mediaBlock ? `
+                    <div class="anuncio-canvas-board-bg" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;">
+                        ${mediaBlock}
+                    </div>` : ""}
+                    <div class="anuncio-canvas-board-overlay" style="background:linear-gradient(180deg, rgba(2,6,23,${Math.max(0, overlayOpacity - 0.15)}), rgba(2,6,23,${overlayOpacity}));"></div>
+                    <div class="anuncio-canvas-board-texts">${textsHtml}</div>
+                </div>
+            </div>`;
+            return;
+        }
+
+        const titulo = escapeHtml(c.titulo || a.texto || "");
+        const subtitulo = escapeHtml(c.subtitulo || "");
+        const textColor = c.textColor || "#ffffff";
+        const bgColor = c.bgColor || "#0f172a";
+        const fontFamily = c.fontFamily || "Inter, Arial, sans-serif";
+        const textPosition = ["left", "center", "right"].includes(c.textPosition) ? c.textPosition : "center";
+        const overlayOpacityValue = parseInt(c.overlayOpacity);
+        const overlayOpacity = Math.max(0, Math.min(80, Number.isNaN(overlayOpacityValue) ? 35 : overlayOpacityValue)) / 100;
+        const seconds = Math.max(1, Math.min(12, parseInt(c.duracionTexto) || 3));
+        const anim = (c.animacion || "fade-up").toLowerCase();
+        const animClass = `canvas-anim-${
+            ["fade-up", "zoom-in", "slide-left", "glow"].includes(anim) ? anim : "fade-up"
+        }`;
+        const media = a.media || "";
+        const mediaType = a.mediaType || "";
+        const hasVideo = media && (mediaType.startsWith("video/") || media.startsWith("data:video"));
+        const mediaHtml = media
+            ? (hasVideo
+                ? `<video class="anuncio-canvas-media" src="${media}" autoplay muted loop playsinline></video>`
+                : `<img class="anuncio-canvas-media" src="${media}" alt="" loading="lazy" referrerpolicy="no-referrer">`)
+            : "";
+
+        contenedor.innerHTML = `
+            <div class="anuncio-canvas" style="background:${bgColor}; --canvas-anim-seconds:${seconds}s;">
+                ${mediaHtml}
+                <div class="anuncio-canvas-overlay" style="background:linear-gradient(180deg, rgba(2,6,23,${Math.max(0, overlayOpacity - 0.15)}), rgba(2,6,23,${overlayOpacity}));"></div>
+                <div class="anuncio-canvas-content ${animClass} pos-${textPosition}" style="color:${textColor}; font-family:${fontFamily};">
+                    ${titulo ? `<h1 class="anuncio-canvas-title">${titulo}</h1>` : ""}
+                    ${subtitulo ? `<p class="anuncio-canvas-subtitle">${subtitulo}</p>` : ""}
+                </div>
+            </div>
+        `;
     }
 
     function buscarCumplePorNombre(nombre){
@@ -1079,29 +1592,45 @@ function mostrarAnuncios(){
 
     if(!anuncios.length || !anunciosActivos){
         contenedor.style.display = "none";
-        contenedor.classList.remove("anuncio-full--cumple");
+        contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+        document.body.classList.remove("board--msg-media-full");
         return;
     }
 
     function loop(){
         if(!anuncios.length || !anunciosActivos){
             contenedor.style.display = "none";
-            contenedor.classList.remove("anuncio-full--cumple");
+            contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+            document.body.classList.remove("board--msg-media-full");
             return;
         }
         const a = anuncios[indexAnuncio];
+        const esCanvas = a.tipo === "canvas" || (a.canvas && typeof a.canvas === "object");
         const esMensajeCumple = a.tipo === "mensaje" && /feliz cumpleaños/i.test(a.texto || "");
 
         contenedor.style.display = "flex";
+        contenedor.classList.add("active");
+        contenedor.classList.remove("anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+        document.body.classList.remove("board--msg-media-full");
 
         if(a.tipo === "mensaje" && !esMensajeCumple){
             contenedor.classList.remove("anuncio-full--cumple");
-            contenedor.innerHTML = `
+            const media = a.media || "";
+            const mediaType = a.mediaType || "";
+            const hasVideo = media && (mediaType.startsWith("video/") || media.startsWith("data:video"));
+            if(media) {
+                contenedor.classList.add("anuncio-full--msg-media-full");
+                document.body.classList.add("board--msg-media-full");
+                contenedor.innerHTML = hasVideo
+                    ? `<div class="anuncio-msg-media-shell"><video class="anuncio-msg-media-fit" src="${media}" autoplay muted loop playsinline></video></div>`
+                    : `<div class="anuncio-msg-media-shell"><img class="anuncio-msg-media-fit" src="${media}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>`;
+            } else {
+                contenedor.innerHTML = `
                 <div style="text-align:center; color:#00ffff; font-size:40px;">
-                    ${a.texto || ""}
-                    ${a.media ? `<br><img src="${a.media}" style="max-width:${anuncioImageScale}%; margin-top:20px;">` : ""}
+                    ${escapeHtml(a.texto || "")}
                 </div>
             `;
+            }
         }
 
         if(a.tipo === "cumple" || esMensajeCumple){
@@ -1109,8 +1638,15 @@ function mostrarAnuncios(){
             renderCumpleCard(a);
         }
 
+        if(esCanvas){
+            contenedor.classList.remove("anuncio-full--cumple");
+            renderCanvasCard(a);
+        }
+
         anuncioHideTimeout = setTimeout(()=>{
             contenedor.style.display = "none";
+            contenedor.classList.remove("active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+            document.body.classList.remove("board--msg-media-full");
         }, (a.duracion || 10) * 1000);
 
         indexAnuncio = (indexAnuncio + 1) % anuncios.length;
@@ -1123,11 +1659,13 @@ function mostrarAnuncios(){
 function renderVuelos(){
     let html = "";
     vuelosData.forEach(r => {
-        let [h,m] = (r.llegada || "00:00").split(":");
-        let llegada = new Date();
-        llegada.setHours(h,m,0);
+        const eff = effectiveArrivalHhmm(r);
+        let llegadaDt = parseLlegadaInstant(selectedDate, eff);
+        if(Number.isNaN(llegadaDt.getTime())) {
+            llegadaDt = parseLlegadaInstant(selectedDate, "00:00");
+        }
 
-        let diffMs = llegada.getTime() - Date.now();
+        let diffMs = llegadaDt.getTime() - Date.now();
         let diffMin = Math.floor(diffMs / 60000);
         let hours = Math.floor(diffMin / 60);
         let minutes = diffMin % 60;
@@ -1165,12 +1703,19 @@ function renderVuelos(){
 
         tryArrivalSpeech(r, diffMin, selectedDate);
 
+        const prog = String(r.llegadaProgramada || "").trim();
+        const showProg =
+            prog &&
+            eff &&
+            prog !== eff;
+
         html += `
         <tr class="${estadoClase} ${extraClass}">
         <td>${r.vuelo}</td>
         <td>${r.destino}</td>
         <td class="td-llegada">
-            <span class="hora-llegada">${r.llegada}</span>
+            <span class="hora-llegada">${eff}</span>
+            ${showProg ? `<small class="ruta-origen">Programado ${prog}</small>` : ""}
             ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${r.salidaOrigen}</small>` : ""}
             <span class="countdown-line"><span class="countdown-pill ${countdownClass}">${countdown}</span></span>
             <div class="flight-progress">

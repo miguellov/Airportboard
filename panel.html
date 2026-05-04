@@ -87,6 +87,199 @@
     border-radius:6px;
 }
 
+.canvas-editor{
+    background:#0b1220;
+    border:1px solid #334155;
+    border-radius:8px;
+    padding:10px;
+    display:grid;
+    gap:8px;
+}
+
+.canvas-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+}
+
+.canvas-preview{
+    min-height:160px;
+    border:1px dashed #334155;
+    border-radius:8px;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:10px;
+}
+
+.canvas-preview-media{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:0;
+}
+
+.canvas-preview-overlay{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, rgba(2,6,23,.25), rgba(2,6,23,.58));
+    z-index:1;
+}
+
+.canvas-preview-text{
+    position:relative;
+    z-index:2;
+    max-width:90%;
+}
+
+.canvas-preview-text.pos-left{ text-align:left; align-self:flex-end; justify-self:flex-start; }
+.canvas-preview-text.pos-center{ text-align:center; align-self:center; justify-self:center; }
+.canvas-preview-text.pos-right{ text-align:right; align-self:flex-end; justify-self:flex-end; }
+
+.canvas-preview-title{
+    font-size:28px;
+    font-weight:800;
+    line-height:1.1;
+    margin:0 0 8px;
+}
+
+.canvas-preview-sub{
+    font-size:16px;
+    margin:0;
+    opacity:.95;
+}
+
+.canvas-preview--studio{
+    min-height:unset;
+    padding:0;
+    display:block;
+    border:1px solid #334155;
+}
+
+.canvas-studio-hint{
+    font-size:12px;
+    color:#94a3b8;
+    line-height:1.4;
+    margin:0 0 6px;
+}
+
+.canvas-studio-toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+    font-size:12px;
+}
+
+.canvas-studio-toolbar button{
+    padding:6px 10px;
+    font-size:11px;
+}
+
+.canvas-studio-stage{
+    position:relative;
+    width:100%;
+    aspect-ratio:16/9;
+    border-radius:8px;
+    overflow:hidden;
+    touch-action:none;
+    cursor:default;
+}
+
+.canvas-studio-bg-wrap{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    overflow:hidden;
+    z-index:1;
+    box-sizing:border-box;
+}
+.canvas-studio-bg-wrap.is-selected{
+    outline:2px solid #38bdf8;
+    outline-offset:-2px;
+}
+.canvas-studio-bg-wrap img,
+.canvas-studio-bg-wrap video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    pointer-events:none;
+    user-select:none;
+}
+
+.canvas-studio-resize{
+    position:absolute;
+    width:16px;
+    height:16px;
+    right:-2px;
+    bottom:-2px;
+    background:#38bdf8;
+    border:1px solid #0f172a;
+    border-radius:3px;
+    cursor:nwse-resize;
+    z-index:4;
+    box-sizing:border-box;
+}
+
+.canvas-studio-overlay{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    pointer-events:none;
+}
+
+.canvas-studio-texts{
+    position:absolute;
+    inset:0;
+    z-index:3;
+    pointer-events:none;
+}
+
+.canvas-text-layer{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    pointer-events:auto;
+    padding:6px 10px;
+    line-height:1.25;
+    word-wrap:break-word;
+    cursor:grab;
+    box-sizing:border-box;
+    min-width:40px;
+    min-height:1.2em;
+    border-radius:4px;
+    user-select:none;
+}
+.canvas-text-layer.is-selected{
+    box-shadow:0 0 0 2px #f472b6, 0 0 0 4px rgba(244,114,182,.25);
+}
+.canvas-text-layer:active{
+    cursor:grabbing;
+}
+
+.canvas-free-text-wrap{
+    margin-top:8px;
+    display:none;
+}
+.canvas-free-text-wrap.visible{
+    display:block;
+}
+.canvas-free-text-wrap label{
+    font-size:12px;
+    color:#94a3b8;
+}
+.canvas-free-text-wrap textarea{
+    width:100%;
+    min-height:64px;
+    margin-top:4px;
+    box-sizing:border-box;
+}
+
 /* Mismo z-index base: el bloque de abajo (Salida) tapaba el desplegable de Llegada.
    El que tiene foco (o clic dentro) sube y queda delante. */
 .card .search-box{
@@ -348,6 +541,47 @@ input, select{
     color: #94a3b8;
 }
 
+.anuncio-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+}
+
+.anuncio-actions button{
+    flex:1;
+    min-width:100px;
+    padding:8px;
+    font-size:12px;
+}
+
+.anuncio-badge-pausa{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:999px;
+    margin-left:6px;
+    vertical-align:middle;
+}
+.anuncio-badge-pausa.on{ background:#14532d; color:#86efac; }
+.anuncio-badge-pausa.off{ background:#450a0a; color:#fca5a5; }
+
+.anuncio-editando-banner{
+    background:#1e3a5f;
+    border:1px solid #38bdf8;
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    font-size:13px;
+    color:#bae6fd;
+}
+
 .cumple-foto {
     width: 100%;
     height: 150px;
@@ -504,11 +738,17 @@ input, select{
 
     <div class="card-anuncio">
 
+        <div id="anuncioEditandoBanner" class="anuncio-editando-banner">
+            <span>✏️ Editando anuncio <strong id="anuncioEditandoIdText"></strong> — Guardar aplicará los cambios a este anuncio.</span>
+            <button type="button" onclick="limpiarEdicionAnuncio()" style="background:#475569;">Cancelar edición</button>
+        </div>
+
         <label>Tipo</label>
         <select id="tipoAnuncio" onchange="cambiarTipoAnuncio()">
             <option value="mensaje">Mensaje</option>
             <option value="cumple">Cumpleaños</option>
             <option value="asignacion">Asignación</option>
+            <option value="canvas">Canvas Animado</option>
         </select>
 
         <!-- Mensaje -->
@@ -538,6 +778,72 @@ input, select{
             <div id="cumpleLista" class="cumple-list"></div>
         </div>
 
+        <!-- Canvas -->
+        <div id="canvasFields" style="display:none;">
+            <h4>🎨 Editor tipo Canvas</h4>
+            <div class="canvas-editor">
+                <select id="canvasPreset" onchange="aplicarCanvasPreset(this.value)">
+                    <option value="">Plantilla: personalizada</option>
+                    <option value="promo">Promoción</option>
+                    <option value="aviso">Aviso operativo</option>
+                    <option value="emergencia">Emergencia</option>
+                </select>
+                <input id="canvasTitulo" maxlength="90" placeholder="Título principal (ej: Oferta especial hoy)" oninput="syncCanvasTitleInputsToLayout()">
+                <input id="canvasSubtitulo" maxlength="140" placeholder="Subtítulo opcional" oninput="syncCanvasTitleInputsToLayout()">
+                <div class="canvas-row">
+                    <select id="canvasAnimacion" onchange="renderCanvasPreview()">
+                        <option value="fade-up">Animación: Fade Up</option>
+                        <option value="zoom-in">Animación: Zoom In</option>
+                        <option value="slide-left">Animación: Slide Left</option>
+                        <option value="glow">Animación: Glow</option>
+                    </select>
+                    <input id="canvasDuracionTexto" type="number" min="1" max="12" value="3" placeholder="Duración animación texto (seg)" oninput="renderCanvasPreview()">
+                </div>
+                <div class="canvas-row">
+                    <label>Color texto <input id="canvasTextColor" type="color" value="#ffffff" onchange="applyCanvasTextColorToSelection(); renderCanvasPreview();"></label>
+                    <label>Fondo sólido <input id="canvasBgColor" type="color" value="#0f172a" onchange="renderCanvasPreview()"></label>
+                </div>
+                <div class="canvas-row">
+                    <select id="canvasFontFamily" onchange="applyCanvasFontFamilyToSelection(); renderCanvasPreview();">
+                        <option value="Inter, Arial, sans-serif">Fuente: Inter</option>
+                        <option value="Orbitron, Arial, sans-serif">Fuente: Orbitron</option>
+                        <option value="Montserrat, Arial, sans-serif">Fuente: Montserrat</option>
+                        <option value="Georgia, serif">Fuente: Serif</option>
+                    </select>
+                    <select id="canvasTextPosition" onchange="applyCanvasTextPositionToLayout(); renderCanvasPreview();">
+                        <option value="center">Posición: Centro</option>
+                        <option value="left">Posición: Izquierda</option>
+                        <option value="right">Posición: Derecha</option>
+                    </select>
+                </div>
+                <div class="canvas-row">
+                    <label>Overlay <input id="canvasOverlayOpacity" type="range" min="0" max="80" step="5" value="35" oninput="updateCanvasOverlayLabel(this.value);renderCanvasPreview()"></label>
+                    <label>Opacidad: <span id="canvasOverlayValue">35</span>%</label>
+                </div>
+                <input type="file" id="canvasMedia" accept="image/*,video/*" onchange="previewCanvasMedia(event)">
+                <label style="display:block;margin-top:10px;color:#bae6fd;font-size:13px;">Contenido por URL (cualquier página https, YouTube, Vimeo o .mp4/.webm…)</label>
+                <input id="canvasEmbedUrl" type="url" inputmode="url" placeholder="https://… (página, YouTube, Vimeo o enlace directo a vídeo)" style="width:100%;max-width:520px;box-sizing:border-box;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#cbd5e1;max-width:520px;line-height:1.35;">
+                    <input type="checkbox" id="canvasEmbedFullscreen">
+                    Pantalla completa en el tablero (cubre reloj, vuelos y cinta mientras se muestra este anuncio)
+                </label>
+                <p class="canvas-studio-hint">Si hay URL, <strong>tiene prioridad</strong> sobre el archivo en el tablero. Muchas webs <strong>no permiten</strong> verse dentro de un marco (X-Frame-Options): en ese caso verás vacío o error; YouTube/Vimeo y archivos .mp4 suelen ir bien. Arrastra el <strong>fondo</strong> y la esquina azul; arrastra cada <strong>texto</strong>.</p>
+                <div class="canvas-studio-toolbar">
+                    <span id="canvasStudioSelectionLabel" style="color:#bae6fd;">Capa: ninguna</span>
+                    <button type="button" onclick="addCanvasTextLayer()">➕ Texto libre</button>
+                    <button type="button" id="canvasRemoveLayerBtn" style="background:#7f1d1d;display:none;" onclick="removeSelectedCanvasTextLayer()">🗑 Quitar texto libre</button>
+                    <label style="display:flex;align-items:center;gap:6px;">Tamaño capa
+                        <input id="canvasLayerFontSize" type="range" min="2" max="14" step="0.25" value="6" style="width:100px;" oninput="onCanvasLayerFontSizeInput(this.value)">
+                    </label>
+                </div>
+                <div id="canvasFreeTextWrap" class="canvas-free-text-wrap">
+                    <label>Texto de la capa seleccionada</label>
+                    <textarea id="canvasFreeTextarea" placeholder="Escribe aquí…" oninput="onCanvasFreeTextareaInput()"></textarea>
+                </div>
+                <div id="canvasPreview" class="canvas-preview canvas-preview--studio"></div>
+            </div>
+        </div>
+
         <!-- Duración general -->
         <label>Duración (segundos):</label>
         <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10" min="1" max="120">
@@ -546,7 +852,7 @@ input, select{
         <input id="anuncioImageScale" type="range" min="30" max="100" step="5" value="60" oninput="updateAnuncioScaleLabel(this.value)">
         <button onclick="saveAnuncioImageScale()">🖼️ Guardar Tamaño Imagen</button>
 
-        <button onclick="guardarAnuncio()">💾 Guardar</button>
+        <button onclick="guardarAnuncio()">💾 <span id="guardarAnuncioLabel">Guardar</span></button>
         <button id="toggleAnunciosBtn" class="anuncios-toggle on" onclick="toggleAnuncios()">🟢 Encendido</button>
 
     </div>
@@ -601,6 +907,156 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+/** RTDB: un solo string no puede superar ~10 MB UTF-8; dejamos margen. */
+const RTDB_MAX_STRING_UTF8 = 9_200_000;
+
+function utf8ByteLength(str) {
+    return new TextEncoder().encode(str).length;
+}
+
+/**
+ * Reduce una imagen en data URL para que quepa en Realtime Database (límite ~10 MB por valor).
+ * Convierte a JPEG con reescalado y calidad progresivos.
+ */
+async function compressImageDataUrlForRtdb(dataUrl, maxUtf8 = RTDB_MAX_STRING_UTF8) {
+    if(typeof dataUrl !== "string" || !dataUrl.startsWith("data:image")) return dataUrl;
+    if(utf8ByteLength(dataUrl) <= maxUtf8) return dataUrl;
+
+    const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error("imagen"));
+        i.src = dataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if(!ctx) throw new Error("canvas");
+
+    let maxEdge = Math.min(2560, Math.max(img.width, img.height));
+    let quality = 0.9;
+
+    for(let round = 0; round < 28; round++) {
+        const scale = maxEdge / Math.max(img.width, img.height);
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        canvas.width = w;
+        canvas.height = h;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const jpeg = canvas.toDataURL("image/jpeg", quality);
+        if(utf8ByteLength(jpeg) <= maxUtf8) return jpeg;
+
+        if(quality > 0.4) {
+            quality -= 0.07;
+        } else {
+            quality = 0.88;
+            maxEdge = Math.max(280, Math.round(maxEdge * 0.8));
+        }
+    }
+
+    let edge = 520;
+    for(let k = 0; k < 8 && edge >= 120; k++) {
+        canvas.width = edge;
+        canvas.height = Math.max(1, Math.round(edge * (img.height / img.width)));
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const last = canvas.toDataURL("image/jpeg", 0.26);
+        if(utf8ByteLength(last) <= maxUtf8) return last;
+        edge = Math.round(edge * 0.72);
+    }
+    return canvas.toDataURL("image/jpeg", 0.22);
+}
+
+/** YouTube / Vimeo → URL de embed con autoplay silenciado. */
+function tryYoutubeVimeoEmbedUrl(u) {
+    const h = u.hostname.toLowerCase().replace(/^www\./, "");
+    const ytQ = "autoplay=1&mute=1&rel=0&playsinline=1&modestbranding=1";
+
+    if(h === "youtu.be") {
+        const id = u.pathname.replace(/^\//, "").split("/")[0];
+        if(!id || !/^[a-zA-Z0-9_-]{6,32}$/.test(id)) return null;
+        return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${ytQ}`;
+    }
+    if(h === "youtube.com" || h === "m.youtube.com" || h === "youtube-nocookie.com" || h === "music.youtube.com") {
+        const base = h === "youtube-nocookie.com" ? "https://www.youtube-nocookie.com" : "https://www.youtube.com";
+        if(u.pathname.startsWith("/embed/")) {
+            const id = u.pathname.slice(7).split("/")[0];
+            if(!id || !/^[a-zA-Z0-9_-]{6,32}$/.test(id)) return null;
+            return `${base}/embed/${encodeURIComponent(id)}?${ytQ}`;
+        }
+        const v = u.searchParams.get("v");
+        if(v && /^[a-zA-Z0-9_-]{6,32}$/.test(v)) {
+            return `${base}/embed/${encodeURIComponent(v)}?${ytQ}`;
+        }
+        const shorts = u.pathname.match(/^\/shorts\/([a-zA-Z0-9_-]{6,32})/);
+        if(shorts) return `${base}/embed/${encodeURIComponent(shorts[1])}?${ytQ}`;
+        return null;
+    }
+    if(h === "vimeo.com") {
+        const m = u.pathname.match(/^\/(\d{5,20})(?:\/|$)/);
+        if(m) return `https://player.vimeo.com/video/${m[1]}?autoplay=1&muted=1&playsinline=1`;
+        return null;
+    }
+    if(h === "player.vimeo.com") {
+        const m = u.pathname.match(/\/video\/(\d{5,20})/);
+        if(m) return `https://player.vimeo.com/video/${m[1]}?autoplay=1&muted=1&playsinline=1`;
+        return null;
+    }
+    return null;
+}
+
+/** Cualquier http(s) válido; mejora YouTube/Vimeo. Rechaza javascript:, data:, etc. */
+function sanitizeBoardEmbedUrl(raw) {
+    const s0 = String(raw || "").trim();
+    if(!s0) return null;
+    const low = s0.toLowerCase();
+    if(low.startsWith("data:") || low.startsWith("javascript:") || low.startsWith("vbscript:") || low.startsWith("file:")) {
+        return null;
+    }
+    const s = /^https?:\/\//i.test(s0) ? s0 : "https://" + s0;
+    let u;
+    try {
+        u = new URL(s);
+    } catch {
+        return null;
+    }
+    if(u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const special = tryYoutubeVimeoEmbedUrl(u);
+    if(special) return special;
+    return u.href;
+}
+
+async function ensureMediaFitsRtdb(media, mediaTypeHint) {
+    if(!media || typeof media !== "string") return { media, mediaType: mediaTypeHint || "" };
+    if(media.startsWith("data:image")) {
+        try {
+            const out = await compressImageDataUrlForRtdb(media);
+            const over = utf8ByteLength(out) > RTDB_MAX_STRING_UTF8;
+            if(over) {
+                return { media: "", mediaType: "", error: "La imagen sigue siendo demasiado grande tras comprimir. Prueba con un archivo más pequeño." };
+            }
+            return { media: out, mediaType: "image/jpeg" };
+        } catch(e) {
+            console.error(e);
+            return { media: "", mediaType: "", error: "No se pudo comprimir la imagen. Prueba con otro formato (JPG/PNG) o menos megapíxeles." };
+        }
+    }
+    if(media.startsWith("data:video") || (mediaTypeHint || "").startsWith("video/")) {
+        if(utf8ByteLength(media) > RTDB_MAX_STRING_UTF8) {
+            return {
+                media: "",
+                mediaType: "",
+                error: "El video en base64 supera el límite de Firebase (~10 MB por campo). Sube un clip más corto o una imagen/GIF en su lugar (o comprime el video fuera del panel)."
+            };
+        }
+    }
+    return { media, mediaType: mediaTypeHint || "" };
+}
+
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
 const configRef = ref(db,"config");
@@ -614,6 +1070,182 @@ let airlinesExtraData = {};
 let visibilityData = {};
 let selectedDate = new Date().toISOString().slice(0, 10);
 let unsubscribeFlightsByDate = null;
+
+/** Clave Firebase del anuncio en edición (no confundir con el campo `id` numérico). */
+let editingAnuncioKey = null;
+let msgMediaPreviewData = "";
+
+function escapeHtmlPanel(s) {
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+}
+
+function updateEditandoUI() {
+    const banner = document.getElementById("anuncioEditandoBanner");
+    const label = document.getElementById("guardarAnuncioLabel");
+    if(editingAnuncioKey) {
+        if(banner) banner.style.display = "flex";
+        const t = document.getElementById("anuncioEditandoIdText");
+        if(t) t.textContent = editingAnuncioKey;
+        if(label) label.textContent = "Guardar cambios";
+    } else {
+        if(banner) banner.style.display = "none";
+        if(label) label.textContent = "Guardar";
+    }
+}
+
+function updatePreviewMsg() {
+    const el = document.getElementById("previewMsg");
+    if(!el) return;
+    const texto = document.getElementById("textoAnuncio")?.value || "";
+    let html = texto ? `<div>${escapeHtmlPanel(texto)}</div>` : "";
+    if(msgMediaPreviewData) {
+        if(String(msgMediaPreviewData).startsWith("data:video")) {
+            html += `<video src="${msgMediaPreviewData}" controls muted playsinline style="max-width:100%;margin-top:8px;border-radius:6px;"></video>`;
+        } else {
+            html += `<img src="${msgMediaPreviewData}" alt="" style="max-width:100%;margin-top:8px;border-radius:6px;">`;
+        }
+    }
+    el.innerHTML = html || "Aquí aparecerá la vista previa";
+}
+
+window.limpiarEdicionAnuncio = () => {
+    editingAnuncioKey = null;
+    canvasLayout = defaultCanvasLayout();
+    canvasSelectedLayerId = null;
+    msgMediaPreviewData = "";
+    canvasMediaPreviewData = "";
+    canvasMediaPreviewType = "";
+    const f1 = document.getElementById("fileAnuncio");
+    const f2 = document.getElementById("canvasMedia");
+    if(f1) f1.value = "";
+    if(f2) f2.value = "";
+    document.getElementById("canvasPreset").value = "";
+    document.getElementById("textoAnuncio").value = "";
+    document.getElementById("duracionAnuncio").value = "10";
+    document.getElementById("canvasTitulo").value = "";
+    document.getElementById("canvasSubtitulo").value = "";
+    document.getElementById("canvasAnimacion").value = "fade-up";
+    document.getElementById("canvasTextColor").value = "#ffffff";
+    document.getElementById("canvasBgColor").value = "#0f172a";
+    document.getElementById("canvasDuracionTexto").value = "3";
+    document.getElementById("canvasFontFamily").value = "Inter, Arial, sans-serif";
+    document.getElementById("canvasTextPosition").value = "center";
+    document.getElementById("canvasOverlayOpacity").value = "35";
+    updateCanvasOverlayLabel(35);
+    const ceu = document.getElementById("canvasEmbedUrl");
+    const cef = document.getElementById("canvasEmbedFullscreen");
+    if(ceu) ceu.value = "";
+    if(cef) cef.checked = false;
+    updateEditandoUI();
+    updatePreviewMsg();
+    renderCanvasPreview();
+};
+
+window.toggleAnuncioEnPantalla = async (id) => {
+    const key = String(id);
+    const all = await leerUnaVez(anunciosRef);
+    const cur = all[key];
+    if(!cur) return;
+    const on = cur.enPantalla !== false;
+    set(ref(db, "anuncios/" + key + "/enPantalla"), !on);
+};
+
+window.editarAnuncio = async (id) => {
+    const key = String(id);
+    const a = await leerUnaVez(ref(db, "anuncios/" + key));
+    if(!a) {
+        alert("Anuncio no encontrado.");
+        return;
+    }
+    if(a.tipo === "cumple") {
+        alert("Los carteles de cumpleaños no se editan aquí: vuelve a publicar desde «Cumpleaños» o ajusta la lista de cumpleañeros.");
+        return;
+    }
+
+    editingAnuncioKey = key;
+    updateEditandoUI();
+    showTab("anunciosTab");
+
+    const esCanvas = a.tipo === "canvas" || (a.canvas && typeof a.canvas === "object");
+
+    if(esCanvas) {
+        const c = a.canvas || {};
+        const layoutTextsOk = (() => {
+            if(!c.layout || c.layout.v !== 1 || !c.layout.texts) return false;
+            const t = c.layout.texts;
+            if(Array.isArray(t)) return t.length > 0;
+            if(typeof t === "object") {
+                return Object.keys(t).some((k) => /^\d+$/.test(k));
+            }
+            return false;
+        })();
+        if(layoutTextsOk) {
+            canvasLayout = JSON.parse(JSON.stringify(c.layout));
+            if(!Array.isArray(canvasLayout.texts) && canvasLayout.texts && typeof canvasLayout.texts === "object") {
+                canvasLayout.texts = Object.keys(canvasLayout.texts)
+                    .filter((k) => /^\d+$/.test(k))
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map((k) => canvasLayout.texts[k])
+                    .filter((x) => x && typeof x === "object");
+            }
+        } else {
+            canvasLayout = layoutFromLegacyCanvas(c);
+        }
+        mergeCanvasMediaFrameFromFirebase(c, canvasLayout);
+        canvasSelectedLayerId = null;
+        document.getElementById("tipoAnuncio").value = "canvas";
+        cambiarTipoAnuncio();
+        document.getElementById("canvasAnimacion").value = ["fade-up", "zoom-in", "slide-left", "glow"].includes(c.animacion) ? c.animacion : "fade-up";
+        document.getElementById("canvasTextColor").value = c.textColor || "#ffffff";
+        document.getElementById("canvasBgColor").value = c.bgColor || "#0f172a";
+        document.getElementById("canvasDuracionTexto").value = String(Math.max(1, Math.min(12, parseInt(c.duracionTexto) || 3)));
+        document.getElementById("canvasFontFamily").value = c.fontFamily || "Inter, Arial, sans-serif";
+        document.getElementById("canvasTextPosition").value = ["left", "center", "right"].includes(c.textPosition) ? c.textPosition : "center";
+        const ov = Math.max(0, Math.min(80, parseInt(c.overlayOpacity) || 35));
+        document.getElementById("canvasOverlayOpacity").value = String(ov);
+        updateCanvasOverlayLabel(ov);
+        document.getElementById("duracionAnuncio").value = String(a.duracion || 10);
+        document.getElementById("canvasPreset").value = "";
+        document.getElementById("canvasMedia").value = "";
+        canvasMediaPreviewData = a.media || "";
+        canvasMediaPreviewType = a.mediaType || "";
+        const ceu = document.getElementById("canvasEmbedUrl");
+        const cef = document.getElementById("canvasEmbedFullscreen");
+        if(ceu) ceu.value = c.embedUrl || "";
+        if(cef) cef.checked = c.embedFullscreen === true;
+        syncLegacyFieldsFromLayout();
+        renderCanvasPreview();
+        bindCanvasStudioPointers();
+        return;
+    }
+
+    document.getElementById("tipoAnuncio").value = "mensaje";
+    cambiarTipoAnuncio();
+    document.getElementById("textoAnuncio").value = a.texto || "";
+    document.getElementById("duracionAnuncio").value = String(a.duracion || 10);
+    document.getElementById("fileAnuncio").value = "";
+    msgMediaPreviewData = a.media || "";
+    updatePreviewMsg();
+};
+
+document.getElementById("textoAnuncio")?.addEventListener("input", updatePreviewMsg);
+document.getElementById("fileAnuncio")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if(!file) {
+        if(!editingAnuncioKey) msgMediaPreviewData = "";
+        updatePreviewMsg();
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        msgMediaPreviewData = ev.target.result || "";
+        updatePreviewMsg();
+    };
+    reader.readAsDataURL(file);
+});
 
 /* 🔥 TABS */
 window.showTab = (tab)=>{
@@ -629,6 +1261,512 @@ window.cambiarTipoAnuncio = () => {
     const tipo = document.getElementById("tipoAnuncio").value;
     document.getElementById("msgFields").style.display = tipo === "mensaje" ? "block" : "none";
     document.getElementById("cumpleFields").style.display = tipo === "cumple" ? "block" : "none";
+    document.getElementById("canvasFields").style.display = tipo === "canvas" ? "block" : "none";
+    if(tipo === "canvas") {
+        ensureCanvasLayout();
+        renderCanvasPreview();
+        bindCanvasStudioPointers();
+    }
+};
+
+let canvasMediaPreviewData = "";
+let canvasMediaPreviewType = "";
+
+/** Layout tipo Canva: posiciones en % del escenario 16:9 (x,y = centro del bloque). */
+let canvasLayout = null;
+let canvasSelectedLayerId = null;
+
+let canvasStudioDrag = null;
+
+function defaultCanvasLayout() {
+    return {
+        v: 1,
+        bg: { x: 50, y: 50, w: 100, h: 100 },
+        texts: [
+            {
+                id: "title",
+                text: "",
+                x: 50,
+                y: 30,
+                w: 92,
+                fontSize: 6,
+                fontFamily: "Montserrat, Arial, sans-serif",
+                color: "#ffffff",
+                align: "center",
+                fontWeight: "800"
+            },
+            {
+                id: "subtitle",
+                text: "",
+                x: 50,
+                y: 48,
+                w: 88,
+                fontSize: 3.5,
+                fontFamily: "Inter, Arial, sans-serif",
+                color: "#e2e8f0",
+                align: "center",
+                fontWeight: "600"
+            }
+        ]
+    };
+}
+
+function ensureCanvasLayout() {
+    if(!canvasLayout || canvasLayout.v !== 1 || !Array.isArray(canvasLayout.texts)) {
+        canvasLayout = defaultCanvasLayout();
+    }
+    if(!canvasLayout.bg) canvasLayout.bg = { x: 50, y: 50, w: 100, h: 100 };
+}
+
+/** RTDB a veces deja `layout.bg` incompleto; `canvas.mediaFrame` es copia de respaldo al mismo nivel. */
+function mergeCanvasMediaFrameFromFirebase(c, targetLayout) {
+    if(!targetLayout || typeof targetLayout !== "object") return;
+    const defs = { x: 50, y: 50, w: 100, h: 100 };
+    if(!targetLayout.bg || typeof targetLayout.bg !== "object") {
+        targetLayout.bg = { ...defs };
+    }
+    const mf = c && c.mediaFrame && typeof c.mediaFrame === "object" ? c.mediaFrame : null;
+    if(mf) {
+        ["x", "y", "w", "h"].forEach((k) => {
+            const v = mf[k];
+            if(v == null || v === "") return;
+            const n = Number(v);
+            if(Number.isFinite(n)) targetLayout.bg[k] = n;
+        });
+    }
+    ["x", "y", "w", "h"].forEach((k) => {
+        const n = Number(targetLayout.bg[k]);
+        if(!Number.isFinite(n)) targetLayout.bg[k] = defs[k];
+    });
+}
+
+function layoutFromLegacyCanvas(c) {
+    const L = defaultCanvasLayout();
+    const align = ["left", "center", "right"].includes(c?.textPosition) ? c.textPosition : "center";
+    const x = align === "left" ? 28 : align === "right" ? 72 : 50;
+    L.texts[0].text = c?.titulo || "";
+    L.texts[1].text = c?.subtitulo || "";
+    L.texts[0].align = align;
+    L.texts[1].align = align;
+    L.texts[0].x = x;
+    L.texts[1].x = x;
+    L.texts[0].color = c?.textColor || "#ffffff";
+    L.texts[1].color = c?.textColor || "#e2e8f0";
+    L.texts[0].fontFamily = c?.fontFamily || L.texts[0].fontFamily;
+    L.texts[1].fontFamily = c?.fontFamily || L.texts[1].fontFamily;
+    return L;
+}
+
+function syncLegacyFieldsFromLayout() {
+    ensureCanvasLayout();
+    const title = canvasLayout.texts.find((t) => t.id === "title");
+    const sub = canvasLayout.texts.find((t) => t.id === "subtitle");
+    const tituloEl = document.getElementById("canvasTitulo");
+    const subEl = document.getElementById("canvasSubtitulo");
+    if(tituloEl && title) tituloEl.value = title.text || "";
+    if(subEl && sub) subEl.value = sub.text || "";
+    if(title) {
+        const col = document.getElementById("canvasTextColor");
+        const ff = document.getElementById("canvasFontFamily");
+        const tp = document.getElementById("canvasTextPosition");
+        if(col) col.value = title.color || "#ffffff";
+        if(ff) ff.value = title.fontFamily || "Inter, Arial, sans-serif";
+        if(tp) tp.value = title.align || "center";
+    }
+    updateCanvasLayerFontSizeSlider();
+}
+
+function syncCanvasTitleInputsToLayout() {
+    ensureCanvasLayout();
+    const title = canvasLayout.texts.find((t) => t.id === "title");
+    const sub = canvasLayout.texts.find((t) => t.id === "subtitle");
+    if(title) title.text = document.getElementById("canvasTitulo")?.value || "";
+    if(sub) sub.text = document.getElementById("canvasSubtitulo")?.value || "";
+    const elTitle = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="title"]');
+    const elSub = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="subtitle"]');
+    if(elTitle && title) elTitle.textContent = title.text || "\u00a0";
+    if(elSub && sub) elSub.textContent = sub.text || "\u00a0";
+}
+
+function applyCanvasTextPositionToLayout() {
+    ensureCanvasLayout();
+    const pos = document.getElementById("canvasTextPosition")?.value || "center";
+    const x = pos === "left" ? 28 : pos === "right" ? 72 : 50;
+    canvasLayout.texts.forEach((t) => {
+        if(t.id === "title" || t.id === "subtitle") {
+            t.align = pos;
+            t.x = x;
+        }
+    });
+}
+
+function applyCanvasTextColorToSelection() {
+    ensureCanvasLayout();
+    const col = document.getElementById("canvasTextColor")?.value || "#ffffff";
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(t) {
+        t.color = col;
+        return;
+    }
+    canvasLayout.texts.forEach((x) => { x.color = col; });
+}
+
+function applyCanvasFontFamilyToSelection() {
+    ensureCanvasLayout();
+    const ff = document.getElementById("canvasFontFamily")?.value || "Inter, Arial, sans-serif";
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(t) {
+        t.fontFamily = ff;
+        return;
+    }
+    canvasLayout.texts.forEach((x) => { x.fontFamily = ff; });
+}
+
+function updateCanvasStudioChrome() {
+    const label = document.getElementById("canvasStudioSelectionLabel");
+    const rm = document.getElementById("canvasRemoveLayerBtn");
+    const freeWrap = document.getElementById("canvasFreeTextWrap");
+    const ta = document.getElementById("canvasFreeTextarea");
+    if(label) {
+        if(canvasSelectedLayerId === "bg") label.textContent = "Capa: fondo (arrastra / redimensiona)";
+        else if(canvasSelectedLayerId === "title") label.textContent = "Capa: título";
+        else if(canvasSelectedLayerId === "subtitle") label.textContent = "Capa: subtítulo";
+        else if(canvasSelectedLayerId) label.textContent = "Capa: texto libre";
+        else label.textContent = "Capa: ninguna (clic en el lienzo)";
+    }
+    const isFree = canvasSelectedLayerId && canvasSelectedLayerId.startsWith("txt_");
+    if(rm) rm.style.display = isFree ? "inline-block" : "none";
+    if(freeWrap) freeWrap.classList.toggle("visible", Boolean(isFree));
+    if(ta && isFree) {
+        const tl = canvasLayout?.texts?.find((x) => x.id === canvasSelectedLayerId);
+        if(tl && document.activeElement !== ta) ta.value = tl.text || "";
+    }
+    updateCanvasLayerFontSizeSlider();
+}
+
+function updateCanvasLayerFontSizeSlider() {
+    const range = document.getElementById("canvasLayerFontSize");
+    if(!range || !canvasLayout) return;
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(t) {
+        range.value = String(t.fontSize ?? 6);
+    }
+}
+
+window.onCanvasLayerFontSizeInput = (value) => {
+    ensureCanvasLayout();
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(!t) return;
+    const n = Math.max(2, Math.min(14, parseFloat(value) || 6));
+    t.fontSize = n;
+    const el = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="' + t.id + '"]');
+    if(el) el.style.fontSize = `clamp(10px, ${n * 0.42}vw, ${n * 0.65}vh)`;
+};
+
+window.onCanvasFreeTextareaInput = () => {
+    ensureCanvasLayout();
+    const ta = document.getElementById("canvasFreeTextarea");
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(!t || !ta) return;
+    t.text = ta.value;
+    const el = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="' + t.id + '"]');
+    if(el) el.textContent = t.text || "\u00a0";
+};
+
+window.addCanvasTextLayer = () => {
+    ensureCanvasLayout();
+    canvasLayout.texts.push({
+        id: "txt_" + Date.now(),
+        text: "Nuevo texto",
+        x: 50,
+        y: 62,
+        w: 75,
+        fontSize: 3.2,
+        fontFamily: document.getElementById("canvasFontFamily")?.value || "Inter, Arial, sans-serif",
+        color: document.getElementById("canvasTextColor")?.value || "#ffffff",
+        align: "center",
+        fontWeight: "600"
+    });
+    canvasSelectedLayerId = canvasLayout.texts[canvasLayout.texts.length - 1].id;
+    renderCanvasPreview();
+    bindCanvasStudioPointers();
+    updateCanvasStudioChrome();
+};
+
+window.removeSelectedCanvasTextLayer = () => {
+    ensureCanvasLayout();
+    if(!canvasSelectedLayerId || !canvasSelectedLayerId.startsWith("txt_")) return;
+    canvasLayout.texts = canvasLayout.texts.filter((t) => t.id !== canvasSelectedLayerId);
+    canvasSelectedLayerId = null;
+    renderCanvasPreview();
+    bindCanvasStudioPointers();
+    updateCanvasStudioChrome();
+};
+
+function selectCanvasLayer(id) {
+    canvasSelectedLayerId = id;
+    document.querySelectorAll("#canvasPreview .canvas-text-layer").forEach((el) => {
+        el.classList.toggle("is-selected", id != null && el.getAttribute("data-layer-id") === id);
+    });
+    const bg = document.querySelector("#canvasPreview .canvas-studio-bg-wrap");
+    if(bg) bg.classList.toggle("is-selected", id === "bg");
+    updateCanvasStudioChrome();
+}
+
+function getCanvasStageRect() {
+    const stage = document.querySelector("#canvasPreview .canvas-studio-stage");
+    return stage ? stage.getBoundingClientRect() : null;
+}
+
+function bindCanvasStudioPointers() {
+    const stage = document.querySelector("#canvasPreview .canvas-studio-stage");
+    if(!stage || stage.dataset.bound === "1") return;
+    stage.dataset.bound = "1";
+
+    stage.addEventListener("pointerdown", (e) => {
+        if(e.button !== 0) return;
+        const t = e.target;
+        const resizeHandle = t.closest(".canvas-studio-resize");
+        const bgWrap = t.closest(".canvas-studio-bg-wrap");
+        const textEl = t.closest(".canvas-text-layer");
+
+        if(resizeHandle && bgWrap) {
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = getCanvasStageRect();
+            if(!rect) return;
+            selectCanvasLayer("bg");
+            canvasStudioDrag = {
+                mode: "resize-bg",
+                startX: e.clientX,
+                startY: e.clientY,
+                rectW: rect.width,
+                rectH: rect.height,
+                bg0: { ...canvasLayout.bg }
+            };
+            stage.setPointerCapture(e.pointerId);
+            return;
+        }
+
+        if(textEl) {
+            e.preventDefault();
+            const lid = textEl.getAttribute("data-layer-id");
+            selectCanvasLayer(lid);
+            const rect = getCanvasStageRect();
+            if(!rect) return;
+            canvasStudioDrag = {
+                mode: "move-text",
+                id: lid,
+                startX: e.clientX,
+                startY: e.clientY,
+                rectW: rect.width,
+                rectH: rect.height,
+                t0: { ...canvasLayout.texts.find((x) => x.id === lid) }
+            };
+            stage.setPointerCapture(e.pointerId);
+            return;
+        }
+
+        if(bgWrap) {
+            e.preventDefault();
+            selectCanvasLayer("bg");
+            const rect = getCanvasStageRect();
+            if(!rect) return;
+            canvasStudioDrag = {
+                mode: "move-bg",
+                startX: e.clientX,
+                startY: e.clientY,
+                rectW: rect.width,
+                rectH: rect.height,
+                bg0: { ...canvasLayout.bg }
+            };
+            stage.setPointerCapture(e.pointerId);
+            return;
+        }
+
+        selectCanvasLayer(null);
+    });
+
+    stage.addEventListener("pointermove", (e) => {
+        if(!canvasStudioDrag) return;
+        const d = canvasStudioDrag;
+        const dxPct = ((e.clientX - d.startX) / d.rectW) * 100;
+        const dyPct = ((e.clientY - d.startY) / d.rectH) * 100;
+
+        if(d.mode === "move-bg") {
+            canvasLayout.bg.x = d.bg0.x + dxPct;
+            canvasLayout.bg.y = d.bg0.y + dyPct;
+            applyBgWrapStyle();
+        } else if(d.mode === "resize-bg") {
+            canvasLayout.bg.w = Math.max(5, d.bg0.w + dxPct * 0.65 + dyPct * 0.35);
+            canvasLayout.bg.h = Math.max(5, d.bg0.h + dxPct * 0.35 + dyPct * 0.65);
+            applyBgWrapStyle();
+        } else if(d.mode === "move-text" && d.t0) {
+            const tx = canvasLayout.texts.find((x) => x.id === d.id);
+            if(tx) {
+                tx.x = Math.max(0, Math.min(100, d.t0.x + dxPct));
+                tx.y = Math.max(0, Math.min(100, d.t0.y + dyPct));
+                applyTextLayerStyle(tx);
+            }
+        }
+    });
+
+    stage.addEventListener("pointerup", (e) => {
+        canvasStudioDrag = null;
+        try { stage.releasePointerCapture(e.pointerId); } catch(_) {}
+    });
+    stage.addEventListener("pointercancel", () => { canvasStudioDrag = null; });
+}
+
+function applyBgWrapStyle() {
+    const wrap = document.querySelector("#canvasPreview .canvas-studio-bg-wrap");
+    if(!wrap || !canvasLayout?.bg) return;
+    const b = canvasLayout.bg;
+    wrap.style.left = b.x + "%";
+    wrap.style.top = b.y + "%";
+    wrap.style.width = b.w + "%";
+    wrap.style.height = b.h + "%";
+}
+
+function applyTextLayerStyle(t) {
+    const el = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="' + t.id + '"]');
+    if(!el) return;
+    el.style.left = t.x + "%";
+    el.style.top = t.y + "%";
+    el.style.width = t.w + "%";
+    el.style.textAlign = t.align || "center";
+    el.style.color = t.color || "#fff";
+    el.style.fontFamily = t.fontFamily || "sans-serif";
+    el.style.fontWeight = t.fontWeight || "600";
+    el.style.fontSize = `clamp(10px, ${(t.fontSize || 4) * 0.42}vw, ${(t.fontSize || 4) * 0.65}vh)`;
+}
+
+window.updateCanvasOverlayLabel = (value) => {
+    const label = document.getElementById("canvasOverlayValue");
+    if(label) label.innerText = value;
+};
+
+window.aplicarCanvasPreset = (preset) => {
+    const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if(el) el.value = value;
+    };
+    if(preset === "promo"){
+        setVal("canvasTitulo", "PROMOCION ESPECIAL");
+        setVal("canvasSubtitulo", "Aprovecha hoy nuestros beneficios exclusivos");
+        setVal("canvasAnimacion", "zoom-in");
+        setVal("canvasTextColor", "#ffffff");
+        setVal("canvasBgColor", "#0f172a");
+        setVal("canvasFontFamily", "Montserrat, Arial, sans-serif");
+        setVal("canvasTextPosition", "center");
+        setVal("canvasOverlayOpacity", "30");
+        updateCanvasOverlayLabel(30);
+    } else if(preset === "aviso"){
+        setVal("canvasTitulo", "AVISO IMPORTANTE");
+        setVal("canvasSubtitulo", "Favor dirigirse al mostrador de informacion");
+        setVal("canvasAnimacion", "fade-up");
+        setVal("canvasTextColor", "#e0f2fe");
+        setVal("canvasBgColor", "#0b1220");
+        setVal("canvasFontFamily", "Inter, Arial, sans-serif");
+        setVal("canvasTextPosition", "left");
+        setVal("canvasOverlayOpacity", "40");
+        updateCanvasOverlayLabel(40);
+    } else if(preset === "emergencia"){
+        setVal("canvasTitulo", "ATENCION");
+        setVal("canvasSubtitulo", "Siga las instrucciones del personal");
+        setVal("canvasAnimacion", "glow");
+        setVal("canvasTextColor", "#ffffff");
+        setVal("canvasBgColor", "#7f1d1d");
+        setVal("canvasFontFamily", "Orbitron, Arial, sans-serif");
+        setVal("canvasTextPosition", "center");
+        setVal("canvasOverlayOpacity", "55");
+        updateCanvasOverlayLabel(55);
+    }
+    ensureCanvasLayout();
+    const title = canvasLayout.texts.find((t) => t.id === "title");
+    const sub = canvasLayout.texts.find((t) => t.id === "subtitle");
+    if(preset === "promo"){
+        if(title) { title.text = "PROMOCION ESPECIAL"; title.align = "center"; title.x = 50; }
+        if(sub) { sub.text = "Aprovecha hoy nuestros beneficios exclusivos"; sub.align = "center"; sub.x = 50; }
+    } else if(preset === "aviso"){
+        if(title) { title.text = "AVISO IMPORTANTE"; title.align = "left"; title.x = 28; }
+        if(sub) { sub.text = "Favor dirigirse al mostrador de informacion"; sub.align = "left"; sub.x = 28; }
+    } else if(preset === "emergencia"){
+        if(title) { title.text = "ATENCION"; title.align = "center"; title.x = 50; }
+        if(sub) { sub.text = "Siga las instrucciones del personal"; sub.align = "center"; sub.x = 50; }
+    }
+    syncLegacyFieldsFromLayout();
+    renderCanvasPreview();
+    bindCanvasStudioPointers();
+};
+
+window.previewCanvasMedia = (event) => {
+    const file = event?.target?.files?.[0];
+    if(!file){
+        canvasMediaPreviewData = "";
+        canvasMediaPreviewType = "";
+        renderCanvasPreview();
+        return;
+    }
+    canvasMediaPreviewType = file.type || "";
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        canvasMediaPreviewData = ev.target.result || "";
+        renderCanvasPreview();
+    };
+    reader.readAsDataURL(file);
+};
+
+window.renderCanvasPreview = () => {
+    const box = document.getElementById("canvasPreview");
+    if(!box) return;
+    ensureCanvasLayout();
+
+    const tituloEl = document.getElementById("canvasTitulo");
+    const subEl = document.getElementById("canvasSubtitulo");
+    const tTitle = canvasLayout.texts.find((t) => t.id === "title");
+    const tSub = canvasLayout.texts.find((t) => t.id === "subtitle");
+    if(tTitle && tituloEl) tTitle.text = tituloEl.value || "";
+    if(tSub && subEl) tSub.text = subEl.value || "";
+
+    const bgColor = document.getElementById("canvasBgColor")?.value || "#0f172a";
+    const overlayOpacityValue = parseInt(document.getElementById("canvasOverlayOpacity")?.value || "35");
+    const overlayOpacity = Math.max(0, Math.min(80, overlayOpacityValue)) / 100;
+
+    const b = canvasLayout.bg;
+    const mediaInner = canvasMediaPreviewData
+        ? (canvasMediaPreviewType.startsWith("video/")
+            ? `<video src="${canvasMediaPreviewData}" autoplay muted loop playsinline></video>`
+            : `<img src="${canvasMediaPreviewData}" alt="">`)
+        : "";
+
+    const textsHtml = canvasLayout.texts.map((t) => {
+        const display = (t.text || "").trim() || "\u00a0";
+        return `<div class="canvas-text-layer" data-layer-id="${String(t.id).replace(/"/g, "")}" style="left:${t.x}%;top:${t.y}%;width:${t.w}%;text-align:${t.align};color:${escapeHtmlPanel(t.color)};font-family:${t.fontFamily};font-weight:${t.fontWeight};font-size:clamp(10px, ${t.fontSize * 0.42}vw, ${t.fontSize * 0.65}vh);">${escapeHtmlPanel(display)}</div>`;
+    }).join("");
+
+    box.style.background = bgColor;
+    box.innerHTML = `
+        <div class="canvas-studio-stage">
+            ${mediaInner ? `
+            <div class="canvas-studio-bg-wrap" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;">
+                ${mediaInner}
+                <span class="canvas-studio-resize" title="Redimensionar fondo"></span>
+            </div>` : ""}
+            <div class="canvas-studio-overlay" style="background:linear-gradient(180deg, rgba(2,6,23,${Math.max(0, overlayOpacity - 0.15)}), rgba(2,6,23,${overlayOpacity}));"></div>
+            <div class="canvas-studio-texts">${textsHtml}</div>
+        </div>
+    `;
+
+    document.querySelectorAll("#canvasPreview .canvas-text-layer").forEach((el) => {
+        const lid = el.getAttribute("data-layer-id");
+        el.classList.toggle("is-selected", lid === canvasSelectedLayerId);
+    });
+    const bw = document.querySelector("#canvasPreview .canvas-studio-bg-wrap");
+    if(bw) bw.classList.toggle("is-selected", canvasSelectedLayerId === "bg");
+
+    bindCanvasStudioPointers();
+    updateCanvasStudioChrome();
 };
 
 window.updateAnuncioScaleLabel = (value) => {
@@ -742,31 +1880,52 @@ function cargarAnunciosActivos() {
 
         Object.entries(data).forEach(([id, anuncio]) => {
             const tipo = anuncio?.tipo || "mensaje";
-            const texto = anuncio?.texto || "(sin texto)";
+            const texto = escapeHtmlPanel(anuncio?.texto || "(sin texto)");
             const duracion = anuncio?.duracion || 10;
             const mediaInfo = anuncio?.media ? "Con imagen/video" : "Sin media";
+            const enPantalla = anuncio?.enPantalla !== false;
+            const badge = enPantalla
+                ? `<span class="anuncio-badge-pausa on">EN ROTACIÓN</span>`
+                : `<span class="anuncio-badge-pausa off">PAUSADO</span>`;
+            const pauseLabel = enPantalla ? "⏸ Pausar" : "▶ En pantalla";
 
             html += `
             <div class="anuncio-item">
-                <h4>${tipo.toUpperCase()}</h4>
+                <h4>${tipo.toUpperCase()} ${badge}</h4>
                 <div>${texto}</div>
-                <div class="anuncio-meta">Duracion: ${duracion}s · ${mediaInfo}</div>
-                <button onclick="eliminarAnuncio('${id}')" style="background:#dc2626;">🗑 Eliminar</button>
+                <div class="anuncio-meta">Duración: ${duracion}s · ${mediaInfo}</div>
+                <div class="anuncio-actions">
+                    <button type="button" data-anuncio-action="edit" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:#2563eb;">✏️ Editar</button>
+                    <button type="button" data-anuncio-action="toggle" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:${enPantalla ? "#ca8a04" : "#15803d"};">${pauseLabel}</button>
+                    <button type="button" data-anuncio-action="delete" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:#dc2626;">🗑 Eliminar</button>
+                </div>
             </div>
             `;
         });
 
         if(!html) {
-            html = `<div class="anuncio-item"><div>No hay anuncios activos.</div></div>`;
+            html = `<div class="anuncio-item"><div>No hay anuncios guardados.</div></div>`;
         }
 
         contenedor.innerHTML = html;
     });
 }
 
+document.getElementById("anunciosActivos")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-anuncio-action]");
+    if(!btn) return;
+    const action = btn.getAttribute("data-anuncio-action");
+    const id = btn.getAttribute("data-anuncio-id");
+    if(!id) return;
+    if(action === "edit") editarAnuncio(id);
+    if(action === "toggle") toggleAnuncioEnPantalla(id);
+    if(action === "delete") eliminarAnuncio(id);
+});
+
 window.eliminarAnuncio = (id) => {
-    if(confirm("¿Eliminar este anuncio activo?")) {
+    if(confirm("¿Eliminar este anuncio?")) {
         set(ref(db, "anuncios/" + id), null);
+        if(String(editingAnuncioKey) === String(id)) limpiarEdicionAnuncio();
     }
 };
 
@@ -794,25 +1953,77 @@ window.guardarAnuncio = async () => {
     const tipo = document.getElementById("tipoAnuncio").value;
     const duracion = parseInt(document.getElementById("duracionAnuncio").value) || 10;
 
+    if(tipo === "asignacion") {
+        alert("El tipo «Asignación» no guarda anuncios. Elige Mensaje, Cumpleaños o Canvas Animado.");
+        return;
+    }
+
     if(tipo === "mensaje") {
         const texto = document.getElementById("textoAnuncio").value;
         const fileAnuncio = document.getElementById("fileAnuncio").files[0];
+        const key = editingAnuncioKey;
+
+        let existing = null;
+        if(key) {
+            existing = await leerUnaVez(ref(db, "anuncios/" + key));
+            if(!existing) {
+                alert("Este anuncio ya no existe.");
+                limpiarEdicionAnuncio();
+                return;
+            }
+        }
 
         let media = "";
         if(fileAnuncio) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                media = e.target.result;
-                const anuncio = { id: Date.now(), tipo, texto, media, duracion };
-                set(ref(db,"anuncios/" + anuncio.id), anuncio);
-                alert("✅ Anuncio guardado");
-            };
-            reader.readAsDataURL(fileAnuncio);
-        } else {
-            const anuncio = { id: Date.now(), tipo, texto, media: "", duracion };
-            set(ref(db,"anuncios/" + anuncio.id), anuncio);
-            alert("✅ Anuncio guardado");
+            media = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result || "");
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(fileAnuncio);
+            });
+        } else if(key) {
+            media = existing.media || "";
         }
+
+        const msgMediaFit = await ensureMediaFitsRtdb(media, "");
+        if(msgMediaFit.error) {
+            alert(msgMediaFit.error);
+            return;
+        }
+        media = msgMediaFit.media;
+        const msgMediaTypeEff = msgMediaFit.mediaType;
+
+        try {
+            if(key) {
+                await set(ref(db, "anuncios/" + key), {
+                    id: (existing.id ?? parseInt(key, 10)) || key,
+                    tipo: "mensaje",
+                    texto,
+                    media,
+                    mediaType: msgMediaTypeEff || existing?.mediaType || "",
+                    duracion,
+                    enPantalla: existing.enPantalla !== false
+                });
+                alert("✅ Anuncio actualizado");
+            } else {
+                const id = Date.now();
+                await set(ref(db, "anuncios/" + id), {
+                    id,
+                    tipo: "mensaje",
+                    texto,
+                    media,
+                    mediaType: msgMediaTypeEff || "",
+                    duracion,
+                    enPantalla: true
+                });
+                alert("✅ Anuncio guardado");
+            }
+        } catch(err) {
+            console.error(err);
+            alert("No se pudo guardar en Firebase. Si subiste un archivo muy grande, prueba una imagen más pequeña o un video más corto. Detalle: " + (err?.message || err));
+            return;
+        }
+        limpiarEdicionAnuncio();
     } else if(tipo === "cumple") {
         const cumpleData = await leerUnaVez(cumpleanosRef);
         const cumpleList = Object.values(cumpleData || {});
@@ -854,11 +2065,139 @@ window.guardarAnuncio = async () => {
             texto: "Cumpleaños del mes",
             cumpleaneros,
             duracion,
-            origen: "cumpleanos"
+            origen: "cumpleanos",
+            enPantalla: true
         };
         set(ref(db, "anuncios/" + anuncioId), anuncio);
 
         alert(`✅ Publicado panel de ${cumpleMes.length} cumpleaneros del mes`);
+    } else if(tipo === "canvas") {
+        let titulo = (document.getElementById("canvasTitulo").value || "").trim();
+        let subtitulo = (document.getElementById("canvasSubtitulo").value || "").trim();
+        const animacion = document.getElementById("canvasAnimacion").value || "fade-up";
+        const textColor = document.getElementById("canvasTextColor").value || "#ffffff";
+        const bgColor = document.getElementById("canvasBgColor").value || "#0f172a";
+        const duracionTexto = Math.max(1, Math.min(12, parseInt(document.getElementById("canvasDuracionTexto").value) || 3));
+        const fontFamily = document.getElementById("canvasFontFamily").value || "Inter, Arial, sans-serif";
+        const textPosition = document.getElementById("canvasTextPosition").value || "center";
+        const overlayOpacity = Math.max(0, Math.min(80, parseInt(document.getElementById("canvasOverlayOpacity").value) || 35));
+        const mediaFile = document.getElementById("canvasMedia").files[0];
+        const key = editingAnuncioKey;
+
+        let existing = null;
+        if(key) {
+            existing = await leerUnaVez(ref(db, "anuncios/" + key));
+            if(!existing) {
+                alert("Este anuncio ya no existe.");
+                limpiarEdicionAnuncio();
+                return;
+            }
+        }
+
+        let media = "";
+        let mediaType = "";
+        if(mediaFile) {
+            try {
+                media = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result || "");
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsDataURL(mediaFile);
+                });
+            } catch(e) {
+                console.error(e);
+                alert("No se pudo leer el archivo de imagen/video. Prueba con otro archivo.");
+                return;
+            }
+            mediaType = mediaFile.type || "";
+        } else if(key && existing?.media) {
+            media = existing.media;
+            mediaType = existing.mediaType || "";
+        } else if(canvasMediaPreviewData) {
+            media = canvasMediaPreviewData;
+            mediaType = canvasMediaPreviewType || "";
+        }
+
+        const embedRaw = (document.getElementById("canvasEmbedUrl")?.value || "").trim();
+        const embedFullscreen = document.getElementById("canvasEmbedFullscreen")?.checked === true;
+        const embedNorm = embedRaw ? sanitizeBoardEmbedUrl(embedRaw) : null;
+        if(embedRaw && !embedNorm) {
+            alert("La URL no es válida. Debe ser http:// o https:// (por ejemplo https://tu-sitio.com/ruta).");
+            return;
+        }
+        if(embedNorm) {
+            media = "";
+            mediaType = "";
+        } else {
+            const canvasMediaFit = await ensureMediaFitsRtdb(media, mediaType);
+            if(canvasMediaFit.error) {
+                alert(canvasMediaFit.error);
+                return;
+            }
+            media = canvasMediaFit.media;
+            mediaType = canvasMediaFit.mediaType || mediaType;
+        }
+
+        if(!titulo && !subtitulo && !media && !embedNorm) {
+            titulo = "Aviso";
+        }
+
+        ensureCanvasLayout();
+        syncCanvasTitleInputsToLayout();
+        const titleLayer = canvasLayout.texts.find((t) => t.id === "title");
+        const subLayer = canvasLayout.texts.find((t) => t.id === "subtitle");
+        const textPositionOut = (titleLayer && ["left", "center", "right"].includes(titleLayer.align))
+            ? titleLayer.align
+            : textPosition;
+        const layoutSnapshot = JSON.parse(JSON.stringify(canvasLayout));
+        const bg = canvasLayout.bg && typeof canvasLayout.bg === "object"
+            ? canvasLayout.bg
+            : { x: 50, y: 50, w: 100, h: 100 };
+        layoutSnapshot.bg = {
+            x: Number(bg.x) || 50,
+            y: Number(bg.y) || 50,
+            w: Number(bg.w) || 100,
+            h: Number(bg.h) || 100
+        };
+        const mediaFrame = { ...layoutSnapshot.bg };
+
+        const idNum = key ? ((existing.id ?? parseInt(key, 10)) || key) : Date.now();
+        const fbKey = key || String(idNum);
+
+        try {
+            await set(ref(db, "anuncios/" + fbKey), {
+                id: idNum,
+                tipo: "canvas",
+                texto: titulo || subtitulo || (media ? "Anuncio visual" : (embedNorm ? "Video" : "Canvas")),
+                media,
+                mediaType,
+                duracion,
+                canvas: {
+                    titulo,
+                    subtitulo,
+                    animacion,
+                    textColor,
+                    bgColor,
+                    duracionTexto,
+                    fontFamily,
+                    textPosition: textPositionOut,
+                    overlayOpacity,
+                    layout: layoutSnapshot,
+                    mediaFrame,
+                    embedUrl: embedNorm || "",
+                    embedFullscreen: Boolean(embedNorm && embedFullscreen)
+                },
+                enPantalla: key ? (existing.enPantalla !== false) : true
+            });
+        } catch(err) {
+            console.error(err);
+            alert("No se pudo guardar el Canvas en Firebase (límite ~10 MB por campo). Las imágenes grandes se comprimen solas al guardar; si es video, debe ser muy corto o usa imagen/GIF. Detalle: " + (err?.message || err));
+            return;
+        }
+        alert(key ? "✅ Canvas actualizado" : "✅ Canvas guardado");
+        limpiarEdicionAnuncio();
+    } else {
+        alert("Tipo de anuncio no reconocido. Elige Mensaje, Cumpleaños o Canvas Animado.");
     }
 };
 
@@ -1207,7 +2546,7 @@ function renderFlightsPanel(data){
         div.className="card";
 
         div.innerHTML=`
-<p class="api-search-hint">Llegada: busca el vuelo que <strong>aterriza</strong> (ej. 627). Salida: el que <strong>sale</strong> (ej. 1528).</p>
+<p class="api-search-hint">Llegada: busca el vuelo que <strong>aterriza</strong> aquí (ej. 627). La API trae hora <strong>real o estimada en POP</strong> cuando existe; si no, programada. Salida: el que <strong>sale</strong> (ej. 1528).</p>
 <div class="search-box">
     <input placeholder="🔽 Llegadas API — ej. 627" oninput="buscarVueloLlegada(this, ${i})">
     <div id="resultsLlegada${i}" class="results" onmousedown="event.preventDefault()"></div>
@@ -1242,8 +2581,8 @@ function renderFlightsPanel(data){
     <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
 </select>
 
-<label>Llegada POP (HH:MM):</label>
-<input type="time" value="${r.llegada || ''}" onchange="updateField(${i},'llegada',this.value)">
+<label>Llegada programada POP (HH:MM):</label>
+<input type="time" value="${(r.llegadaProgramada || r.llegada || '').replace(/"/g, '&quot;')}" onchange="updateField(${i},'llegada',this.value)">
 
 <label>Salida origen → POP (en ruta, HH:MM):</label>
 <input type="time" value="${r.salidaOrigen || ''}" onchange="updateField(${i},'salidaOrigen',this.value)">
@@ -1291,6 +2630,9 @@ window.updateField = (i,f,v) => {
     saveState(currentData);
     let a = getArray(currentData);
     a[i][f] = v;
+    if(f === "llegada") {
+        a[i].llegadaProgramada = v;
+    }
     saveFlightsForSelectedDate(toObj(a));
 };
 
@@ -1307,7 +2649,20 @@ window.setStatus = (i,s) => {
 window.addFlight = (i=null) => {
     saveState(currentData);
     let a = getArray(currentData);
-    let n = {vuelo:"",vueloLlegada:"",salidaOrigen:"",destino:"",llegada:"",salida:"",gate:"",estado:"ON-TIME",duracion:10};
+    let n = {
+        vuelo:"",
+        vueloLlegada:"",
+        salidaOrigen:"",
+        destino:"",
+        llegada:"",
+        llegadaProgramada:"",
+        llegadaEstimada:"",
+        llegadaReal:"",
+        salida:"",
+        gate:"",
+        estado:"ON-TIME",
+        duracion:10
+    };
     i==null ? a.push(n) : a.splice(i+1,0,n);
     saveFlightsForSelectedDate(toObj(a));
 };
@@ -1414,11 +2769,14 @@ window.buscarVueloLlegada = async (input, index) => {
         resultsDiv.innerHTML = filtrados
             .map((f) => {
                 const hora = convertirHora24(f.llegada || "");
+                const lp = convertirHora24(f.llegadaProgramada || "");
+                const le = convertirHora24(f.llegadaEstimada || "");
+                const lr = convertirHora24(f.llegadaReal || "");
                 const so = convertirHora24(f.salidaOrigen || "");
                 const orig = f.origen || f.destino || "";
                 const ruta = f.enRuta ? " · EN RUTA" : "";
                 const txtSo = so ? ` · salió ${so}${ruta}` : "";
-                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-so="${escapeDataAttr(so)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
             })
             .join("");
     } catch (e) {
@@ -1459,8 +2817,14 @@ window.seleccionarLlegadaApi = (index, el) => {
     if (!arr[index]) return;
     const v = el.getAttribute("data-v") || "";
     const l = el.getAttribute("data-l") || "";
+    const lp = el.getAttribute("data-lp") || "";
+    const le = el.getAttribute("data-le") || "";
+    const lr = el.getAttribute("data-lr") || "";
     const so = el.getAttribute("data-so") || "";
     arr[index].llegada = l;
+    arr[index].llegadaProgramada = lp || l;
+    arr[index].llegadaEstimada = le || "";
+    arr[index].llegadaReal = lr || "";
     arr[index].vueloLlegada = v;
     arr[index].salidaOrigen = so;
     arr[index].manual = true;
@@ -1523,6 +2887,7 @@ cargarAnunciosActivos();
 window.onload = () => {
     showTab("flightsTab");
     cambiarTipoAnuncio();
+    renderCanvasPreview();
 };
 
 window.toggleFullScreen = () => {

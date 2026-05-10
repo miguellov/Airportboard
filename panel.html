@@ -287,7 +287,7 @@
     z-index: 1;
 }
 .card .search-box:focus-within{
-    z-index: 100;
+    z-index: 200001;
 }
 
 .search-box input{
@@ -328,6 +328,40 @@
     padding: 8px;
     border-radius: 6px;
     box-sizing: border-box;
+}
+
+.fld-vuelo-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+    width:100%;
+}
+.fld-vuelo-row .fld-vuelo{
+    flex:1 1 160px;
+    min-width:120px;
+    width:auto;
+}
+.btn-buscar-vuelo{
+    flex:0 0 auto;
+    padding:8px 10px;
+    font-size:12px;
+    white-space:nowrap;
+    background:#1e3a5f;
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+.btn-buscar-vuelo:disabled{
+    opacity:0.65;
+    cursor:not-allowed;
+}
+.buscar-vuelo-msg{
+    display:block;
+    font-size:12px;
+    min-height:1.2em;
+    margin:4px 0 0;
 }
 
 .results{
@@ -392,6 +426,79 @@ h2{ text-align:center; }
     flex-wrap:wrap;
     gap:10px;
     justify-content:center;
+    align-items:center;
+}
+
+#flightsTab > .top-buttons{
+    position:sticky;
+    top:0;
+    z-index:100001;
+    background:var(--bg);
+    padding:10px 4px 12px;
+    margin:0 0 6px;
+    border-bottom:1px solid #334155;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+}
+
+.flight-refresh-status{
+    flex:0 1 auto;
+    text-align:center;
+    font-size:12px;
+    min-height:1.2em;
+    color:#7dd3fc;
+    line-height:1.35;
+    max-width:100%;
+}
+
+.flight-arr-primary-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:#94a3b8;
+    margin-top:8px;
+    font-weight:600;
+}
+.flight-time-primary{
+    font-size:1.35rem;
+    font-weight:700;
+    color:#ffffff !important;
+    width:100%;
+    box-sizing:border-box;
+    margin-top:4px;
+}
+body.light .flight-time-primary{
+    color:#0f172a !important;
+}
+body.airport .flight-time-primary{
+    color:#00ff9c !important;
+}
+.flight-arr-secondary-label{
+    font-size:11px;
+    color:#64748b;
+    margin-top:10px;
+}
+.flight-time-secondary{
+    font-size:0.85rem;
+    color:#94a3b8 !important;
+    width:100%;
+    box-sizing:border-box;
+    margin-top:4px;
+}
+body.light .flight-time-secondary{
+    color:#64748b !important;
+}
+.flight-retraso{
+    margin-top:8px;
+    font-size:13px;
+    font-weight:600;
+    min-height:1.2em;
+}
+.flight-retraso-late{ color:#f87171; }
+.flight-retraso-early{ color:#4ade80; }
+
+#btnManualFlightRefresh:disabled{
+    opacity:0.65;
+    cursor:not-allowed;
 }
 
 button{
@@ -610,6 +717,60 @@ input, select{
         padding: 6px;
     }
 }
+
+.board-preview-card {
+    background: #020617;
+    border: 1px solid #0ea5e9;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 0 auto 16px;
+    max-width: 1200px;
+    box-sizing: border-box;
+}
+
+.board-preview-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #bae6fd;
+}
+
+.board-preview-header button,
+.board-preview-header a {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #1e3a5f;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.board-preview-header a:hover {
+    background: #00eaff;
+    color: #000;
+}
+
+.board-preview-frame-wrap {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #334155;
+    background: #000;
+    height: min(52vh, 520px);
+    min-height: 280px;
+}
+
+.board-preview-frame-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
 </style>
 </head>
 
@@ -623,6 +784,38 @@ input, select{
     <button onclick="showTab('anunciosTab')">📢 Anuncios</button>
     <button onclick="showTab('configTab')">⚙️ Config</button>
 </div>
+
+<div class="board-preview-card">
+    <div class="board-preview-header">
+        <strong>🖥️ Vista previa del tablero</strong>
+        <button type="button" onclick="reloadBoardPreview()">↻ Recargar</button>
+        <a id="boardPreviewOpen" href="index.html" target="_blank" rel="noopener">Abrir en pestaña</a>
+    </div>
+    <div class="board-preview-frame-wrap">
+        <iframe id="boardPreviewFrame" title="Vista previa Airport Board"></iframe>
+    </div>
+    <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;line-height:1.4;">
+        Mismo contenido que <code style="color:#7dd3fc;">index.html</code>. Con el servidor en marcha usa
+        <code style="color:#7dd3fc;">http://localhost:4000/panel.html</code> para que el marco cargue bien.
+    </p>
+</div>
+<script>
+function boardPreviewUrl() {
+    if (location.protocol === "file:") {
+        return new URL("index.html", location.href).href;
+    }
+    var base = location.origin + location.pathname.replace(/[^/]*$/, "");
+    return new URL("index.html", base || location.origin + "/").href;
+}
+function reloadBoardPreview() {
+    var f = document.getElementById("boardPreviewFrame");
+    var a = document.getElementById("boardPreviewOpen");
+    var u = boardPreviewUrl();
+    if (a) a.href = u;
+    if (f) f.src = u;
+}
+document.addEventListener("DOMContentLoaded", reloadBoardPreview);
+</script>
 
 <!-- ========================= -->
 <!-- ✈️ TAB VUELOS -->
@@ -647,10 +840,12 @@ input, select{
         <button onclick="undo()">⏪ Undo</button>
         <button onclick="redo()">⏩ Redo</button>
         <button onclick="changeDateFlights()">📅 Cambiar Fecha</button>
+        <button type="button" id="btnManualFlightRefresh" onclick="manualFlightRefresh()">🔄 Refresh Manual</button>
         <button onclick="setTheme('dark')">🌙</button>
         <button onclick="setTheme('light')">🌞</button>
         <button onclick="setTheme('airport')">✈️</button>
         <button onclick="toggleFullScreen()">🖥️ Full</button>
+        <span id="flightRefreshStatus" class="flight-refresh-status" aria-live="polite"></span>
     </div>
 
     <br>
@@ -2475,7 +2670,14 @@ function ensurePresetDatalist() {
     document.body.appendChild(dl);
 }
 
+function clearFlightCardVueloSelected(index) {
+    const card = document.getElementById("flightCard" + index);
+    if (card) card.removeAttribute("data-vuelo-selected");
+}
+window.clearFlightCardVueloSelected = clearFlightCardVueloSelected;
+
 function aplicarPresetEnFila(index, p) {
+    clearFlightCardVueloSelected(index);
     saveState(currentData);
     const a = getArray(currentData);
     if (!a[index]) return;
@@ -2496,6 +2698,7 @@ window.aplicarPresetRuta = (index, sel) => {
 
 /** Si escribes el vuelo exacto de una ruta (o lo eliges del datalist), rellena destino. */
 window.onVueloPresetMatch = (index, input) => {
+    clearFlightCardVueloSelected(index);
     const v = input.value.trim();
     const match = PRESET_RUTAS.find((p) => p.vuelo === v);
     if (match) aplicarPresetEnFila(index, match);
@@ -2529,6 +2732,18 @@ function saveFlightsForSelectedDate(data){
     set(ref(db, "flights"), obj);
 }
 
+function formatRetrasoHtml(r) {
+    const n = r.retraso;
+    if (n === null || n === undefined || n === "") return "";
+    const v = Number(n);
+    if (!Number.isFinite(v) || v === 0) return "";
+    if (v > 0) {
+        return `<div class="flight-retraso flight-retraso-late" aria-live="polite">+${v} min RETRASADO</div>`;
+    }
+    const abs = Math.abs(v);
+    return `<div class="flight-retraso flight-retraso-early" aria-live="polite">-${abs} min ADELANTADO</div>`;
+}
+
 function renderFlightsPanel(data){
     const panel=document.getElementById("panel");
     panel.innerHTML="";
@@ -2544,6 +2759,7 @@ function renderFlightsPanel(data){
     getArray(data).forEach((r,i) => {
         let div=document.createElement("div");
         div.className="card";
+        div.id = "flightCard" + i;
 
         div.innerHTML=`
 <p class="api-search-hint">Llegada: busca el vuelo que <strong>aterriza</strong> aquí (ej. 627). La API trae hora <strong>real o estimada en POP</strong> cuando existe; si no, programada. Salida: el que <strong>sale</strong> (ej. 1528).</p>
@@ -2563,7 +2779,11 @@ function renderFlightsPanel(data){
 </select>
 
 <label class="fld-label">Vuelo</label>
-<input class="fld-vuelo" list="presetVuelosLista" value="${(r.vuelo || "").replace(/"/g, "&quot;")}" placeholder="Ej. B6 627/1528" onchange="onVueloPresetMatch(${i}, this)">
+<div class="fld-vuelo-row">
+<input id="fldVuelo${i}" class="fld-vuelo" list="presetVuelosLista" value="${(r.vuelo || "").replace(/"/g, "&quot;")}" placeholder="Ej. B6 627/1528" onchange="onVueloPresetMatch(${i}, this)" oninput="window.clearFlightCardVueloSelected(${i})">
+<button type="button" class="btn-buscar-vuelo" id="btnBuscarDatosVuelo${i}" onclick="buscarDatosVueloTarjeta(${i})">🔍 Buscar datos del vuelo</button>
+</div>
+<span id="buscarVueloDatosMsg${i}" class="buscar-vuelo-msg" aria-live="polite"></span>
 
 <label class="fld-label">Destino</label>
 <input class="fld-destino" value="${(r.destino || "").replace(/"/g, "&quot;")}" placeholder="Ej. JFK-JFK (New York)" onchange="updateField(${i},'destino',this.value)">
@@ -2581,16 +2801,18 @@ function renderFlightsPanel(data){
     <option value="A9" ${r.gate==="A9"?"selected":""}>A9</option>
 </select>
 
-<label>Llegada programada POP (HH:MM):</label>
-<input type="time" value="${(r.llegadaProgramada || r.llegada || '').replace(/"/g, '&quot;')}" onchange="updateField(${i},'llegada',this.value)">
+<div class="flight-arr-block">
+<div class="flight-arr-primary-label">Llegada actual POP (HH:MM)</div>
+<input class="flight-time-primary" type="time" value="${(r.llegada || '').replace(/"/g, '&quot;')}" onchange="updateField(${i},'llegada',this.value)">
+<div class="flight-arr-secondary-label">Llegada programada POP (HH:MM)</div>
+<input class="flight-time-secondary" type="time" value="${(r.llegadaProgramada || '').replace(/"/g, '&quot;')}" onchange="updateField(${i},'llegadaProgramada',this.value)">
+${formatRetrasoHtml(r)}
+</div>
 
-<label>Salida origen → POP (en ruta, HH:MM):</label>
-<input type="time" value="${r.salidaOrigen || ''}" onchange="updateField(${i},'salidaOrigen',this.value)">
-
-<label>Salida vuelo (HH:MM):</label>
+<label class="fld-label">Salida vuelo (HH:MM)</label>
 <input type="time" value="${r.salida || ''}" onchange="updateField(${i},'salida',this.value)">
 
-<label>Duración (seg):</label>
+<label class="fld-label">Duración (seg)</label>
 <input type="number" value="${r.duracion || 10}" min="1" max="60" onchange="updateField(${i},'duracion',this.value)">
 
 <div class="btn-row">
@@ -2630,9 +2852,6 @@ window.updateField = (i,f,v) => {
     saveState(currentData);
     let a = getArray(currentData);
     a[i][f] = v;
-    if(f === "llegada") {
-        a[i].llegadaProgramada = v;
-    }
     saveFlightsForSelectedDate(toObj(a));
 };
 
@@ -2661,7 +2880,8 @@ window.addFlight = (i=null) => {
         salida:"",
         gate:"",
         estado:"ON-TIME",
-        duracion:10
+        duracion:10,
+        retraso:null
     };
     i==null ? a.push(n) : a.splice(i+1,0,n);
     saveFlightsForSelectedDate(toObj(a));
@@ -2697,6 +2917,59 @@ window.changeDateFlights = () => {
     selectedDate = dateStr;
     set(ref(db, "config/selectedDate"), dateStr);
     alert("📅 Fecha cambiada a: " + dateStr + " (cargando vuelos de esa fecha)");
+};
+
+let flightRefreshToastTimer = null;
+window.manualFlightRefresh = async () => {
+    const btn = document.getElementById("btnManualFlightRefresh");
+    const statusEl = document.getElementById("flightRefreshStatus");
+    if (!btn || !statusEl) return;
+    if (flightRefreshToastTimer) {
+        clearTimeout(flightRefreshToastTimer);
+        flightRefreshToastTimer = null;
+    }
+    btn.disabled = true;
+    statusEl.style.color = "#7dd3fc";
+    statusEl.textContent = "Actualizando...";
+    const url =
+        "http://localhost:4000/api/flights/refresh?secret=POP_sync_2026_airport";
+    const finish = () => {
+        btn.disabled = false;
+        flightRefreshToastTimer = setTimeout(() => {
+            statusEl.textContent = "";
+            statusEl.style.color = "";
+            flightRefreshToastTimer = null;
+        }, 5000);
+    };
+    try {
+        const res = await fetch(url, { method: "GET" });
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (_) {}
+        if (!res.ok) {
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "❌ Error al actualizar";
+        } else if (data.skipped) {
+            statusEl.style.color = "#fbbf24";
+            statusEl.textContent =
+                "Omitido: ya hay una sincronización en curso.";
+        } else if (data.ok === false) {
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "❌ Error al actualizar";
+        } else if (data.changed && data.updated > 0) {
+            statusEl.style.color = "#4ade80";
+            statusEl.textContent = `✅ ${data.updated} cambios actualizados`;
+        } else {
+            statusEl.style.color = "#4ade80";
+            statusEl.textContent = "✅ Todo sincronizado";
+        }
+    } catch (e) {
+        statusEl.style.color = "#f87171";
+        statusEl.textContent = "❌ Error al actualizar";
+    } finally {
+        finish();
+    }
 };
 
 /* TEMA */
@@ -2743,6 +3016,327 @@ function convertirHora24(horaCadena) {
 }
 
 const FLIGHTS_API_URL = "https://airportboard.onrender.com/flights";
+const FLIGHTS_REFRESH_URL =
+    "http://localhost:4000/api/flights/refresh?secret=POP_sync_2026_airport";
+const FLIGHTS_LOCAL_URL = "http://localhost:4000/flights";
+
+function extractVueloSearchNeedles(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return [];
+    const out = new Set();
+    out.add(s.toLowerCase());
+    const compactNoSpace = s.replace(/\s+/g, "");
+    if (compactNoSpace) out.add(compactNoSpace.toLowerCase());
+    const upperCompact = s.toUpperCase().replace(/\s+/g, "");
+    if (upperCompact) out.add(upperCompact.toLowerCase());
+    s.split("/").forEach((p) => {
+        const c = p.replace(/\s+/g, "").toLowerCase();
+        if (c) out.add(c);
+        const d = p.replace(/\D/g, "");
+        if (d.length >= 2) out.add(d);
+    });
+    (s.match(/\d+/g) || []).forEach((d) => out.add(d));
+    return [...out];
+}
+
+/** Variantes de prefijo aerolínea (API puede usar ICAO distinto al IATA del panel). */
+function airlinePrefixVariants(prefix) {
+    const p = String(prefix || "").toUpperCase().replace(/\s+/g, "");
+    const set = new Set([p]);
+    if (p === "B6") set.add("JBU");
+    if (p === "JBU") set.add("B6");
+    if (p === "WS" || p === "WJA") {
+        set.add("WS");
+        set.add("WJA");
+    }
+    return [...set];
+}
+
+function setFlightCardVueloSelected(index, cleanCode) {
+    const card = document.getElementById("flightCard" + index);
+    if (!card) return;
+    const c = String(cleanCode || "").trim();
+    if (c) card.setAttribute("data-vuelo-selected", c);
+    else card.removeAttribute("data-vuelo-selected");
+}
+
+function getFlightCardVueloQuery(index, inputEl) {
+    const card = document.getElementById("flightCard" + index);
+    const fromAttr =
+        card && card.getAttribute("data-vuelo-selected")
+            ? String(card.getAttribute("data-vuelo-selected")).trim()
+            : "";
+    if (fromAttr) return fromAttr;
+    return inputEl && inputEl.value ? String(inputEl.value).trim() : "";
+}
+
+/**
+ * Un solo ident compacto (ej. JBU627 → candidatos B6627, JBU627…).
+ * No usar si el texto es formato "B6 627/1528" (lo cubre parseDualFlightIdsFromField).
+ */
+function parseCompactFlightIdent(raw) {
+    const s0 = String(raw || "").trim();
+    if (!s0 || s0.includes("/")) {
+        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
+    }
+    const s = normFlightIdent(s0);
+    if (!s) {
+        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
+    }
+    const m = s.match(/^([A-Z]+)(\d+)$/);
+    if (!m) {
+        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
+    }
+    const prefs = airlinePrefixVariants(m[1]);
+    const num = m[2];
+    return {
+        candidates: prefs.map((pr) => `${pr}${num}`),
+        fallbackNeedles: extractVueloSearchNeedles(s0)
+    };
+}
+
+/**
+ * "B6 627/1528" → llegada B6627…, salida B61528… (más variantes de prefijo).
+ * Primer número = llegada a POP; segundo = salida de POP.
+ */
+function parseDualFlightIdsFromField(raw) {
+    const s = String(raw || "").trim();
+    if (!s) {
+        return { arrCandidates: [], depCandidates: [], fallbackNeedles: [] };
+    }
+    const slashIdx = s.indexOf("/");
+    if (slashIdx === -1) {
+        return {
+            arrCandidates: [],
+            depCandidates: [],
+            fallbackNeedles: extractVueloSearchNeedles(s)
+        };
+    }
+    const left = s.slice(0, slashIdx).trim();
+    const right = s.slice(slashIdx + 1).trim();
+    const lm = left.match(/^(.+)\s+(\d+)\s*$/);
+    const rm = right.match(/^\s*(\d+)\s*$/);
+    if (!lm || !rm) {
+        return {
+            arrCandidates: [],
+            depCandidates: [],
+            fallbackNeedles: extractVueloSearchNeedles(s)
+        };
+    }
+    const prefix = lm[1].replace(/\s+/g, "").toUpperCase();
+    const nArr = lm[2];
+    const nDep = rm[1];
+    const prefs = airlinePrefixVariants(prefix);
+    return {
+        arrCandidates: prefs.map((pr) => `${pr}${nArr}`),
+        depCandidates: prefs.map((pr) => `${pr}${nDep}`),
+        fallbackNeedles: extractVueloSearchNeedles(s)
+    };
+}
+
+function normFlightIdent(x) {
+    return String(x || "")
+        .toUpperCase()
+        .replace(/\s+/g, "");
+}
+
+function flightRowMatchesApiIdent(apiVuelo, candidates) {
+    const fn = normFlightIdent(apiVuelo);
+    if (!fn) return false;
+    return (candidates || []).some((c) => {
+        const cn = normFlightIdent(c);
+        if (!cn) return false;
+        if (fn.includes(cn) || cn.includes(fn)) return true;
+        const dn = (fn.match(/\d+$/) || [""])[0];
+        const dt = (cn.match(/\d+$/) || [""])[0];
+        if (dn && dt && dn === dt) {
+            const ln = fn.slice(0, fn.length - dn.length);
+            const lt = cn.slice(0, cn.length - dt.length);
+            if (!ln || !lt) return true;
+            if (ln.includes(lt) || lt.includes(ln)) return true;
+        }
+        return false;
+    });
+}
+
+function findArrivalForVueloField(llegadas, raw) {
+    const list = llegadas || [];
+    const dual = parseDualFlightIdsFromField(raw);
+    if (dual.arrCandidates.length) {
+        const hit = list.find((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
+        );
+        if (hit) return hit;
+    }
+    const one = parseCompactFlightIdent(raw);
+    if (one.candidates.length) {
+        const hit = list.find((f) =>
+            flightRowMatchesApiIdent(f.vuelo, one.candidates)
+        );
+        if (hit) return hit;
+    }
+    const fallbackNeedles =
+        dual.fallbackNeedles.length > 0
+            ? dual.fallbackNeedles
+            : one.fallbackNeedles;
+    if (!fallbackNeedles.length) return null;
+    return (
+        list.find((f) => {
+            const fv = String(f.vuelo || "").toLowerCase();
+            return fallbackNeedles.some((n) => n && fv.includes(n));
+        }) || null
+    );
+}
+
+function findDepartureForVueloField(salidas, raw) {
+    const list = salidas || [];
+    const dual = parseDualFlightIdsFromField(raw);
+    if (dual.depCandidates.length) {
+        const hit = list.find((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
+        );
+        if (hit) return hit;
+    }
+    const one = parseCompactFlightIdent(raw);
+    if (one.candidates.length) {
+        const hit = list.find((f) =>
+            flightRowMatchesApiIdent(f.vuelo, one.candidates)
+        );
+        if (hit) return hit;
+    }
+    const fallbackNeedles =
+        dual.fallbackNeedles.length > 0
+            ? dual.fallbackNeedles
+            : one.fallbackNeedles;
+    if (!fallbackNeedles.length) return null;
+    return (
+        list.find((f) => {
+            const fv = String(f.vuelo || "").toLowerCase();
+            return fallbackNeedles.some((n) => n && fv.includes(n));
+        }) || null
+    );
+}
+
+async function fetchFlightsJsonAfterRefresh() {
+    try {
+        const res = await fetch(FLIGHTS_LOCAL_URL);
+        if (res.ok) {
+            const j = await res.json();
+            if (
+                j &&
+                (Array.isArray(j.llegadas) || Array.isArray(j.salidas))
+            ) {
+                return j;
+            }
+        }
+    } catch (e) {}
+    const res = await fetch(FLIGHTS_API_URL);
+    if (!res.ok) throw new Error("flights fetch failed");
+    return res.json();
+}
+
+function retrasoMinutosDesdeLlegadaYProgramada(l, lp) {
+    if (!l || !lp) return null;
+    const a = convertirHora24(l).split(":");
+    const b = convertirHora24(lp).split(":");
+    if (a.length < 2 || b.length < 2) return null;
+    const ah = parseInt(a[0], 10);
+    const am = parseInt(a[1], 10);
+    const bh = parseInt(b[0], 10);
+    const bm = parseInt(b[1], 10);
+    if ([ah, am, bh, bm].some((x) => Number.isNaN(x))) return null;
+    return ah * 60 + am - (bh * 60 + bm);
+}
+
+window.buscarDatosVueloTarjeta = async (index) => {
+    const btn = document.getElementById("btnBuscarDatosVuelo" + index);
+    const msg = document.getElementById("buscarVueloDatosMsg" + index);
+    const input = document.getElementById("fldVuelo" + index);
+    if (!btn || !input) return;
+    const raw = getFlightCardVueloQuery(index, input);
+    const labelIdle = "🔍 Buscar datos del vuelo";
+    if (!raw) {
+        if (msg) {
+            msg.textContent = "Indica un número de vuelo";
+            msg.style.color = "#fbbf24";
+            setTimeout(() => {
+                msg.textContent = "";
+                msg.style.color = "";
+            }, 3000);
+        }
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Buscando...";
+    if (msg) {
+        msg.textContent = "";
+        msg.style.color = "";
+    }
+    try {
+        await fetch(FLIGHTS_REFRESH_URL, { method: "GET" });
+        const j = await fetchFlightsJsonAfterRefresh();
+        const arr = findArrivalForVueloField(j.llegadas, raw);
+        const dep = findDepartureForVueloField(j.salidas, raw);
+        if (!arr && !dep) {
+            if (msg) {
+                msg.textContent = "Sin datos disponibles";
+                msg.style.color = "#fb923c";
+                setTimeout(() => {
+                    msg.textContent = "";
+                    msg.style.color = "";
+                }, 3000);
+            }
+            return;
+        }
+        saveState(currentData);
+        const rows = getArray(currentData);
+        if (!rows[index]) return;
+        if (arr) {
+            const hl = convertirHora24(arr.llegada || "");
+            const hp = convertirHora24(arr.llegadaProgramada || "");
+            if (hl) rows[index].llegada = hl;
+            if (hp) rows[index].llegadaProgramada = hp;
+            if (arr.vuelo) rows[index].vueloLlegada = arr.vuelo;
+            if (arr.salidaOrigen) {
+                const so = convertirHora24(arr.salidaOrigen);
+                if (so) rows[index].salidaOrigen = so;
+            }
+        }
+        if (dep) {
+            const hs = convertirHora24(dep.salida || "");
+            if (hs) rows[index].salida = hs;
+            if (dep.gate) rows[index].gate = dep.gate;
+        }
+        const l = rows[index].llegada;
+        const lp = rows[index].llegadaProgramada;
+        const rm = retrasoMinutosDesdeLlegadaYProgramada(l, lp);
+        if (l && lp && rm != null && Number.isFinite(rm)) {
+            rows[index].retraso = rm;
+        } else if (
+            arr &&
+            arr.retraso != null &&
+            arr.retraso !== "" &&
+            Number.isFinite(Number(arr.retraso))
+        ) {
+            rows[index].retraso = Number(arr.retraso);
+        }
+        saveFlightsForSelectedDate(toObj(rows));
+        currentData = toObj(rows);
+    } catch (e) {
+        console.error(e);
+        if (msg) {
+            msg.textContent = "Sin datos disponibles";
+            msg.style.color = "#fb923c";
+            setTimeout(() => {
+                msg.textContent = "";
+                msg.style.color = "";
+            }, 3000);
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = labelIdle;
+    }
+};
 
 function escapeDataAttr(s) {
     return String(s ?? "")
@@ -2776,7 +3370,8 @@ window.buscarVueloLlegada = async (input, index) => {
                 const orig = f.origen || f.destino || "";
                 const ruta = f.enRuta ? " · EN RUTA" : "";
                 const txtSo = so ? ` · salió ${so}${ruta}` : "";
-                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+                const ret = f.retraso != null && f.retraso !== "" ? String(f.retraso) : "";
+                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
             })
             .join("");
     } catch (e) {
@@ -2816,17 +3411,29 @@ window.seleccionarLlegadaApi = (index, el) => {
     const arr = Object.values(currentData);
     if (!arr[index]) return;
     const v = el.getAttribute("data-v") || "";
+    if (v) setFlightCardVueloSelected(index, normFlightIdent(v) || v.trim());
     const l = el.getAttribute("data-l") || "";
     const lp = el.getAttribute("data-lp") || "";
     const le = el.getAttribute("data-le") || "";
     const lr = el.getAttribute("data-lr") || "";
     const so = el.getAttribute("data-so") || "";
+    const dr = el.getAttribute("data-r");
     arr[index].llegada = l;
-    arr[index].llegadaProgramada = lp || l;
+    arr[index].llegadaProgramada = lp || "";
     arr[index].llegadaEstimada = le || "";
     arr[index].llegadaReal = lr || "";
     arr[index].vueloLlegada = v;
     arr[index].salidaOrigen = so;
+    if (dr !== null && dr !== "") {
+        const rn = Number(dr);
+        arr[index].retraso = Number.isFinite(rn) ? rn : null;
+    } else if (l && (lp || "")) {
+        const a = convertirHora24(l).split(":").map(Number);
+        const b = convertirHora24(lp || l).split(":").map(Number);
+        if (a.length === 2 && b.length === 2) {
+            arr[index].retraso = a[0] * 60 + a[1] - (b[0] * 60 + b[1]);
+        }
+    }
     arr[index].manual = true;
     saveFlightsForSelectedDate(toObj(arr));
     const box = document.getElementById("resultsLlegada" + index);
@@ -2837,6 +3444,7 @@ window.seleccionarSalidaApi = (index, el) => {
     const arr = Object.values(currentData);
     if (!arr[index]) return;
     const v = el.getAttribute("data-v") || "";
+    if (v) setFlightCardVueloSelected(index, normFlightIdent(v) || v.trim());
     const dest = el.getAttribute("data-d") || "";
     const s = el.getAttribute("data-s") || "";
     const g = el.getAttribute("data-g") || "";

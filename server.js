@@ -3,6 +3,7 @@ const axios = require("axios");
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -90,10 +91,10 @@ const AERO_API_KEY = process.env.FA_API_KEY || process.env.API_KEY;
 // 🛫 Aeropuerto (ICAO preferido por AeroAPI; MDPP = Gregorio Luperón, IATA POP)
 const AIRPORT = process.env.AIRPORT_CODE || "MDPP";
 
-/** Intervalo por defecto si no hay config/pollingInterval en Firebase (ms) */
+/** Intervalo por defecto si no hay config/pollingInterval en Firebase (ms); 15 min recomendado */
 const FLIGHT_SYNC_MS = Math.max(
   60_000,
-  parseInt(process.env.FLIGHT_SYNC_MS || "", 10) || 60_000
+  parseInt(process.env.FLIGHT_SYNC_MS || "", 10) || 900_000
 );
 
 const POLLING_MIN_SEC = 900; // 15 min
@@ -113,23 +114,198 @@ app.get("/", (req, res) => {
 });
 
 // =========================
-// 🕐 Formato hora RD
+// 🕐 Formato hora RD (America/Santo_Domingo, 24h → "14:19")
 // =========================
 
+function normalizeToHHMM(timeStr) {
+  const m = String(timeStr || "")
+    .trim()
+    .match(/(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  const h = parseInt(m[1], 10);
+  const min = m[2];
+  if (!Number.isFinite(h) || h < 0 || h > 23) return "";
+  return `${String(h).padStart(2, "0")}:${min}`;
+}
+
+/**
+ * Convierte un instante ISO de FlightAware a HH:MM en reloj de República Dominicana.
+ */
 function formatHora(fecha) {
   if (!fecha) return "";
 
   try {
-    return new Date(fecha).toLocaleTimeString("es-DO", {
+    const s = new Date(fecha).toLocaleTimeString("en-US", {
+      timeZone: "America/Santo_Domingo",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
-      hourCycle: "h23",
-      timeZone: "America/Santo_Domingo"
+      hour12: false
     });
+    return normalizeToHHMM(s);
   } catch {
     return "";
   }
+}
+
+/**
+ * Interpreta HH:MM como hora local en RD en dateStr (YYYY-MM-DD) y devuelve el Date UTC.
+ * RD usa UTC−4 todo el año (sin DST).
+ */
+/** HH:MM desde Firebase / input time (acepta "8:49", "08:49:00"). */
+function normalizeRdHHMM(hhmmStr) {
+  if (hhmmStr == null || String(hhmmStr).trim() === "") return null;
+  const m = String(hhmmStr).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const hh = String(parseInt(m[1], 10)).padStart(2, "0");
+  const mm = String(parseInt(m[2], 10)).padStart(2, "0");
+  if (parseInt(m[2], 10) > 59) return null;
+  return `${hh}:${mm}`;
+}
+
+function dateStrTodayInRD() {
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Santo_Domingo"
+  });
+}
+
+/**
+ * Instante absoluto del reloj local RD (UTC−4, sin DST) en dateStr.
+ * Toda la ventana ±2h se ancla en estos instantes; el "ahora" del servidor es Date.now() (mismo eje temporal).
+ */
+function rdWallClockToInstant(dateStr, hhmmStr) {
+  const hm = normalizeRdHHMM(hhmmStr);
+  if (!hm || !/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || "").trim()))
+    return null;
+  const [H, M] = hm.split(":");
+  const iso = `${dateStr.trim()}T${H}:${M}:00-04:00`;
+  const d = new Date(iso);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+/**
+ * Centro de ventana: el instante RD más tardío entre llegada real/estimada en Firebase
+ * y llegada programada (evita cerrar la ventana solo porque el avión aterrizó temprano).
+ */
+function flightWindowCenterInstant(dateStr, row) {
+  if (!row || typeof row !== "object") return null;
+  const insL = rdWallClockToInstant(dateStr, row.llegada);
+  const insP = rdWallClockToInstant(dateStr, row.llegadaProgramada);
+  if (insL && insP) {
+    return insL.getTime() >= insP.getTime() ? insL : insP;
+  }
+  return insL || insP || null;
+}
+
+/**
+ * Hora de llegada: actual_on > estimated_on > scheduled_on (AeroAPI; *_in equivalentes).
+ * @returns {{ hora: string, fuente: "real"|"est"|"sched" }}
+ */
+function calcularLlegadaReal(flight) {
+  const f = flight || {};
+  const first = (...keys) => {
+    for (const k of keys) {
+      const v = f[k];
+      if (v != null && String(v).trim() !== "") return v;
+    }
+    return null;
+  };
+
+  const actualOn = first("actual_on", "actual_in");
+  if (actualOn) {
+    return { hora: formatHora(actualOn), fuente: "real" };
+  }
+
+  const estOn = first("estimated_on", "estimated_in");
+  if (estOn) {
+    return { hora: formatHora(estOn), fuente: "est" };
+  }
+
+  const schedOn = first("scheduled_on", "scheduled_in");
+  if (schedOn) {
+    return { hora: formatHora(schedOn), fuente: "sched" };
+  }
+
+  return { hora: "", fuente: "sched" };
+}
+
+function llegadaFieldLabel(fuente) {
+  if (fuente === "real") return "llegada(real)";
+  if (fuente === "est") return "llegada(est)";
+  return "llegada(sched)";
+}
+
+/**
+ * Diferencia en minutos entre dos HH:MM ya expresados en hora RD,
+ * sobre el mismo día calendario RD (dateStr). Usa instantes locales RD, no UTC crudo.
+ */
+function retrasoMinutosDesdeHHMM(llegadaHHMM, progHHMM, dateStr) {
+  if (!llegadaHHMM || !progHHMM || !dateStr) return null;
+  const a = rdWallClockToInstant(dateStr, llegadaHHMM);
+  const b = rdWallClockToInstant(dateStr, progHHMM);
+  if (!a || !b) return null;
+  const diff = Math.round((a.getTime() - b.getTime()) / 60000);
+  return Number.isFinite(diff) ? diff : null;
+}
+
+function sameRetraso(a, b) {
+  const na = a == null || a === "" ? null : Number(a);
+  const nb = b == null || b === "" ? null : Number(b);
+  if (na === null && nb === null) return true;
+  if (na === null || nb === null) return false;
+  return na === nb;
+}
+
+function formatRetrasoChangelog(mins) {
+  if (mins === null || mins === undefined) return "retraso: —";
+  if (mins === 0) return "retraso: 0";
+  if (mins > 0) return `retraso: +${mins}min`;
+  return `retraso: ${mins}min`;
+}
+
+function dateStrFromAeroIso(iso) {
+  if (!iso) return new Date().toISOString().slice(0, 10);
+  try {
+    return new Date(iso).toLocaleDateString("en-CA", {
+      timeZone: "America/Santo_Domingo"
+    });
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+function mapAeroArrivalEstado(f) {
+  const actIn = f.actual_on || f.actual_in;
+  const estIn = f.estimated_on || f.estimated_in;
+  const schedIn = f.scheduled_on || f.scheduled_in;
+  const out = f.actual_out || f.actual_off;
+  const enRuta = Boolean(out && !actIn);
+  const st = (f.status || "")
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+  if (actIn || st === "arrived" || st === "landed") return "ARRIVED";
+  if (enRuta || st === "en_route" || st === "active") return "EN ROUTE";
+  if (st === "cancelled") return "CANCELLED";
+  if (st === "diverted") return "DIVERTED";
+  if (st === "delayed") return "DELAYED";
+  if (estIn && schedIn && String(estIn) !== String(schedIn)) return "DELAYED";
+  if (st === "scheduled" || !f.status) return undefined;
+  return (f.status || "").toString().toUpperCase().replace(/_/g, " ");
+}
+
+function mapAeroDepartureEstado(f) {
+  const st = (f.status || "")
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  if (st === "cancelled") return "CANCELLED";
+  if (st === "diverted") return "DIVERTED";
+  if (st === "arrived" || st === "landed") return "DEPARTED";
+  if (st === "en_route" || st === "active") return "EN ROUTE";
+  if (st === "delayed") return "DELAYED";
+  if (st === "scheduled" || !f.status) return undefined;
+  return (f.status || "").toString().toUpperCase().replace(/_/g, " ");
 }
 
 function normalizeIdent(v) {
@@ -164,7 +340,7 @@ function pickApiEstado(row, arr, dep) {
 }
 
 // =========================
-// ✈️ AeroAPI (compartido GET /flights + sync Firebase)
+// ✈️ AeroAPI (FlightAware): GET /flights, sync scheduler, /api/flights/refresh
 // =========================
 
 async function aeroApiGet(url, config) {
@@ -209,7 +385,7 @@ async function buildFlightsPayload() {
 
   const response = await aeroApiGet(url, {
     headers: { "x-apikey": AERO_API_KEY },
-    params: { max_pages: 2 }
+    params: { max_pages: 3 }
   });
 
   const data = response.data;
@@ -218,57 +394,63 @@ async function buildFlightsPayload() {
 
   const airportCode = (a) => a?.code_iata || a?.code || "N/A";
 
-  const salidas = scheduledDepartures.slice(0, 15).map((f) => ({
-    vuelo: f.ident || "N/A",
-    destino: airportCode(f.destination),
-    salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
-    llegada: "",
-    gate: f.gate_origin || "",
-    estado: (f.status || "UNKNOWN").replaceAll("_", " ")
-  }));
+  const salidas = scheduledDepartures.map((f) => {
+    const id = normalizeIdent(f.ident) || (f.ident || "N/A").toString();
+    return {
+      vuelo: id,
+      destino: airportCode(f.destination),
+      salida: formatHora(
+        f.actual_out || f.estimated_out || f.scheduled_out
+      ),
+      llegada: "",
+      gate: f.gate_origin || "",
+      estado: mapAeroDepartureEstado(f)
+    };
+  });
 
-  const llegadas = scheduledArrivals.slice(0, 15).map((f) => {
-    let estado = (f.status || "UNKNOWN").replaceAll("_", " ");
-    const llegadaProgramada = formatHora(f.scheduled_in);
-    const llegadaEstimada = formatHora(f.estimated_in);
-    const llegadaReal = formatHora(f.actual_in);
-    const horaLlegadaPop = formatHora(
-      f.actual_in || f.estimated_in || f.scheduled_in
-    );
+  const llegadas = scheduledArrivals.map((f) => {
+    const schedIn = f.scheduled_on || f.scheduled_in;
+    const estIn = f.estimated_on || f.estimated_in;
+    const actIn = f.actual_on || f.actual_in;
+    const llegadaProgramada = formatHora(schedIn);
+    const llegadaEstimadaRaw = formatHora(estIn);
+    const llegadaEstimada =
+      llegadaEstimadaRaw === llegadaProgramada ? "" : llegadaEstimadaRaw;
+    const llegadaReal = formatHora(actIn);
+    const { hora: horaLlegadaPop, fuente: llegadaFuente } =
+      calcularLlegadaReal(f);
     const salidaOrigen = formatHora(
-      f.actual_out || f.estimated_out || f.scheduled_out
+      f.actual_off || f.estimated_off || f.scheduled_off ||
+        f.actual_out || f.estimated_out || f.scheduled_out
     );
-    const enRuta = Boolean(f.actual_out && !f.actual_in);
+    const enRuta = Boolean((f.actual_out || f.actual_off) && !actIn);
     const progresoPct =
       typeof f.progress_percent === "number" ? f.progress_percent : null;
-
-    if (f.actual_in) {
-      estado = "ARRIVED";
-    } else if (enRuta) {
-      estado = "EN ROUTE";
-    } else if (
-      f.estimated_in &&
-      f.scheduled_in &&
-      f.estimated_in !== f.scheduled_in
-    ) {
-      estado = "DELAYED";
-    }
-
     const origen = airportCode(f.origin);
+    const id = normalizeIdent(f.ident) || (f.ident || "N/A").toString();
+    const dateAnchor = dateStrFromAeroIso(schedIn || f.scheduled_out);
+    const retraso = retrasoMinutosDesdeHHMM(
+      horaLlegadaPop,
+      llegadaProgramada,
+      dateAnchor
+    );
+
     return {
-      vuelo: f.ident || "N/A",
+      vuelo: id,
       origen,
       destino: origen,
       llegada: horaLlegadaPop,
+      llegadaFuente,
       llegadaProgramada,
-      llegadaEstimada: llegadaEstimada === llegadaProgramada ? "" : llegadaEstimada,
+      llegadaEstimada,
       llegadaReal,
       salidaOrigen,
       enRuta,
       progresoPct,
       salida: "",
       gate: f.gate_destination || "",
-      estado
+      estado: mapAeroArrivalEstado(f),
+      retraso
     };
   });
 
@@ -277,20 +459,15 @@ async function buildFlightsPayload() {
 
 app.get("/flights", async (req, res) => {
   try {
-    const { salidas, llegadas } = await buildFlightsPayload();
-    res.json({ salidas, llegadas });
+    const payload = await buildFlightsPayload();
+    res.json({ salidas: payload.salidas, llegadas: payload.llegadas });
   } catch (error) {
-    if (error.code === "NO_API_KEY") {
-      return res.status(500).json({
-        error: "Clave AeroAPI no configurada",
-        detalle:
-          "Define FA_API_KEY (recomendado) o API_KEY: clave x-apikey de FlightAware AeroAPI."
-      });
-    }
-    console.log("❌ ERROR:", error.response?.data || error.message);
-
+    console.log(
+      "❌ FlightAware /flights:",
+      error.response?.data || error.message
+    );
     res.status(500).json({
-      error: "Error obteniendo vuelos",
+      error: "Error obteniendo vuelos (FlightAware)",
       detalle: error.response?.data || error.message
     });
   }
@@ -338,37 +515,24 @@ async function rtdbPatch(path, body) {
   }
 }
 
-async function syncFlightTimesToRtdb() {
-  if (!AERO_API_KEY) return { ok: false, reason: "no_api_key" };
-
-  let payload;
-  try {
-    payload = await buildFlightsPayload();
-  } catch (e) {
-    const status = e.response?.status;
-    const detail = e.response?.data || e.message;
-    console.log("❌ Sync AeroAPI:", e.message, status || "");
-    return {
-      ok: false,
-      reason: "aeroapi_error",
-      error: e.message,
-      status: status || null,
-      detail
-    };
-  }
-
+/** Sync incremental Firebase desde payload FlightAware (AeroAPI). */
+async function syncPayloadToRtdb(payload) {
   const arrByIdent = {};
   for (const l of payload.llegadas) {
     const id = normalizeIdent(l.vuelo);
     if (!id || id === "N/A") continue;
     arrByIdent[id] = {
       llegada: l.llegada || "",
+      llegadaFuente: l.llegadaFuente || "sched",
       llegadaProgramada: l.llegadaProgramada || "",
       llegadaEstimada: l.llegadaEstimada || "",
       llegadaReal: l.llegadaReal || "",
       gateArr: l.gate || "",
       salidaOrigen: l.salidaOrigen || "",
-      estado: l.estado || ""
+      estado:
+        l.estado !== undefined && l.estado !== null && l.estado !== ""
+          ? l.estado
+          : undefined
     };
   }
   const depByIdent = {};
@@ -378,7 +542,10 @@ async function syncFlightTimesToRtdb() {
     depByIdent[id] = {
       salida: s.salida || "",
       gateDep: s.gate || "",
-      estado: s.estado || ""
+      estado:
+        s.estado !== undefined && s.estado !== null && s.estado !== ""
+          ? s.estado
+          : undefined
     };
   }
 
@@ -413,64 +580,93 @@ async function syncFlightTimesToRtdb() {
       const dep = idDep ? depByIdent[idDep] : null;
       if (!arr && !dep) continue;
 
-      const merged = { ...row };
-      let rowChanged = false;
-      const fields = [];
+      const patch = {};
+      const changelog = [];
 
       if (arr?.llegada && arr.llegada !== (row.llegada || "")) {
-        merged.llegada = arr.llegada;
-        rowChanged = true;
-        fields.push("llegada");
+        patch.llegada = arr.llegada;
+        changelog.push(llegadaFieldLabel(arr.llegadaFuente));
       }
-      const patchLlegProg = (k, val) => {
-        if (val != null && String(val) !== String(row[k] || "")) {
-          merged[k] = val;
-          rowChanged = true;
-          fields.push(k);
+
+      const rowProgStored = (row.llegadaProgramada || "").toString().trim();
+      if (!rowProgStored && arr?.llegadaProgramada) {
+        const v = arr.llegadaProgramada;
+        if (String(v) !== String(row.llegadaProgramada || "")) {
+          patch.llegadaProgramada = v;
+          changelog.push("llegadaProgramada");
         }
-      };
-      patchLlegProg("llegadaProgramada", arr?.llegadaProgramada);
-      patchLlegProg("llegadaEstimada", arr?.llegadaEstimada);
-      patchLlegProg("llegadaReal", arr?.llegadaReal);
+      }
+
+      if (
+        arr?.llegadaEstimada != null &&
+        String(arr.llegadaEstimada) !== String(row.llegadaEstimada || "")
+      ) {
+        patch.llegadaEstimada = arr.llegadaEstimada;
+        changelog.push("llegadaEstimada");
+      }
+      if (
+        arr?.llegadaReal != null &&
+        String(arr.llegadaReal) !== String(row.llegadaReal || "")
+      ) {
+        patch.llegadaReal = arr.llegadaReal;
+        changelog.push("llegadaReal");
+      }
+
       if (
         arr?.salidaOrigen &&
         arr.salidaOrigen !== (row.salidaOrigen || "")
       ) {
-        merged.salidaOrigen = arr.salidaOrigen;
-        rowChanged = true;
-        fields.push("salidaOrigen");
+        patch.salidaOrigen = arr.salidaOrigen;
+        changelog.push("salidaOrigen");
       }
       if (dep?.salida && dep.salida !== (row.salida || "")) {
-        merged.salida = dep.salida;
-        rowChanged = true;
-        fields.push("salida");
+        patch.salida = dep.salida;
+        changelog.push("salida");
       }
       const g = dep?.gateDep || arr?.gateArr;
       if (g && g !== (row.gate || "")) {
-        merged.gate = g;
-        rowChanged = true;
-        fields.push("gate");
+        patch.gate = g;
+        changelog.push("gate");
       }
 
       const apiEstado = pickApiEstado(row, arr, dep);
       if (apiEstado && !isEstadoStaffLocked(row.estado)) {
         const curEst = (row.estado || "").toString();
         if (apiEstado !== curEst) {
-          merged.estado = apiEstado;
-          rowChanged = true;
-          fields.push("estado");
+          patch.estado = apiEstado;
+          changelog.push("estado");
         }
       }
 
-      if (rowChanged) {
-        const patch = {};
-        for (const f of fields) {
-          patch[f] = merged[f];
-        }
-        rowPatches.push({ key, patch });
-        updatedRows++;
-        changeLines.push(`${key}: ${fields.join(", ")}`);
+      const mergedLlegada =
+        patch.llegada !== undefined ? patch.llegada : row.llegada;
+      const mergedProg =
+        patch.llegadaProgramada !== undefined
+          ? patch.llegadaProgramada
+          : row.llegadaProgramada;
+      const progEff =
+        (mergedProg && String(mergedProg).trim()) ||
+        (arr?.llegadaProgramada && String(arr.llegadaProgramada).trim()) ||
+        "";
+      const llegEff = (mergedLlegada && String(mergedLlegada).trim()) || "";
+      let nuevoRetraso = null;
+      if (llegEff && progEff) {
+        nuevoRetraso = retrasoMinutosDesdeHHMM(llegEff, progEff, dateStr);
       }
+      if (!sameRetraso(nuevoRetraso, row.retraso)) {
+        patch.retraso = nuevoRetraso;
+        changelog.push(formatRetrasoChangelog(nuevoRetraso));
+      }
+
+      if (Object.keys(patch).length === 0) continue;
+
+      rowPatches.push({ key, patch });
+      updatedRows++;
+      const identLabel =
+        (row.vuelo && String(row.vuelo).trim()) ||
+        (row.vueloLlegada && String(row.vueloLlegada).trim()) ||
+        key;
+      changeLines.push(`${identLabel}: ${changelog.join(", ")}`);
     }
 
     if (updatedRows === 0) {
@@ -505,6 +701,33 @@ async function syncFlightTimesToRtdb() {
   }
 }
 
+async function syncFlightTimesToRtdb() {
+  let payload;
+  try {
+    payload = await buildFlightsPayload();
+  } catch (e) {
+    const status = e.response?.status ?? e.status;
+    const detail = e.response?.data || e.message;
+    console.log("❌ Sync FlightAware:", e.message, status || "");
+    return {
+      ok: false,
+      reason: "flightaware_error",
+      error: e.message,
+      status: status || null,
+      detail
+    };
+  }
+
+  const nArr = payload.llegadas?.length || 0;
+  const nDep = payload.salidas?.length || 0;
+  const nTotal = nArr + nDep;
+  console.log(
+    `FlightAware ✅ — ${nTotal} vuelos encontrados para MDPP`
+  );
+
+  return syncPayloadToRtdb(payload);
+}
+
 let syncFlightTimesInFlight = false;
 
 async function syncFlightTimesToRtdbSafe() {
@@ -521,29 +744,32 @@ async function syncFlightTimesToRtdbSafe() {
 
 function logFlightSyncOutcome(result, pollingSec) {
   const ts = new Date().toISOString();
+  const mins = Math.max(1, Math.round(pollingSec / 60));
   if (result?.skipped) {
     console.log(
-      `[${ts}] Flight sync omitido (ya había una ejecución en curso) próximo ciclo ~${pollingSec}s`
+      `[${ts}] FlightAware sync omitido (sync en curso) — próximo ciclo en ${mins}min`
     );
     return;
   }
   if (!result?.ok) {
     console.log(
-      `[${ts}] Flight sync falló: ${result?.reason || "unknown"}${result?.error ? ` — ${result.error}` : ""}`
+      `[${ts}] FlightAware sync falló: ${result?.reason || "unknown"}${result?.error ? ` — ${result.error}` : ""}`
     );
     return;
   }
   if (result.note) {
-    console.log(`[${ts}] Flight sync: ${result.note} (intervalo ~${pollingSec}s)`);
+    console.log(
+      `[${ts}] FlightAware sync: ${result.note} — próximo ciclo en ${mins}min`
+    );
     return;
   }
   if (result.changed) {
     console.log(
-      `[${ts}] Flight sync: datos actualizados — ${result.updated} fila(s), fecha ${result.date}. Detalle: ${result.changeSummary}`
+      `[${ts}] FlightAware sync: ${result.updated} cambios — ${result.changeSummary || ""}`
     );
   } else {
     console.log(
-      `[${ts}] Flight sync: sin cambios (AeroAPI alineado con Firebase) fecha ${result.date} — próximo ciclo ~${pollingSec}s`
+      `[${ts}] FlightAware sync: sin cambios — próximo ciclo en 15min`
     );
   }
 }
@@ -560,27 +786,26 @@ async function readPollingIntervalSec() {
   return sec;
 }
 
-/** Convierte HH:MM (hora de Santo Domingo, UTC-4 fijo) + fecha YYYY-MM-DD → Date UTC */
-function hhmmToUTC(hhmmStr, dateStr) {
-  const m = (hhmmStr || "").match(/^(\d{1,2}):(\d{2})$/);
-  if (!m || !dateStr) return null;
-  const [y, mo, d] = dateStr.split("-").map(Number);
-  return new Date(Date.UTC(y, mo - 1, d, parseInt(m[1], 10) + 4, parseInt(m[2], 10)));
-}
-
 async function readFlightWindowInfo() {
   try {
     const selectedDate = await rtdbGet("config/selectedDate");
-    const dateStr = selectedDate || new Date().toISOString().slice(0, 10);
+    const dateStr = (selectedDate && String(selectedDate).trim()) || dateStrTodayInRD();
     const flights = await rtdbGet("flightsByDate/" + dateStr);
     if (!flights || typeof flights !== "object" || !Object.keys(flights).length) {
-      return { dateStr, llegada: null };
+      return { dateStr, centerInstant: null, llegada: null };
     }
     const firstKey = Object.keys(flights)[0];
-    const llegada = flights[firstKey]?.llegada || null;
-    return { dateStr, llegada };
+    const row = flights[firstKey];
+    const centerInstant = flightWindowCenterInstant(dateStr, row);
+    const llegada = row?.llegada || row?.llegadaProgramada || null;
+    return { dateStr, centerInstant, llegada, row };
   } catch (e) {
-    return { dateStr: null, llegada: null, error: e.message };
+    return {
+      dateStr: null,
+      centerInstant: null,
+      llegada: null,
+      error: e.message
+    };
   }
 }
 
@@ -588,48 +813,48 @@ const FLIGHT_WINDOW_MS = 2 * 60 * 60 * 1000; // ±2 h alrededor de la llegada
 
 async function flightSyncSchedulerLoop() {
   const fmtSDQ = (d) =>
-    d.toLocaleTimeString("es-DO", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      hourCycle: "h23",
-      timeZone: "America/Santo_Domingo"
-    });
+    normalizeToHHMM(
+      d.toLocaleTimeString("en-US", {
+        timeZone: "America/Santo_Domingo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      })
+    );
 
   for (;;) {
     let pollingSec = await readPollingIntervalSec();
     const ts = new Date().toISOString();
 
-    const { dateStr, llegada, error: winError } = await readFlightWindowInfo();
+    const { dateStr, centerInstant, llegada, error: winError } =
+      await readFlightWindowInfo();
 
     if (winError || !dateStr) {
       console.log(`[${ts}] No se pudo leer ventana de vuelo: ${winError || "sin fecha"}`);
-    } else if (!llegada) {
-      console.log(`[${ts}] Sin vuelo cargado para hoy (${dateStr})`);
+    } else if (!centerInstant) {
+      console.log(
+        `[${ts}] Sin hora de llegada/programada válida para ventana (${dateStr})`
+      );
     } else {
-      const arrivalUtc = hhmmToUTC(llegada, dateStr);
-      if (!arrivalUtc) {
-        console.log(`[${ts}] Hora de llegada inválida: "${llegada}"`);
-      } else {
-        const now = new Date();
-        const windowStart = new Date(arrivalUtc.getTime() - FLIGHT_WINDOW_MS);
-        const windowEnd = new Date(arrivalUtc.getTime() + FLIGHT_WINDOW_MS);
+      const nowMs = Date.now();
+      const centerMs = centerInstant.getTime();
+      const windowStartMs = centerMs - FLIGHT_WINDOW_MS;
+      const windowEndMs = centerMs + FLIGHT_WINDOW_MS;
 
-        if (now < windowStart) {
-          console.log(
-            `[${ts}] Fuera de ventana de vuelo — sync pausado hasta las ${fmtSDQ(windowStart)} (llegada ${llegada})`
-          );
-        } else if (now > windowEnd) {
-          console.log(
-            `[${ts}] Ventana de vuelo cerrada para ${dateStr} (llegada ${llegada})`
-          );
-        } else {
-          try {
-            const result = await syncFlightTimesToRtdbSafe();
-            logFlightSyncOutcome(result, pollingSec);
-          } catch (e) {
-            console.log(`[${ts}] Flight sync excepción no controlada:`, e.message);
-          }
+      if (nowMs < windowStartMs) {
+        console.log(
+          `[${ts}] Fuera de ventana de vuelo — sync pausado hasta las ${fmtSDQ(new Date(windowStartMs))} RD (referencia ${normalizeRdHHMM(llegada) || "—"}, fecha ${dateStr})`
+        );
+      } else if (nowMs > windowEndMs) {
+        console.log(
+          `[${ts}] Ventana de vuelo cerrada para ${dateStr} (±2h RD desde referencia ${normalizeRdHHMM(llegada) || "—"})`
+        );
+      } else {
+        try {
+          const result = await syncFlightTimesToRtdbSafe();
+          logFlightSyncOutcome(result, pollingSec);
+        } catch (e) {
+          console.log(`[${ts}] Flight sync excepción no controlada:`, e.message);
         }
       }
     }
@@ -672,7 +897,7 @@ app.get("/sync-flights", async (req, res) => {
   }
 });
 
-/** Forzar sincronización AeroAPI → Firebase (mismo auth que /sync-flights) */
+/** Forzar sincronización FlightAware → Firebase (mismo auth que /sync-flights) */
 app.get("/api/flights/refresh", async (req, res) => {
   if (!authorizeSync(req)) {
     return res.status(401).json({ error: "No autorizado" });
@@ -681,16 +906,25 @@ app.get("/api/flights/refresh", async (req, res) => {
     const result = await syncFlightTimesToRtdbSafe();
     const ts = new Date().toISOString();
     if (result.skipped) {
-      console.log(`[${ts}] /api/flights/refresh: omitido (sync en curso)`);
+      console.log(
+        `[${ts}] /api/flights/refresh (FlightAware): omitido (sync en curso)`
+      );
     } else if (!result.ok) {
-      console.log(`[${ts}] /api/flights/refresh: error — ${result.reason}`, result.error || "");
+      console.log(
+        `[${ts}] /api/flights/refresh (FlightAware): error — ${result.reason}`,
+        result.error || ""
+      );
     } else if (result.note) {
-      console.log(`[${ts}] /api/flights/refresh: ${result.note}`);
+      console.log(
+        `[${ts}] /api/flights/refresh (FlightAware): ${result.note}`
+      );
     } else if (result.changed) {
-      console.log(`[${ts}] /api/flights/refresh: actualizado — ${result.changeSummary || ""}`);
+      console.log(
+        `[${ts}] /api/flights/refresh (FlightAware): ${result.updated} cambios — ${result.changeSummary || ""}`
+      );
     } else {
       console.log(
-        `[${ts}] /api/flights/refresh: sin cambios${result.date ? ` (${result.date})` : ""}`
+        `[${ts}] /api/flights/refresh (FlightAware): sin cambios — próximo ciclo en 15min`
       );
     }
     res.json(result);
@@ -748,10 +982,18 @@ app.get("/asignaciones", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
+/** Tablero y panel por HTTP (iframe de vista previa en panel.html). No exponer dotfiles. */
+app.use(
+  express.static(path.join(__dirname, "."), {
+    dotfiles: "deny",
+    index: false,
+  })
+);
+
 app.listen(PORT, () => {
   console.log("🔥 Servidor corriendo en puerto " + PORT);
   console.log(
-    "⏱ Sync vuelos → Firebase: intervalo por defecto",
+    "⏱ Sync vuelos (FlightAware) → Firebase: intervalo por defecto",
     Math.max(POLLING_MIN_SEC, FLIGHT_SYNC_MS / 1000),
     "s; override en RTDB config/pollingInterval (segundos, mín",
     POLLING_MIN_SEC,

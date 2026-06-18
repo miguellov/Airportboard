@@ -3913,8 +3913,11 @@ async function showFlightApiStatus() {
             await refreshSyncControlUI();
         } else {
             statusEl.style.color = "#fbbf24";
-            statusEl.textContent =
-                `⚠️ FlightAware: añade FA_API_KEY en .env (${getPanelApiBase()})`;
+            const base = getPanelApiBase();
+            const isRender = /onrender\.com/i.test(base);
+            statusEl.textContent = isRender
+                ? "⚠️ Sin FlightAware en Render — añade FA_API_KEY en Environment y redeploy"
+                : `⚠️ FlightAware: añade FA_API_KEY en .env (${base})`;
         }
     } catch (_) {
         statusEl.style.color = "#f87171";

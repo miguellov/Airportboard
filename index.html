@@ -208,14 +208,25 @@ let unsubscribeFlightsByDate = null;
 /** Hora de llegada a POP (RD, UTC-4 fijo, sin DST). */
 const BOARD_ARRIVAL_TZ = "-04:00";
 
-/** Hora efectiva: aterrizó → estimada → guardada → programada. */
+/** Hora efectiva en puerta: en ruta usa estimada; si ya aterrizó usa real. */
 function effectiveArrivalHhmm(r) {
     const x = r || {};
+    const estado = String(x.estado || "").toUpperCase().replace(/\s+/g, "-");
+    const isArrived = estado === "ARRIVED" || estado === "LANDED";
+    if (isArrived) {
+        return (
+            String(x.llegadaReal || "").trim() ||
+            String(x.llegada || "").trim() ||
+            String(x.llegadaEstimada || "").trim() ||
+            String(x.llegadaProgramada || "").trim() ||
+            "00:00"
+        );
+    }
     return (
-        String(x.llegadaReal || "").trim() ||
         String(x.llegadaEstimada || "").trim() ||
         String(x.llegada || "").trim() ||
         String(x.llegadaProgramada || "").trim() ||
+        String(x.llegadaReal || "").trim() ||
         "00:00"
     );
 }

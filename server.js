@@ -462,13 +462,62 @@ function calcularLlegadaAero(flight) {
     }
     return null;
   };
-  const actualOn = first("actual_on", "actual_in");
-  if (actualOn) return { hora: formatHora(actualOn), fuente: "real" };
-  const estOn = first("estimated_on", "estimated_in");
-  if (estOn) return { hora: formatHora(estOn), fuente: "est" };
-  const schedOn = first("scheduled_on", "scheduled_in");
-  if (schedOn) return { hora: formatHora(schedOn), fuente: "sched" };
+  // Puerta/terminal (in) antes que pista (on) — hora que ve el pasajero en FIDS (~14:10 vs ~13:36)
+  const actualIn = first("actual_in", "actual_on");
+  if (actualIn) return { hora: formatHora(actualIn), fuente: "real" };
+  const estIn = first("estimated_in", "estimated_on");
+  if (estIn) return { hora: formatHora(estIn), fuente: "est" };
+  const schedIn = first("scheduled_in", "scheduled_on");
+  if (schedIn) return { hora: formatHora(schedIn), fuente: "sched" };
   return { hora: "", fuente: "sched" };
+}
+
+function aeroFlightAnchorIso(f) {
+  return (
+    f.scheduled_in ||
+    f.scheduled_on ||
+    f.scheduled_out ||
+    f.scheduled_off ||
+    f.estimated_in ||
+    f.estimated_on ||
+    null
+  );
+}
+
+function aeroFlightDateRd(f) {
+  return dateStrFromAeroIso(aeroFlightAnchorIso(f));
+}
+
+function aeroFlightIsTerminal(f, kind) {
+  if (kind === "arr") return mapAeroArrivalEstado(f) === "ARRIVED";
+  return mapAeroDepartureEstado(f) === "DEPARTED";
+}
+
+/** Si FlightAware devuelve varios JBU627 (ayer llegado + hoy en ruta), quedarse con el de hoy. */
+function shouldReplaceAeroFlight(candidate, incumbent, targetDate, kind = "arr") {
+  if (!incumbent) return true;
+  const cToday = aeroFlightDateRd(candidate) === targetDate;
+  const iToday = aeroFlightDateRd(incumbent) === targetDate;
+  if (cToday && !iToday) return true;
+  if (iToday && !cToday) return false;
+  const cDone = aeroFlightIsTerminal(candidate, kind);
+  const iDone = aeroFlightIsTerminal(incumbent, kind);
+  if (!cDone && iDone) return true;
+  if (cDone && !iDone) return false;
+  const cIso = String(aeroFlightAnchorIso(candidate) || "");
+  const iIso = String(aeroFlightAnchorIso(incumbent) || "");
+  return cIso >= iIso;
+}
+
+function ingestAeroList(list, mapFn, bucket, rawBucket, targetDate, kind = "arr") {
+  for (const f of list || []) {
+    const id = normalizeIdent(f.ident);
+    if (!id || id === "N/A") continue;
+    const prev = rawBucket.get(id);
+    if (!shouldReplaceAeroFlight(f, prev, targetDate, kind)) continue;
+    rawBucket.set(id, f);
+    bucket.set(id, mapFn(f));
+  }
 }
 
 function mapAeroArrivalEstado(f) {
@@ -505,14 +554,24 @@ async function buildFlightsPayloadFlightAware() {
   });
   const data = response.data || {};
   const airportCode = (a) => a?.code_iata || a?.code || "N/A";
+  const targetDate = dateStrTodayInRD();
 
   const arrMap = new Map();
   const depMap = new Map();
+  const arrRaw = new Map();
+  const depRaw = new Map();
 
   const mapAeroSalida = (f) => ({
     vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
     destino: airportCode(f.destination),
-    salida: formatHora(f.actual_out || f.estimated_out || f.scheduled_out),
+    salida: formatHora(
+      f.actual_out ||
+        f.actual_off ||
+        f.estimated_out ||
+        f.estimated_off ||
+        f.scheduled_out ||
+        f.scheduled_off
+    ),
     llegada: "",
     gate: f.gate_origin || "",
     estado: mapAeroDepartureEstado(f),
@@ -520,12 +579,12 @@ async function buildFlightsPayloadFlightAware() {
   });
 
   const mapAeroLlegada = (f) => {
-    const schedIn = f.scheduled_on || f.scheduled_in;
+    const schedAnchor = f.scheduled_in || f.scheduled_on;
     const { hora: horaLlegadaPop, fuente: llegadaFuente } = calcularLlegadaAero(f);
-    const llegadaProgramada = formatHora(schedIn);
-    const llegadaEstimada = formatHora(f.estimated_on || f.estimated_in);
+    const llegadaProgramada = formatHora(f.scheduled_in || f.scheduled_on);
+    const llegadaEstimada = formatHora(f.estimated_in || f.estimated_on);
     const estadoApi = mapAeroArrivalEstado(f);
-    const dateAnchor = dateStrFromAeroIso(schedIn || f.scheduled_out);
+    const dateAnchor = dateStrFromAeroIso(schedAnchor || f.scheduled_out);
     return {
       vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
       origen: airportCode(f.origin),
@@ -534,7 +593,7 @@ async function buildFlightsPayloadFlightAware() {
       llegadaFuente,
       llegadaProgramada,
       llegadaEstimada,
-      llegadaReal: formatHora(f.actual_on || f.actual_in),
+      llegadaReal: formatHora(f.actual_in || f.actual_on),
       salidaOrigen: formatHora(
         f.actual_off || f.estimated_off || f.scheduled_off ||
           f.actual_out || f.estimated_out || f.scheduled_out
@@ -552,18 +611,10 @@ async function buildFlightsPayloadFlightAware() {
     };
   };
 
-  const ingestAeroList = (list, mapFn, bucket) => {
-    for (const f of list || []) {
-      const id = normalizeIdent(f.ident);
-      if (!id || id === "N/A") continue;
-      bucket.set(id, mapFn(f));
-    }
-  };
-
-  ingestAeroList(data.scheduled_arrivals, mapAeroLlegada, arrMap);
-  ingestAeroList(data.scheduled_departures, mapAeroSalida, depMap);
-  ingestAeroList(data.arrivals, mapAeroLlegada, arrMap);
-  ingestAeroList(data.departures, mapAeroSalida, depMap);
+  ingestAeroList(data.scheduled_arrivals, mapAeroLlegada, arrMap, arrRaw, targetDate, "arr");
+  ingestAeroList(data.scheduled_departures, mapAeroSalida, depMap, depRaw, targetDate, "dep");
+  ingestAeroList(data.arrivals, mapAeroLlegada, arrMap, arrRaw, targetDate, "arr");
+  ingestAeroList(data.departures, mapAeroSalida, depMap, depRaw, targetDate, "dep");
 
   const salidas = [...depMap.values()];
   const llegadas = [...arrMap.values()];

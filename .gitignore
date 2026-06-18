@@ -1,5 +1,8 @@
 node_modules/
 .env
-.env.*
+!.env.example
 uploads/
 *.log
+sync-state.json
+.idea/
+mobile/.expo/

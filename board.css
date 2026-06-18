@@ -265,7 +265,7 @@ td{
 
 .fids-table tbody tr.flight-row{
     --row-progress:0%;
-    --wind-tip:clamp(28px, 5vw, 56px);
+    --frontier-fade:clamp(36px, 6vw, 72px);
     background:transparent;
     box-shadow:none;
 }
@@ -293,57 +293,68 @@ td{
     top:0;
     bottom:0;
     width:var(--row-progress);
-    background:var(--row-fill);
-    transition:width .85s ease;
-    overflow:visible;
-    clip-path:polygon(
-        0 0,
-        calc(100% - 44px) 0,
-        calc(100% - 30px) 8%,
-        calc(100% - 14px) 18%,
-        100% 34%,
-        calc(100% - 8px) 50%,
-        calc(100% - 22px) 66%,
-        calc(100% - 36px) 82%,
-        calc(100% - 46px) 100%,
-        0 100%
-    );
-}
-
-.flight-row-fill::before{
-    content:"";
-    position:absolute;
-    right:calc(var(--wind-tip) * -0.35);
-    top:-8%;
-    width:calc(var(--wind-tip) * 1.35);
-    height:116%;
     background:
-        linear-gradient(102deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 38%, transparent 72%),
-        linear-gradient(88deg, var(--row-fill) 0%, transparent 68%);
-    clip-path:polygon(0 18%, 72% 0, 100% 42%, 88% 100%, 0 82%);
-    opacity:.42;
-    animation:flight-wind-wisp 4.2s ease-in-out infinite;
+        linear-gradient(180deg, rgba(255,255,255,.07) 0%, transparent 38%),
+        linear-gradient(90deg, color-mix(in srgb, var(--row-accent) 18%, var(--row-fill)) 0%, var(--row-fill) 42%);
+    transition:width .85s cubic-bezier(.4, 0, .2, 1);
+    overflow:visible;
+    -webkit-mask-image:linear-gradient(90deg, #000 0%, #000 calc(100% - var(--frontier-fade)), transparent 100%);
+    mask-image:linear-gradient(90deg, #000 0%, #000 calc(100% - var(--frontier-fade)), transparent 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* Punta PRO: línea de escaneo + halo (estilo FIDS premium) */
+.flight-row-frontier{
+    position:absolute;
+    right:0;
+    top:0;
+    bottom:0;
+    width:0;
+    transform:translateX(50%);
     pointer-events:none;
 }
 
-.flight-row-fill::after{
+.flight-row-frontier::before{
     content:"";
     position:absolute;
-    right:calc(var(--wind-tip) * -0.55);
+    left:50%;
     top:12%;
-    width:calc(var(--wind-tip) * 1.1);
-    height:76%;
-    background:linear-gradient(95deg, rgba(255,255,255,.07) 0%, transparent 80%);
-    clip-path:polygon(0 28%, 100% 8%, 100% 72%, 0 92%);
-    filter:blur(1.5px);
-    opacity:.3;
-    animation:flight-wind-wisp 5.8s ease-in-out infinite reverse;
-    pointer-events:none;
+    bottom:12%;
+    width:2px;
+    transform:translateX(-50%);
+    border-radius:2px;
+    background:linear-gradient(
+        180deg,
+        transparent 0%,
+        color-mix(in srgb, var(--row-accent) 70%, #fff) 22%,
+        #fff 50%,
+        color-mix(in srgb, var(--row-accent) 70%, #fff) 78%,
+        transparent 100%
+    );
+    box-shadow:
+        0 0 6px var(--row-accent),
+        0 0 18px color-mix(in srgb, var(--row-accent) 55%, transparent),
+        0 0 32px color-mix(in srgb, var(--row-accent) 25%, transparent);
+    animation:frontier-glow 2.8s ease-in-out infinite;
 }
 
-@keyframes flight-wind-wisp{
-    0%,100%{ opacity:.28; transform:translateX(0) skewX(-6deg); }
-    50%{ opacity:.52; transform:translateX(5px) skewX(-10deg); }
+.flight-row-frontier::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:7px;
+    height:7px;
+    transform:translate(-50%, -50%) rotate(45deg);
+    border-radius:1px;
+    background:linear-gradient(135deg, #fff 0%, color-mix(in srgb, var(--row-accent) 40%, #e2e8f0) 100%);
+    border:1px solid color-mix(in srgb, var(--row-accent) 65%, #fff);
+    box-shadow:0 0 10px color-mix(in srgb, var(--row-accent) 80%, transparent);
+}
+
+@keyframes frontier-glow{
+    0%,100%{ opacity:.78; filter:brightness(1); }
+    50%{ opacity:1; filter:brightness(1.15); }
 }
 
 .flight-row-grid{
@@ -652,15 +663,73 @@ td{
 .blink{ animation:blink 1s infinite; }
 @keyframes blink{ 50%{opacity:0.55;} }
 
-.fids-table tbody tr.flight-row.blink{
-    animation:flight-row-blink 1s infinite;
+/* Parpadeo llegada: ≤30 min (fila + countdown) */
+.fids-table tbody tr.flight-row.blink .flight-row-shell{
+    animation:flight-shell-blink 1.05s ease-in-out infinite;
 }
-.fids-table tbody tr.flight-row.blink .flight-row-fill::before,
-.fids-table tbody tr.flight-row.blink .flight-row-fill::after{
-    animation-duration:2.6s;
+.fids-table tbody tr.flight-row.blink .countdown-pill{
+    animation:countdown-pill-blink 1.05s ease-in-out infinite;
 }
-@keyframes flight-row-blink{
-    50%{ filter:brightness(1.05); }
+.fids-table tbody tr.flight-row.blink .flight-row-frontier::before{
+    animation:frontier-glow 1.2s ease-in-out infinite;
+}
+
+/* ≤10 min ARRIVING: parpadeo más intenso */
+.fids-table tbody tr.flight-row.arriving.blink .flight-row-shell{
+    animation:flight-shell-blink-urgent 0.72s ease-in-out infinite;
+}
+.fids-table tbody tr.flight-row.arriving.blink .countdown-pill{
+    animation:countdown-pill-blink-urgent 0.72s ease-in-out infinite;
+}
+.fids-table tbody tr.flight-row.arriving.blink .status-pill--arriving{
+    animation:status-arriving-glow 0.85s ease-in-out infinite;
+}
+
+@keyframes flight-shell-blink{
+    0%,100%{
+        box-shadow:
+            inset 4px 0 0 var(--row-accent),
+            0 0 0 rgba(34,211,238,0);
+    }
+    50%{
+        box-shadow:
+            inset 4px 0 0 var(--row-accent),
+            0 0 32px rgba(34,211,238,.38),
+            inset 0 0 28px rgba(34,211,238,.1);
+    }
+}
+
+@keyframes flight-shell-blink-urgent{
+    0%,100%{
+        box-shadow:
+            inset 4px 0 0 #22d3ee,
+            0 0 0 rgba(248,113,113,0);
+    }
+    50%{
+        box-shadow:
+            inset 4px 0 0 #22d3ee,
+            0 0 42px rgba(34,211,238,.55),
+            0 0 18px rgba(248,113,113,.35),
+            inset 0 0 36px rgba(34,211,238,.14);
+    }
+}
+
+@keyframes countdown-pill-blink{
+    0%,100%{ opacity:1; filter:brightness(1); }
+    50%{ opacity:.78; filter:brightness(1.2); }
+}
+
+@keyframes countdown-pill-blink-urgent{
+    0%,100%{
+        opacity:1;
+        transform:scale(1);
+        filter:brightness(1);
+    }
+    50%{
+        opacity:.92;
+        transform:scale(1.04);
+        filter:brightness(1.35);
+    }
 }
 
 .positions-wrapper{ display:none; }
@@ -1363,8 +1432,9 @@ body.board--cumple-full .flight-arrival-toast{
     .fids-live-dot,
     .status-pill--arriving,
     .fids-empty__inner,
-    .flight-row-fill::before,
-    .flight-row-fill::after{ animation:none !important; }
+    .flight-row-frontier::before,
+    .fids-table tbody tr.flight-row.blink .flight-row-shell,
+    .fids-table tbody tr.flight-row.blink .countdown-pill{ animation:none !important; }
     .canvas-anim-fade-up,
     .canvas-anim-zoom-in,
     .canvas-anim-slide-left,

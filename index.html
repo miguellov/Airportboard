@@ -1018,7 +1018,7 @@ function renderVuelos(){
         <tr class="flight-row ${estadoClase}${airlineClass} ${extraClass}" style="--row-progress:${progreso}%">
         <td colspan="6" class="flight-row-shell">
             <div class="flight-row-bg" aria-hidden="true">
-                <div class="flight-row-fill"></div>
+                <div class="flight-row-fill"><span class="flight-row-frontier" aria-hidden="true"></span></div>
             </div>
             <div class="flight-row-grid">
                 <div class="flight-row-cell"><span class="flight-code">${escapeHtmlBoard(r.vuelo || "")}</span></div>

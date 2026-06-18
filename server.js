@@ -4,6 +4,7 @@ const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
@@ -100,6 +101,12 @@ const POLLING_MIN_SEC = 600; // 10 min
 const SYNC_SECRET = process.env.SYNC_SECRET || "POP_sync_2026_airport";
 
 const AERO_API_KEY = process.env.FA_API_KEY || "";
+
+const PANEL_JWT_SECRET =
+  process.env.PANEL_JWT_SECRET || SYNC_SECRET + "_panel_jwt_2026";
+const PANEL_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PANEL_BOOTSTRAP_USER = (process.env.PANEL_BOOTSTRAP_USER || "").trim();
+const PANEL_BOOTSTRAP_PASS = process.env.PANEL_BOOTSTRAP_PASS || "";
 
 /** Realtime Database (REST). Misma base que index.html / panel.html. */
 const RTDB_BASE_URL =
@@ -775,6 +782,303 @@ async function rtdbPatch(path, body) {
   }
 }
 
+// =========================
+// 🔐 Panel — usuarios y claves
+// =========================
+
+function normalizePanelUsername(raw) {
+  return String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
+function hashPanelPassword(password, saltHex) {
+  const salt = Buffer.from(saltHex, "hex");
+  return crypto.scryptSync(String(password), salt, 64).toString("hex");
+}
+
+function createPanelPasswordRecord(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = hashPanelPassword(password, salt);
+  return { salt, hash };
+}
+
+function verifyPanelPassword(password, record) {
+  if (!record?.salt || !record?.hash) return false;
+  const hash = hashPanelPassword(password, record.salt);
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(hash, "hex"),
+      Buffer.from(record.hash, "hex")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function panelTokenB64url(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString("base64url");
+}
+
+function signPanelToken(payload) {
+  const header = panelTokenB64url({ alg: "HS256", typ: "PANEL" });
+  const body = panelTokenB64url({
+    ...payload,
+    exp: Date.now() + PANEL_TOKEN_TTL_MS
+  });
+  const sig = crypto
+    .createHmac("sha256", PANEL_JWT_SECRET)
+    .update(`${header}.${body}`)
+    .digest("base64url");
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyPanelToken(token) {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [header, body, sig] = parts;
+  const expected = crypto
+    .createHmac("sha256", PANEL_JWT_SECRET)
+    .update(`${header}.${body}`)
+    .digest("base64url");
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  try {
+    const data = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (!data?.sub || !data?.exp || Date.now() > data.exp) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function readPanelBearer(req) {
+  const h = req.get("authorization") || "";
+  return h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+}
+
+async function rtdbDelete(path) {
+  const res = await fetch(rtdbJsonUrl(path), { method: "DELETE" });
+  if (!res.ok) {
+    const err = new Error(`RTDB DELETE ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+}
+
+async function listPanelUsers() {
+  const raw = await rtdbGet("config/panelUsers");
+  if (!raw || typeof raw !== "object") return {};
+  return raw;
+}
+
+async function getPanelUserRecord(username) {
+  const key = normalizePanelUsername(username);
+  if (!key) return null;
+  const users = await listPanelUsers();
+  return users[key] || null;
+}
+
+async function savePanelUserRecord(username, record) {
+  const key = normalizePanelUsername(username);
+  if (!key) throw new Error("usuario_invalido");
+  await rtdbPatch(`config/panelUsers/${key}`, record);
+  return key;
+}
+
+async function createPanelUser(username, password, role = "editor") {
+  const key = normalizePanelUsername(username);
+  if (!key || key.length < 2) throw new Error("usuario_invalido");
+  if (!password || String(password).length < 4) throw new Error("clave_corta");
+  const existing = await getPanelUserRecord(key);
+  if (existing) throw new Error("usuario_existe");
+  const creds = createPanelPasswordRecord(password);
+  await savePanelUserRecord(key, {
+    username: key,
+    role: role === "admin" ? "admin" : "editor",
+    salt: creds.salt,
+    hash: creds.hash,
+    createdAt: new Date().toISOString()
+  });
+  return key;
+}
+
+async function ensureBootstrapPanelUser() {
+  if (!PANEL_BOOTSTRAP_USER || !PANEL_BOOTSTRAP_PASS) return null;
+  const key = normalizePanelUsername(PANEL_BOOTSTRAP_USER);
+  if (!key) return null;
+  try {
+    const existing = await getPanelUserRecord(key);
+    const creds = createPanelPasswordRecord(PANEL_BOOTSTRAP_PASS);
+    if (existing) {
+      await savePanelUserRecord(key, {
+        ...existing,
+        username: key,
+        role: "admin",
+        salt: creds.salt,
+        hash: creds.hash,
+        updatedAt: new Date().toISOString()
+      });
+      console.log(`✓ Clave panel sincronizada: ${key}`);
+      return key;
+    }
+    const keyCreated = await createPanelUser(
+      PANEL_BOOTSTRAP_USER,
+      PANEL_BOOTSTRAP_PASS,
+      "admin"
+    );
+    console.log(`✓ Usuario panel creado: ${keyCreated} (admin)`);
+    return keyCreated;
+  } catch (e) {
+    console.log("⚠️ Bootstrap panel user:", e.message);
+    return null;
+  }
+}
+
+function requirePanelAuth(req, res, { adminOnly = false } = {}) {
+  const token = readPanelBearer(req);
+  const data = verifyPanelToken(token);
+  if (!data) {
+    res.status(401).json({ error: "No autorizado" });
+    return null;
+  }
+  if (adminOnly && data.role !== "admin") {
+    res.status(403).json({ error: "Solo administradores" });
+    return null;
+  }
+  return data;
+}
+
+app.post("/api/panel/login", async (req, res) => {
+  try {
+    await ensureBootstrapPanelUser();
+    const username = normalizePanelUsername(req.body?.username);
+    const password = String(req.body?.password || "");
+    if (!username || !password) {
+      return res.status(400).json({ error: "Faltan usuario o clave" });
+    }
+    const record = await getPanelUserRecord(username);
+    if (!record || !verifyPanelPassword(password, record)) {
+      return res.status(401).json({ error: "Usuario o clave incorrectos" });
+    }
+    const token = signPanelToken({
+      sub: record.username || username,
+      role: record.role || "editor"
+    });
+    res.json({
+      ok: true,
+      token,
+      user: {
+        username: record.username || username,
+        role: record.role || "editor"
+      },
+      expiresInDays: 7
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/panel/me", (req, res) => {
+  const data = requirePanelAuth(req, res);
+  if (!data) return;
+  res.json({
+    ok: true,
+    user: { username: data.sub, role: data.role || "editor" }
+  });
+});
+
+app.get("/api/panel/users", async (req, res) => {
+  const data = requirePanelAuth(req, res, { adminOnly: true });
+  if (!data) return;
+  try {
+    const users = await listPanelUsers();
+    const list = Object.values(users || {})
+      .filter((u) => u && u.username)
+      .map((u) => ({
+        username: u.username,
+        role: u.role || "editor",
+        createdAt: u.createdAt || null
+      }))
+      .sort((a, b) => a.username.localeCompare(b.username));
+    res.json({ ok: true, users: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/panel/users", async (req, res) => {
+  const data = requirePanelAuth(req, res, { adminOnly: true });
+  if (!data) return;
+  try {
+    const username = req.body?.username;
+    const password = String(req.body?.password || "");
+    const role = req.body?.role === "admin" ? "admin" : "editor";
+    const key = await createPanelUser(username, password, role);
+    res.json({ ok: true, username: key, role });
+  } catch (e) {
+    const code =
+      e.message === "usuario_existe"
+        ? 409
+        : e.message === "usuario_invalido" || e.message === "clave_corta"
+          ? 400
+          : 500;
+    res.status(code).json({ error: e.message });
+  }
+});
+
+app.delete("/api/panel/users/:username", async (req, res) => {
+  const data = requirePanelAuth(req, res, { adminOnly: true });
+  if (!data) return;
+  try {
+    const key = normalizePanelUsername(req.params.username);
+    if (!key) return res.status(400).json({ error: "usuario_invalido" });
+    if (key === data.sub) {
+      return res.status(400).json({ error: "no_puedes_borrarte" });
+    }
+    const record = await getPanelUserRecord(key);
+    if (!record) return res.status(404).json({ error: "no_encontrado" });
+    await rtdbDelete(`config/panelUsers/${key}`);
+    res.json({ ok: true, username: key });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch("/api/panel/users/:username/password", async (req, res) => {
+  const auth = requirePanelAuth(req, res);
+  if (!auth) return;
+  try {
+    const key = normalizePanelUsername(req.params.username);
+    const password = String(req.body?.password || "");
+    if (!key || password.length < 4) {
+      return res.status(400).json({ error: "clave_corta" });
+    }
+    if (auth.role !== "admin" && auth.sub !== key) {
+      return res.status(403).json({ error: "Solo administradores" });
+    }
+    const record = await getPanelUserRecord(key);
+    if (!record) return res.status(404).json({ error: "no_encontrado" });
+    const creds = createPanelPasswordRecord(password);
+    await savePanelUserRecord(key, {
+      ...record,
+      salt: creds.salt,
+      hash: creds.hash,
+      updatedAt: new Date().toISOString()
+    });
+    res.json({ ok: true, username: key });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /** Sync incremental Firebase desde payload FlightAware. */
 async function syncPayloadToRtdb(payload) {
   const arrByIdent = {};
@@ -1333,6 +1637,10 @@ app.use(
 
 app.listen(PORT, () => {
   console.log("🔥 Servidor corriendo en puerto " + PORT);
+  const base = (process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
+  console.log("📱 Panel:  " + base + "/panel.html");
+  console.log("📺 Tablero: " + base + "/index.html");
+  console.log("🔌 API:    " + base + "/api/health");
   if (!AERO_API_KEY || AERO_API_KEY.length < 8) {
     console.log(
       "⚠️ FlightAware NO configurada: define FA_API_KEY en .env"
@@ -1353,6 +1661,7 @@ app.listen(PORT, () => {
     ")"
   );
   void (async () => {
+    await ensureBootstrapPanelUser();
     flightSyncEnabled = await readSyncEnabledFromRtdb();
     console.log(
       flightSyncEnabled

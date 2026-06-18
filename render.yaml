@@ -1,0 +1,30 @@
+# Despliegue en Render (gratis): https://render.com
+# 1. Conecta el repo miguellov/Airportboard
+# 2. Render detecta este archivo automáticamente
+# 3. En el dashboard añade FA_API_KEY (FlightAware)
+# 4. Copia la URL (ej. https://airportboard-xxxx.onrender.com)
+# 5. Pégala en api-config.js y haz push → panel en GitHub + celular funcionan solos
+
+services:
+  - type: web
+    name: airportboard
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: AIRPORT_CODE
+        value: MDPP
+      - key: FA_API_KEY
+        sync: false
+      - key: SYNC_SECRET
+        value: POP_sync_2026_airport
+      - key: PANEL_BOOTSTRAP_USER
+        value: admin
+      - key: PANEL_BOOTSTRAP_PASS
+        sync: false
+      - key: PANEL_JWT_SECRET
+        generateValue: true

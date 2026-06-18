@@ -8,11 +8,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="panel.css">
+<script src="api-config.js"></script>
 </head>
 
 <body>
 
-<div class="panel-app">
+<div id="panelLoginGate" class="panel-login-gate">
+    <div class="panel-login-card">
+        <div class="panel-login-brand" aria-hidden="true">✈</div>
+        <h2 class="panel-login-title">POP FIDS — Acceso</h2>
+        <p class="panel-login-sub">Gregorio Luperón · Panel de control</p>
+        <label for="panelLoginUser">Usuario</label>
+        <input id="panelLoginUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="tu usuario">
+        <label for="panelLoginPass">Clave</label>
+        <input id="panelLoginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <p id="panelLoginError" class="panel-login-error" hidden></p>
+        <button type="button" id="panelLoginBtn" class="panel-login-btn">Entrar</button>
+    </div>
+</div>
+
+<div class="panel-app panel-app--locked" id="panelApp">
 
 <header class="panel-header">
     <div class="panel-header__brand">
@@ -21,6 +36,10 @@
             <h1>POP FIDS — Consola</h1>
             <p class="panel-header__sub">Gregorio Luperón · MDPP / POP</p>
         </div>
+    </div>
+    <div class="panel-header__user" id="panelUserBar" hidden>
+        <span id="panelUserLabel"></span>
+        <button type="button" class="panel-header__logout" onclick="panelLogout()">Salir</button>
     </div>
 </header>
 
@@ -143,6 +162,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     <!-- MENSAJE -->
     <div class="ticker-box">
+        <div id="panelApiSetup">
+        <div id="panelApiBanner" class="panel-api-banner" hidden>
+            <strong>⚠️ Falta el servidor online</strong>
+            <p>Despliega <code>server.js</code> en <a href="https://render.com" target="_blank" rel="noopener">Render</a> (gratis), pega la URL en <code>api-config.js</code> del repo y vuelve a abrir. O entra directo a <code>https://tu-app.onrender.com/panel.html</code>.</p>
+        </div>
+        <label>🖥️ URL del servidor API (solo si no usas api-config.js):</label>
+        <input id="panelApiUrlInput" type="url" placeholder="https://airportboard-xxxx.onrender.com">
+        <button type="button" onclick="savePanelApiUrl()">💾 Guardar URL API</button>
+        <p class="ticker-box-hint">Recomendado: servidor en Render + URL en <code>api-config.js</code> → funciona en PC, celular y GitHub Pages sin configurar cada dispositivo.</p>
+        <hr style="margin: 12px 0; border: 1px solid #334155;">
+        </div>
         <label>📢 Mensaje del Aeropuerto:</label>
         <input id="tickerInput" placeholder="Escribe mensaje...">
         <label>Duración (segundos):</label>
@@ -161,19 +191,55 @@ document.addEventListener("DOMContentLoaded", function () {
         <p class="ticker-box-hint">La TV debe tocarse una vez para activar la voz. Si la API cambia la hora, los avisos se recalculan solos.</p>
     </div>
 
-    <div class="top-buttons">
-        <button class="add" onclick="addFlight()">➕ Agregar</button>
-        <button onclick="undo()">⏪ Undo</button>
-        <button onclick="redo()">⏩ Redo</button>
-        <button onclick="changeDateFlights()">📅 Cambiar Fecha</button>
-        <button type="button" id="btnManualFlightRefresh" onclick="manualFlightRefresh()">🔄 Refresh Manual</button>
-        <button type="button" id="btnSyncPause" onclick="pauseFlightSync()" title="Pausar sync automático cada 10 min">⏸ Pausar sync</button>
-        <button type="button" id="btnSyncPlay" onclick="resumeFlightSync()" title="Reanudar sync automático">▶ Play sync</button>
-        <button onclick="setTheme('dark')">🌙</button>
-        <button onclick="setTheme('light')">🌞</button>
-        <button onclick="setTheme('airport')">✈️</button>
-        <button onclick="toggleFullScreen()">🖥️ Full</button>
-        <span id="flightRefreshStatus" class="flight-refresh-status" aria-live="polite"></span>
+    <div class="toolbar-pro top-buttons" id="flightsToolbar">
+        <div class="toolbar-pro__row">
+            <div class="toolbar-pro__group toolbar-pro__group--primary">
+                <button type="button" class="toolbar-btn toolbar-btn--primary add" onclick="addFlight()">
+                    <span class="toolbar-btn__icon" aria-hidden="true">+</span>
+                    <span class="toolbar-btn__label">Agregar</span>
+                </button>
+            </div>
+            <span class="toolbar-pro__sep" aria-hidden="true"></span>
+            <div class="toolbar-pro__group">
+                <button type="button" class="toolbar-btn toolbar-btn--ghost" onclick="undo()" title="Deshacer">
+                    <span class="toolbar-btn__icon" aria-hidden="true">↩</span>
+                    <span class="toolbar-btn__label">Undo</span>
+                </button>
+                <button type="button" class="toolbar-btn toolbar-btn--ghost" onclick="redo()" title="Rehacer">
+                    <span class="toolbar-btn__icon" aria-hidden="true">↪</span>
+                    <span class="toolbar-btn__label">Redo</span>
+                </button>
+                <button type="button" class="toolbar-btn toolbar-btn--ghost" onclick="changeDateFlights()">
+                    <span class="toolbar-btn__icon" aria-hidden="true">📅</span>
+                    <span class="toolbar-btn__label">Cambiar Fecha</span>
+                </button>
+                <button type="button" class="toolbar-btn toolbar-btn--ghost" id="btnManualFlightRefresh" onclick="manualFlightRefresh()">
+                    <span class="toolbar-btn__icon" aria-hidden="true">↻</span>
+                    <span class="toolbar-btn__label">Refresh Manual</span>
+                </button>
+            </div>
+            <span class="toolbar-pro__sep" aria-hidden="true"></span>
+            <div class="toolbar-pro__group toolbar-pro__group--sync">
+                <button type="button" class="toolbar-btn toolbar-btn--sync" id="btnSyncPause" onclick="pauseFlightSync()" title="Pausar sync automático cada 10 min">
+                    <span class="toolbar-btn__icon" aria-hidden="true">⏸</span>
+                    <span class="toolbar-btn__label">Pausar sync</span>
+                </button>
+                <button type="button" class="toolbar-btn toolbar-btn--sync toolbar-btn--sync-play" id="btnSyncPlay" onclick="resumeFlightSync()" title="Reanudar sync automático">
+                    <span class="toolbar-btn__icon" aria-hidden="true">▶</span>
+                    <span class="toolbar-btn__label">Play sync</span>
+                </button>
+            </div>
+            <span class="toolbar-pro__sep" aria-hidden="true"></span>
+            <div class="toolbar-pro__group toolbar-pro__group--icon">
+                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('dark')" title="Tema oscuro">🌙</button>
+                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('light')" title="Tema claro">🌞</button>
+                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('airport')" title="Tema aeropuerto">✈️</button>
+                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="toggleFullScreen()" title="Pantalla completa">🖥️</button>
+            </div>
+        </div>
+        <div class="toolbar-pro__status-wrap">
+            <span id="flightRefreshStatus" class="flight-refresh-status toolbar-pro__status" aria-live="polite"></span>
+        </div>
     </div>
 
     <br>
@@ -637,6 +703,27 @@ document.addEventListener("DOMContentLoaded", function () {
         </label>
         <button onclick="saveConfig()">💾 Guardar</button>
 
+    </div>
+
+    <div class="card-anuncio" id="panelUsersCard" hidden>
+        <h3>👤 Usuarios del panel</h3>
+        <p class="ticker-box-hint">Solo administradores. Las claves se guardan cifradas en Firebase.</p>
+
+        <ul id="panelUsersList" class="panel-users-list"></ul>
+
+        <hr style="margin: 15px 0; border: 1px solid #334155;">
+        <h4>Nuevo usuario</h4>
+        <label>Usuario:</label>
+        <input id="panelNewUsername" type="text" autocomplete="off" autocapitalize="none" placeholder="ej. operaciones">
+        <label>Clave (mín. 4 caracteres):</label>
+        <input id="panelNewPassword" type="password" autocomplete="new-password">
+        <label>Rol:</label>
+        <select id="panelNewRole">
+            <option value="editor">Editor</option>
+            <option value="admin">Administrador</option>
+        </select>
+        <button type="button" onclick="panelCreateUser()">➕ Crear usuario</button>
+        <p id="panelUsersMsg" class="panel-users-msg"></p>
     </div>
 
 </div>
@@ -3510,9 +3597,14 @@ window.manualFlightRefresh = async () => {
     btn.disabled = true;
     statusEl.style.color = "#7dd3fc";
     statusEl.textContent = "Actualizando...";
-    const apiBase = resolvePanelApiBase();
-    const url =
-        apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
+    const apiBase = getPanelApiBase();
+    if(!apiBase){
+        statusEl.style.color = "#f87171";
+        statusEl.textContent = "❌ Configura la URL del servidor API arriba";
+        finish();
+        return;
+    }
+    const url = apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
     const finish = () => {
         btn.disabled = false;
         flightRefreshToastTimer = setTimeout(() => {
@@ -3555,7 +3647,7 @@ window.manualFlightRefresh = async () => {
         statusEl.style.color = "#f87171";
         const net = e && /failed to fetch/i.test(String(e.message || e));
         statusEl.textContent = net
-            ? `❌ Servidor apagado — ejecuta npm start (${panelApiBase})`
+            ? `❌ Sin servidor en ${apiBase} — ${panelApiErrorHint()}`
             : "❌ Error al actualizar";
     } finally {
         finish();
@@ -3605,35 +3697,140 @@ function convertirHora24(horaCadena) {
     return `${String(horas).padStart(2, "0")}:${minutos}`;
 }
 
-function resolvePanelApiBase() {
-    const fromParam = new URLSearchParams(location.search).get("api");
-    if (fromParam) return String(fromParam).replace(/\/+$/, "");
-    try {
-        const stored = localStorage.getItem("panelApiBase");
-        if (stored) return String(stored).replace(/\/+$/, "");
-    } catch (_) {}
-    if (location.protocol === "file:") return "http://localhost:4000";
-    const port = location.port || (location.protocol === "https:" ? "443" : "80");
-    if (port === "4000") return location.origin;
-    const host = location.hostname || "localhost";
-    return `http://${host}:4000`;
+function isStaticPanelHost(hostname){
+    const h = String(hostname || "").toLowerCase();
+    return h.endsWith(".github.io") || h.endsWith(".gitlab.io") || h.endsWith(".netlify.app") || h.endsWith(".vercel.app");
 }
 
-const panelApiBase = resolvePanelApiBase();
-const FLIGHTS_API_URL = panelApiBase + "/flights";
+function isLocalDevHost(hostname){
+    const h = String(hostname || "").toLowerCase();
+    return h === "localhost" || h === "127.0.0.1" || h === "[::1]";
+}
+
+function normalizePanelApiUrl(raw){
+    let url = String(raw || "").trim().replace(/\/+$/, "");
+    if(!url) return "";
+    if(!/^https?:\/\//i.test(url)) url = "http://" + url;
+    return url;
+}
+
+function applyPanelApiFromQuery(){
+    const params = new URLSearchParams(location.search);
+    const fromParam = params.get("api");
+    if(!fromParam) return;
+    const url = normalizePanelApiUrl(fromParam);
+    if(!url) return;
+    try{ localStorage.setItem("panelApiBase", url); }catch(_){}
+    params.delete("api");
+    const qs = params.toString();
+    const clean = location.pathname + (qs ? "?" + qs : "") + location.hash;
+    history.replaceState(null, "", clean);
+}
+
+function resolvePanelApiBase(){
+    const fromParam = new URLSearchParams(location.search).get("api");
+    if(fromParam) return normalizePanelApiUrl(fromParam);
+    /* Como antes: si entras por server.js, la API es la misma URL sin configurar nada */
+    if(location.protocol !== "file:" && String(location.port) === "4000"){
+        return location.origin;
+    }
+    if(location.protocol === "file:") return "http://localhost:4000";
+    if(isLocalDevHost(location.hostname)) return `http://${location.hostname}:4000`;
+    try{
+        const stored = localStorage.getItem("panelApiBase");
+        if(stored) return normalizePanelApiUrl(stored);
+    }catch(_){}
+    const cfg = typeof window.AIRPORT_BOARD_API === "string" ? window.AIRPORT_BOARD_API.trim() : "";
+    if(cfg) return cfg.replace(/\/+$/, "");
+    if(isStaticPanelHost(location.hostname)) return "";
+    return `http://${location.hostname}:4000`;
+}
+
+function isPanelApiSetupNeeded(){
+    if(location.protocol !== "file:" && String(location.port) === "4000") return false;
+    if(isLocalDevHost(location.hostname) && !isStaticPanelHost(location.hostname)) return false;
+    return !getPanelApiBase();
+}
+
+function getPanelApiBase(){
+    return resolvePanelApiBase();
+}
+
+function panelApiFlightsUrl(){
+    const b = getPanelApiBase();
+    return b ? `${b}/flights` : "";
+}
+
+function panelApiRefreshUrl(){
+    const b = getPanelApiBase();
+    return b ? `${b}/api/flights/refresh?secret=${FLIGHTS_SYNC_SECRET}` : "";
+}
+
+function panelApiSyncStateUrl(){
+    const b = getPanelApiBase();
+    return b ? `${b}/api/flights/sync-state` : "";
+}
+
+function panelApiHealthUrl(){
+    const b = getPanelApiBase();
+    return b ? `${b}/api/health` : "";
+}
+
+function panelApiErrorHint(){
+    if(isStaticPanelHost(location.hostname)){
+        return "Despliega server.js en Render, pon la URL en api-config.js, o guarda la URL arriba una vez en este navegador.";
+    }
+    return "Ejecuta npm start (local) o usa tu URL de Render en api-config.js";
+}
+
+function syncPanelApiUrlUi(){
+    const setup = document.getElementById("panelApiSetup");
+    const input = document.getElementById("panelApiUrlInput");
+    const banner = document.getElementById("panelApiBanner");
+    const base = getPanelApiBase();
+    if(setup) setup.hidden = !isPanelApiSetupNeeded();
+    if(input) input.value = base || "";
+    if(banner){
+        const show = isStaticPanelHost(location.hostname) && !base;
+        banner.hidden = !show;
+    }
+}
+
+window.savePanelApiUrl = () => {
+    const input = document.getElementById("panelApiUrlInput");
+    if(!input) return;
+    const url = normalizePanelApiUrl(input.value);
+    if(!url){
+        alert("Pega la URL de tu servidor Node.\n\nEjemplo local: http://localhost:4000\nEjemplo nube: https://tu-app.onrender.com");
+        return;
+    }
+    try{
+        localStorage.setItem("panelApiBase", url);
+    }catch(_){}
+    location.reload();
+};
+
 const FLIGHTS_SYNC_SECRET = "POP_sync_2026_airport";
-const FLIGHTS_REFRESH_URL =
-    panelApiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
-const FLIGHTS_SYNC_STATE_URL = panelApiBase + "/api/flights/sync-state";
-const FLIGHTS_LOCAL_URL = FLIGHTS_API_URL;
+applyPanelApiFromQuery();
+syncPanelApiUrlUi();
 
 async function refreshSyncControlUI() {
     const pauseBtn = document.getElementById("btnSyncPause");
     const playBtn = document.getElementById("btnSyncPlay");
     const statusEl = document.getElementById("flightRefreshStatus");
     if (!pauseBtn || !playBtn) return;
+    const syncUrl = panelApiSyncStateUrl();
+    if(!syncUrl){
+        if(statusEl){
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "❌ Configura la URL del servidor API";
+        }
+        pauseBtn.disabled = false;
+        playBtn.disabled = false;
+        return;
+    }
     try {
-        const res = await fetch(FLIGHTS_SYNC_STATE_URL);
+        const res = await fetch(syncUrl);
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         const enabled = Boolean(data.enabled);
@@ -3651,7 +3848,9 @@ async function refreshSyncControlUI() {
     } catch (_) {
         statusEl.style.color = "#f87171";
         statusEl.textContent =
-            `❌ Sin servidor en ${panelApiBase} — ejecuta npm start`;
+            getPanelApiBase()
+                ? `❌ Sin servidor en ${getPanelApiBase()}`
+                : "❌ Configura la URL del servidor API";
         pauseBtn.disabled = false;
         playBtn.disabled = false;
     }
@@ -3669,7 +3868,7 @@ async function setFlightSyncEnabled(enabled) {
     }
     try {
         const res = await fetch(
-            FLIGHTS_SYNC_STATE_URL +
+            panelApiSyncStateUrl() +
                 "?secret=" +
                 encodeURIComponent(FLIGHTS_SYNC_SECRET) +
                 "&enabled=" +
@@ -3699,7 +3898,13 @@ async function showFlightApiStatus() {
     const statusEl = document.getElementById("flightRefreshStatus");
     if (!statusEl) return;
     try {
-        const res = await fetch(panelApiBase + "/api/health");
+        const healthUrl = panelApiHealthUrl();
+        if(!healthUrl){
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "❌ Configura la URL del servidor API arriba";
+            return;
+        }
+        const res = await fetch(healthUrl);
         if (!res.ok) return;
         const h = await res.json();
         if (h.flightaware) {
@@ -3707,12 +3912,14 @@ async function showFlightApiStatus() {
         } else {
             statusEl.style.color = "#fbbf24";
             statusEl.textContent =
-                `⚠️ FlightAware: añade FA_API_KEY en .env (${panelApiBase})`;
+                `⚠️ FlightAware: añade FA_API_KEY en .env (${getPanelApiBase()})`;
         }
     } catch (_) {
         statusEl.style.color = "#f87171";
         statusEl.textContent =
-            `❌ Sin servidor en ${panelApiBase} — ejecuta npm start`;
+            getPanelApiBase()
+                ? `❌ Sin servidor en ${getPanelApiBase()}`
+                : "❌ Configura la URL del servidor API";
     }
 }
 showFlightApiStatus();
@@ -3984,19 +4191,22 @@ function findDepartureForVueloField(salidas, raw) {
 }
 
 async function fetchFlightsJsonAfterRefresh() {
-    try {
-        const res = await fetch(FLIGHTS_LOCAL_URL);
-        if (res.ok) {
-            const j = await res.json();
-            if (
-                j &&
-                (Array.isArray(j.llegadas) || Array.isArray(j.salidas))
-            ) {
-                return j;
+    const localUrl = panelApiFlightsUrl();
+    if(localUrl){
+        try {
+            const res = await fetch(localUrl);
+            if (res.ok) {
+                const j = await res.json();
+                if (
+                    j &&
+                    (Array.isArray(j.llegadas) || Array.isArray(j.salidas))
+                ) {
+                    return j;
+                }
             }
-        }
-    } catch (e) {}
-    const res = await fetch(FLIGHTS_API_URL);
+        } catch (e) {}
+    }
+    const res = await fetch(panelApiFlightsUrl());
     if (!res.ok) throw new Error("flights fetch failed");
     return res.json();
 }
@@ -4039,7 +4249,7 @@ window.buscarDatosVueloTarjeta = async (index) => {
         msg.style.color = "";
     }
     try {
-        await fetch(FLIGHTS_REFRESH_URL, { method: "GET" });
+        await fetch(panelApiRefreshUrl(), { method: "GET" });
         const j = await fetchFlightsJsonAfterRefresh();
         const arr = findArrivalForVueloField(j.llegadas, raw);
         const dep = findDepartureForVueloField(j.salidas, raw);
@@ -4112,16 +4322,20 @@ function escapeDataAttr(s) {
 }
 
 async function fetchFlightsPayload() {
+    const apiUrl = panelApiFlightsUrl();
+    if(!apiUrl){
+        throw new Error("Configura la URL del servidor API en el panel.");
+    }
     let res;
     try {
-        res = await fetch(FLIGHTS_API_URL);
+        res = await fetch(apiUrl);
     } catch (e) {
         throw new Error(
-            `Sin conexión con ${FLIGHTS_API_URL}. Abre el panel en ${panelApiBase}/panel.html y ejecuta: npm start`
+            `Sin conexión con ${apiUrl}. ${panelApiErrorHint()}`
         );
     }
     if (!res.ok) {
-        throw new Error(`HTTP ${res.status} en ${FLIGHTS_API_URL}`);
+        throw new Error(`HTTP ${res.status} en ${apiUrl}`);
     }
     const data = await res.json();
     if (data.error) {
@@ -4132,10 +4346,10 @@ async function fetchFlightsPayload() {
 
 function flightApiErrorHtml(err) {
     const raw = err && err.message ? err.message : "fallo de red";
-    const isNetwork = /failed to fetch|sin conexión|network/i.test(raw);
+    const isNetwork = /failed to fetch|sin conexión|network|configura la url/i.test(raw);
     const hint = isNetwork
-        ? `Servidor apagado o URL incorrecta. En la carpeta del proyecto ejecuta <code>npm start</code> (puerto 4000) y abre <code>${escapeDataAttr(panelApiBase)}/panel.html</code>.`
-        : `Revisa <code>FA_API_KEY</code> en .env o usa vuelos guardados en Firebase.`;
+        ? panelApiErrorHint()
+        : `Revisa FA_API_KEY en .env o usa vuelos guardados en Firebase.`;
     return `<div class="results-row results-empty">Error al consultar la API (${escapeDataAttr(raw)}). ${hint}</div>`;
 }
 
@@ -4300,7 +4514,256 @@ onValue(configRef, (snap) => {
 cargarCumpleañeros();
 cargarAnunciosActivos();
 
+const PANEL_AUTH_KEY = "panelAuthToken";
+let panelCurrentUser = null;
+
+function panelAuthApiUrl(path) {
+    const base = typeof getPanelApiBase === "function" ? getPanelApiBase() : "";
+    return base ? base.replace(/\/+$/, "") + path : "";
+}
+
+function panelAuthHeaders() {
+    try {
+        const t = sessionStorage.getItem(PANEL_AUTH_KEY);
+        return t ? { Authorization: "Bearer " + t, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+    } catch (_) {
+        return { "Content-Type": "application/json" };
+    }
+}
+
+function setPanelLoginError(msg) {
+    const el = document.getElementById("panelLoginError");
+    if (!el) return;
+    if (msg) {
+        el.textContent = msg;
+        el.hidden = false;
+    } else {
+        el.textContent = "";
+        el.hidden = true;
+    }
+}
+
+function unlockPanelApp(user) {
+    panelCurrentUser = user || null;
+    const gate = document.getElementById("panelLoginGate");
+    const app = document.getElementById("panelApp");
+    const bar = document.getElementById("panelUserBar");
+    const label = document.getElementById("panelUserLabel");
+    const usersCard = document.getElementById("panelUsersCard");
+    if (gate) gate.hidden = true;
+    if (app) app.classList.remove("panel-app--locked");
+    if (bar && user) {
+        bar.hidden = false;
+        if (label) {
+            label.textContent = user.username + (user.role === "admin" ? " · admin" : "");
+        }
+    }
+    if (usersCard) usersCard.hidden = !(user && user.role === "admin");
+    if (user && user.role === "admin") void panelLoadUsers();
+}
+
+function lockPanelApp() {
+    panelCurrentUser = null;
+    try { sessionStorage.removeItem(PANEL_AUTH_KEY); } catch (_) {}
+    const gate = document.getElementById("panelLoginGate");
+    const app = document.getElementById("panelApp");
+    const bar = document.getElementById("panelUserBar");
+    const usersCard = document.getElementById("panelUsersCard");
+    if (gate) gate.hidden = false;
+    if (app) app.classList.add("panel-app--locked");
+    if (bar) bar.hidden = true;
+    if (usersCard) usersCard.hidden = true;
+    setPanelLoginError("");
+}
+
+async function panelValidateSession() {
+    const url = panelAuthApiUrl("/api/panel/me");
+    if (!url) return false;
+    try {
+        const t = sessionStorage.getItem(PANEL_AUTH_KEY);
+        if (!t) return false;
+        const res = await fetch(url, { headers: panelAuthHeaders() });
+        if (!res.ok) return false;
+        const data = await res.json();
+        if (!data?.user?.username) return false;
+        unlockPanelApp(data.user);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function panelLogin() {
+    const userEl = document.getElementById("panelLoginUser");
+    const passEl = document.getElementById("panelLoginPass");
+    const btn = document.getElementById("panelLoginBtn");
+    const username = (userEl?.value || "").trim();
+    const password = passEl?.value || "";
+    if (!username || !password) {
+        setPanelLoginError("Escribe usuario y clave.");
+        return;
+    }
+    const url = panelAuthApiUrl("/api/panel/login");
+    if (!url) {
+        setPanelLoginError("Sin servidor API. Configura api-config.js o la URL del servidor.");
+        return;
+    }
+    if (btn) btn.disabled = true;
+    setPanelLoginError("");
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            let msg = data.error || "No se pudo iniciar sesión.";
+            if (res.status === 404) {
+                msg = "El servidor no tiene login aún. Reinicia con npm start o espera el deploy en Render.";
+            } else if (data.error === "Usuario o clave incorrectos") {
+                msg = "Usuario o clave incorrectos.";
+            }
+            setPanelLoginError(msg);
+            return;
+        }
+        sessionStorage.setItem(PANEL_AUTH_KEY, data.token);
+        if (passEl) passEl.value = "";
+        unlockPanelApp(data.user);
+        showTab("flightsTab");
+    } catch (_) {
+        setPanelLoginError("Sin conexión con el servidor. Espera unos segundos si Render estaba dormido.");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+window.panelLogout = () => {
+    lockPanelApp();
+    const userEl = document.getElementById("panelLoginUser");
+    if (userEl) userEl.focus();
+};
+
+async function panelLoadUsers() {
+    const list = document.getElementById("panelUsersList");
+    const msg = document.getElementById("panelUsersMsg");
+    if (!list) return;
+    const url = panelAuthApiUrl("/api/panel/users");
+    if (!url) return;
+    try {
+        const res = await fetch(url, { headers: panelAuthHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "error");
+        list.innerHTML = "";
+        (data.users || []).forEach((u) => {
+            const li = document.createElement("li");
+            li.className = "panel-users-item";
+            li.innerHTML =
+                `<span><strong>${escapeHtml(u.username)}</strong> · ${u.role === "admin" ? "Admin" : "Editor"}</span>` +
+                `<span class="panel-users-actions">` +
+                `<button type="button" onclick="panelResetUserPassword('${escapeHtml(u.username)}')">🔑 Clave</button>` +
+                (u.username !== panelCurrentUser?.username
+                    ? `<button type="button" class="panel-users-del" onclick="panelDeleteUser('${escapeHtml(u.username)}')">🗑</button>`
+                    : "") +
+                `</span>`;
+            list.appendChild(li);
+        });
+        if (msg) msg.textContent = "";
+    } catch (e) {
+        if (msg) msg.textContent = "No se pudo cargar usuarios.";
+    }
+}
+
+function escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+}
+
+window.panelCreateUser = async () => {
+    const msg = document.getElementById("panelUsersMsg");
+    const username = (document.getElementById("panelNewUsername")?.value || "").trim();
+    const password = document.getElementById("panelNewPassword")?.value || "";
+    const role = document.getElementById("panelNewRole")?.value || "editor";
+    if (!username || password.length < 4) {
+        if (msg) msg.textContent = "Usuario y clave (mín. 4) requeridos.";
+        return;
+    }
+    try {
+        const res = await fetch(panelAuthApiUrl("/api/panel/users"), {
+            method: "POST",
+            headers: panelAuthHeaders(),
+            body: JSON.stringify({ username, password, role })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "error");
+        document.getElementById("panelNewUsername").value = "";
+        document.getElementById("panelNewPassword").value = "";
+        if (msg) msg.textContent = "✓ Usuario " + data.username + " creado.";
+        await panelLoadUsers();
+    } catch (e) {
+        if (msg) msg.textContent = e.message === "usuario_existe" ? "Ese usuario ya existe." : "Error al crear usuario.";
+    }
+};
+
+window.panelDeleteUser = async (username) => {
+    if (!confirm("¿Eliminar usuario " + username + "?")) return;
+    const res = await fetch(panelAuthApiUrl("/api/panel/users/" + encodeURIComponent(username)), {
+        method: "DELETE",
+        headers: panelAuthHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        alert(data.error || "No se pudo eliminar");
+        return;
+    }
+    await panelLoadUsers();
+};
+
+window.panelResetUserPassword = async (username) => {
+    const password = prompt("Nueva clave para " + username + " (mín. 4 caracteres):");
+    if (!password) return;
+    if (password.length < 4) {
+        alert("La clave debe tener al menos 4 caracteres.");
+        return;
+    }
+    const res = await fetch(panelAuthApiUrl("/api/panel/users/" + encodeURIComponent(username) + "/password"), {
+        method: "PATCH",
+        headers: panelAuthHeaders(),
+        body: JSON.stringify({ password })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        alert(data.error || "No se pudo cambiar la clave");
+        return;
+    }
+    alert("Clave actualizada para " + username);
+};
+
+async function initPanelAuth() {
+    lockPanelApp();
+    const loginBtn = document.getElementById("panelLoginBtn");
+    const passEl = document.getElementById("panelLoginPass");
+    if (loginBtn) loginBtn.addEventListener("click", panelLogin);
+    if (passEl) {
+        passEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") panelLogin();
+        });
+    }
+    const ok = await panelValidateSession();
+    if (ok) {
+        showTab("flightsTab");
+    } else {
+        const userEl = document.getElementById("panelLoginUser");
+        if (userEl) userEl.focus();
+    }
+}
+
+void initPanelAuth();
+
 window.onload = () => {
+    if (document.getElementById("panelApp")?.classList.contains("panel-app--locked")) return;
     showTab("flightsTab");
     cambiarTipoAnuncio();
     renderCanvasPreview();

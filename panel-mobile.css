@@ -1,0 +1,360 @@
+/* ═══ POP FIDS — Modo app nativa (WebView Samsung) ═══ */
+html.panel-native-root {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.panel-native-app {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  overscroll-behavior-y: contain;
+  background: #050508;
+}
+
+body.panel-native-app .panel-app {
+  max-width: 100%;
+  padding: 0.5rem 0.85rem 1rem;
+}
+
+/* Header compacto tipo app */
+body.panel-native-app .panel-header {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.5rem;
+  border-bottom: none;
+  background: linear-gradient(180deg, rgba(17, 17, 24, 0.95), transparent);
+}
+
+body.panel-native-app .panel-header h1 {
+  font-size: 1.05rem;
+}
+
+body.panel-native-app .panel-header__sub {
+  font-size: 0.65rem;
+}
+
+body.panel-native-app .panel-header__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1rem;
+}
+
+body.panel-native-app .panel-header__logout {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+/* Ocultar tabs desktop y vista previa TV */
+body.panel-native-app .tabs,
+body.panel-native-app #boardPreviewCard {
+  display: none !important;
+}
+
+/* Login pantalla completa */
+body.panel-native-app .panel-login-gate {
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem 2rem;
+}
+
+body.panel-native-app .panel-login-card {
+  max-width: 100%;
+  border-radius: 20px;
+  padding: 2rem 1.35rem;
+}
+
+body.panel-native-app .panel-login-card input {
+  font-size: 16px;
+  min-height: 3rem;
+  border-radius: 12px;
+}
+
+body.panel-native-app .panel-login-btn {
+  min-height: 3rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #1ff3ff, #06b6d4);
+  color: #042f2e;
+  border: none;
+  font-weight: 800;
+}
+
+/* Bottom navigation — estilo Play Store / Material */
+.panel-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200000;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 0.15rem;
+  padding: 0.35rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(9, 9, 11, 0.96);
+  border-top: 1px solid rgba(31, 243, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.panel-bottom-nav[hidden] {
+  display: none !important;
+}
+
+.panel-bottom-nav__btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 3.25rem;
+  max-width: 5.5rem;
+  padding: 0.35rem 0.25rem;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: #71717a;
+  font-family: var(--font);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.panel-bottom-nav__icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.panel-bottom-nav__btn.is-active {
+  color: #1ff3ff;
+  background: rgba(31, 243, 255, 0.1);
+}
+
+.panel-bottom-nav__btn:active {
+  transform: scale(0.96);
+}
+
+/* FAB agregar vuelo */
+.panel-fab {
+  position: fixed;
+  right: 1.1rem;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 200001;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #1ff3ff, #0891b2);
+  color: #042f2e;
+  font-size: 1.75rem;
+  font-weight: 300;
+  line-height: 1;
+  box-shadow:
+    0 6px 24px rgba(31, 243, 255, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel-fab[hidden] {
+  display: none !important;
+}
+
+.panel-fab:active {
+  transform: scale(0.92);
+}
+
+/* Toolbar vuelos — chips táctiles */
+body.panel-native-app .toolbar-pro {
+  border-radius: 16px;
+  padding: 0.55rem 0.5rem 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+body.panel-native-app .toolbar-pro__row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+
+body.panel-native-app .toolbar-pro__row::-webkit-scrollbar {
+  display: none;
+}
+
+body.panel-native-app .toolbar-pro__sep {
+  display: none;
+}
+
+body.panel-native-app .toolbar-pro__group {
+  flex-shrink: 0;
+}
+
+body.panel-native-app .toolbar-btn {
+  min-height: 2.65rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+body.panel-native-app .toolbar-btn--icon {
+  min-width: 2.65rem;
+  width: 2.65rem;
+}
+
+body.panel-native-app #flightsTab > .toolbar-pro {
+  position: static;
+  backdrop-filter: none;
+}
+
+/* Config ticker — acordeón */
+body.panel-native-app .ticker-box {
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  background: rgba(17, 17, 24, 0.85);
+  border: 1px solid rgba(31, 243, 255, 0.1);
+}
+
+body.panel-native-app .ticker-box-hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+body.panel-native-app .ticker-box input,
+body.panel-native-app .ticker-box select,
+body.panel-native-app input,
+body.panel-native-app select,
+body.panel-native-app textarea {
+  font-size: 16px !important;
+  min-height: 2.75rem;
+  border-radius: 12px;
+}
+
+body.panel-native-app button:not(.panel-bottom-nav__btn):not(.panel-fab) {
+  min-height: 2.75rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+
+/* Tarjetas de vuelo — estilo app */
+body.panel-native-app #panel .card {
+  border-radius: 18px;
+  padding: 1rem 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  background: linear-gradient(165deg, rgba(17, 17, 24, 0.98), rgba(9, 9, 11, 0.95));
+  border: 1px solid rgba(31, 243, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.panel-native-app .api-search-hint {
+  font-size: 0.72rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(31, 243, 255, 0.06);
+  margin-bottom: 0.65rem;
+}
+
+body.panel-native-app .fld-label {
+  font-size: 0.72rem;
+  margin-top: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+body.panel-native-app .btn-buscar-vuelo {
+  width: 100%;
+  margin-top: 0.5rem;
+  min-height: 2.85rem;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.08));
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+}
+
+body.panel-native-app .btn-row {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.65rem 0;
+}
+
+body.panel-native-app .btn-row button {
+  flex: 1;
+  min-height: 3rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: 12px;
+}
+
+body.panel-native-app .flight-arr-block {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.panel-native-app .results-row {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+}
+
+/* Posiciones / anuncios */
+body.panel-native-app .positions-hero,
+body.panel-native-app .anuncios-hero {
+  text-align: left;
+  padding: 0.5rem 0;
+}
+
+body.panel-native-app .positions-hero h2,
+body.panel-native-app .anuncios-hero h2 {
+  text-align: left;
+  font-size: 1.2rem;
+}
+
+body.panel-native-app .card-anuncio,
+body.panel-native-app .card-positions {
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+body.panel-native-app .anuncios-layout {
+  grid-template-columns: 1fr !important;
+}
+
+body.panel-native-app .top-buttons {
+  display: none;
+}
+
+/* Status sync pill */
+body.panel-native-app .toolbar-pro__status-wrap {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+}
+
+body.panel-native-app .toolbar-pro__status {
+  font-size: 0.7rem;
+  padding: 0.35rem 0.85rem;
+}
+
+/* Ocultar FAB fuera de vuelos */
+body.panel-native-app[data-active-tab="positionsTab"] .panel-fab,
+body.panel-native-app[data-active-tab="anunciosTab"] .panel-fab,
+body.panel-native-app[data-active-tab="configTab"] .panel-fab {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-fab:active,
+  .panel-bottom-nav__btn:active {
+    transform: none;
+  }
+}

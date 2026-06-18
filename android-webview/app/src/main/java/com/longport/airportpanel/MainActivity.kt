@@ -15,6 +15,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.isVisible
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebViewCompat.setAlgorithmicDarkeningAllowed(webView, true)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, true)
         }
 
         webView.webChromeClient = object : WebChromeClient() {

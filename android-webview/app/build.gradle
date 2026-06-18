@@ -13,11 +13,21 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0.0"
-        buildConfigField "String", "PANEL_URL", "\"https://airportboard.onrender.com/panel.html\""
+        buildConfigField "String", "PANEL_URL", "\"https://airportboard.onrender.com/panel.html?app=1\""
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('my-release-key.jks')
+            storePassword 'password_del_keystore'
+            keyAlias 'alias_de_la_llave'
+            keyPassword 'password_de_la_llave'
+        }
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -44,4 +54,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.core:core-splashscreen:1.0.1'
     implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 }

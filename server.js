@@ -257,6 +257,76 @@ function normalizeIdent(v) {
     .replace(/\s+/g, "");
 }
 
+const CARRIER_PREFIX_ALIASES = {
+  B6: ["B6", "JBU"],
+  JBU: ["B6", "JBU"],
+  WS: ["WS", "WJA", "WEN"],
+  WJA: ["WS", "WJA", "WEN"],
+  WEN: ["WS", "WJA", "WEN"]
+};
+
+function flightIdentPrefix(ident) {
+  const n = normalizeIdent(ident);
+  const m = n.match(/^([A-Z]+)(\d+)$/);
+  return m ? m[1] : n.replace(/\d+$/, "");
+}
+
+function flightIdentDigits(ident) {
+  const m = normalizeIdent(ident).match(/(\d+)$/);
+  return m ? m[1] : "";
+}
+
+/** Candidatos B6627, JBU627, etc. para cruzar panel ↔ FlightAware. */
+function flightIdentCandidates(raw) {
+  const out = new Set();
+  const add = (part) => {
+    const n = normalizeIdent(part);
+    if (!n) return;
+    out.add(n);
+    const m = n.match(/^([A-Z]+)(\d+)$/);
+    if (m) {
+      const prefs = CARRIER_PREFIX_ALIASES[m[1]] || [m[1]];
+      prefs.forEach((p) => out.add(p + m[2]));
+    }
+    const digits = flightIdentDigits(n);
+    if (digits) {
+      ["B6", "JBU", "WS", "WJA", "WEN"].forEach((p) => out.add(p + digits));
+    }
+  };
+  const s = String(raw || "").trim();
+  if (!s) return [];
+  add(s);
+  const dual = splitBoardVuelo(s);
+  add(dual.arr);
+  add(dual.dep);
+  return [...out];
+}
+
+function buildApiFlightLookup(flights) {
+  const map = {};
+  for (const f of flights || []) {
+    const id = normalizeIdent(f.vuelo);
+    if (!id) continue;
+    for (const cand of flightIdentCandidates(id)) {
+      if (!map[cand]) map[cand] = f;
+    }
+  }
+  return map;
+}
+
+function resolveApiFlight(lookup, rawIdent) {
+  if (!lookup || !rawIdent) return null;
+  for (const cand of flightIdentCandidates(rawIdent)) {
+    if (lookup[cand]) return lookup[cand];
+  }
+  const digits = flightIdentDigits(rawIdent);
+  if (!digits) return null;
+  for (const key of Object.keys(lookup)) {
+    if (flightIdentDigits(key) === digits) return lookup[key];
+  }
+  return null;
+}
+
 /** Misma lógica que index.html: no pisar estado operativo manual desde el panel */
 function isEstadoStaffLocked(estado) {
   const n = (estado || "")
@@ -453,6 +523,8 @@ async function buildFlightsPayloadFlightAware() {
     const schedIn = f.scheduled_on || f.scheduled_in;
     const { hora: horaLlegadaPop, fuente: llegadaFuente } = calcularLlegadaAero(f);
     const llegadaProgramada = formatHora(schedIn);
+    const llegadaEstimada = formatHora(f.estimated_on || f.estimated_in);
+    const estadoApi = mapAeroArrivalEstado(f);
     const dateAnchor = dateStrFromAeroIso(schedIn || f.scheduled_out);
     return {
       vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
@@ -461,7 +533,7 @@ async function buildFlightsPayloadFlightAware() {
       llegada: horaLlegadaPop,
       llegadaFuente,
       llegadaProgramada,
-      llegadaEstimada: "",
+      llegadaEstimada,
       llegadaReal: formatHora(f.actual_on || f.actual_in),
       salidaOrigen: formatHora(
         f.actual_off || f.estimated_off || f.scheduled_off ||
@@ -469,7 +541,8 @@ async function buildFlightsPayloadFlightAware() {
       ),
       salida: "",
       gate: f.gate_destination || "",
-      estado: mapAeroArrivalEstado(f),
+      estado: estadoApi,
+      enRuta: estadoApi === "EN ROUTE",
       retraso: retrasoMinutosDesdeHHMM(
         horaLlegadaPop,
         llegadaProgramada,
@@ -506,21 +579,37 @@ async function buildFlightsPayloadLive() {
 
 /** GET /flights: API en vivo, o Firebase si la API falla */
 async function buildFlightsPayload() {
+  const fetchedAt = new Date().toISOString();
   if (!AERO_API_KEY || AERO_API_KEY.length < 8) {
     const fb = await buildFlightsPayloadFromFirebase();
     return {
       ...fb,
       fallback: true,
+      live: false,
+      fetchedAt,
       apiError: "FA_API_KEY no configurada en el servidor"
     };
   }
   try {
-    return await buildFlightsPayloadLive();
+    const live = await buildFlightsPayloadLive();
+    return {
+      ...live,
+      fallback: false,
+      live: true,
+      fetchedAt,
+      apiError: null
+    };
   } catch (e) {
     console.log("⚠️ API en vivo no disponible, usando Firebase:", e.message);
     const fb = await buildFlightsPayloadFromFirebase();
     if (fb.llegadas.length || fb.salidas.length) {
-      return { ...fb, fallback: true, apiError: e.message };
+      return {
+        ...fb,
+        fallback: true,
+        live: false,
+        fetchedAt,
+        apiError: e.message
+      };
     }
     throw e;
   }
@@ -686,6 +775,8 @@ app.get("/flights", async (req, res) => {
       llegadas: payload.llegadas,
       source: payload.source || "live",
       fallback: Boolean(payload.fallback),
+      live: Boolean(payload.live),
+      fetchedAt: payload.fetchedAt || new Date().toISOString(),
       apiError: payload.apiError || null,
       date: payload.date || null
     });
@@ -732,7 +823,11 @@ app.get("/api/health", async (req, res) => {
 app.get("/api/flights/sync-state", async (_req, res) => {
   try {
     const pollingSec = await readPollingIntervalSec();
-    res.json({ enabled: flightSyncEnabled, pollingSec });
+    res.json({
+      enabled: flightSyncEnabled,
+      pollingSec,
+      flightaware: Boolean(AERO_API_KEY && AERO_API_KEY.length > 8)
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -1111,42 +1206,12 @@ app.patch("/api/panel/users/:username/password", async (req, res) => {
 
 /** Sync incremental Firebase desde payload FlightAware. */
 async function syncPayloadToRtdb(payload) {
-  const arrByIdent = {};
-  for (const l of payload.llegadas) {
-    const id = normalizeIdent(l.vuelo);
-    if (!id || id === "N/A") continue;
-    arrByIdent[id] = {
-      llegada: l.llegada || "",
-      llegadaFuente: l.llegadaFuente || "sched",
-      llegadaProgramada: l.llegadaProgramada || "",
-      llegadaEstimada: l.llegadaEstimada || "",
-      llegadaReal: l.llegadaReal || "",
-      gateArr: l.gate || "",
-      salidaOrigen: l.salidaOrigen || "",
-      estado:
-        l.estado !== undefined && l.estado !== null && l.estado !== ""
-          ? l.estado
-          : undefined
-    };
-  }
-  const depByIdent = {};
-  for (const s of payload.salidas) {
-    const id = normalizeIdent(s.vuelo);
-    if (!id || id === "N/A") continue;
-    depByIdent[id] = {
-      salida: s.salida || "",
-      gateDep: s.gate || "",
-      estado:
-        s.estado !== undefined && s.estado !== null && s.estado !== ""
-          ? s.estado
-          : undefined
-    };
-  }
+  const arrLookup = buildApiFlightLookup(payload.llegadas);
+  const depLookup = buildApiFlightLookup(payload.salidas);
 
   try {
     const selectedDateVal = await rtdbGet("config/selectedDate");
-    const dateStr =
-      selectedDateVal || new Date().toISOString().slice(0, 10);
+    const dateStr = selectedDateVal || dateStrTodayInRD();
 
     const flights = await rtdbGet("flightsByDate/" + dateStr);
     if (!flights || typeof flights !== "object") {
@@ -1168,10 +1233,9 @@ async function syncPayloadToRtdb(payload) {
       if (!row || typeof row !== "object") continue;
       if (row.noApiSync === true) continue;
 
-      const idDep = normalizeIdent(row.vuelo);
-      const idArr = normalizeIdent(row.vueloLlegada || row.vuelo);
-      const arr = idArr ? arrByIdent[idArr] : null;
-      const dep = idDep ? depByIdent[idDep] : null;
+      const { arr: vueloArr, dep: vueloDep } = splitBoardVuelo(row.vuelo);
+      const arr = resolveApiFlight(arrLookup, row.vueloLlegada || vueloArr);
+      const dep = resolveApiFlight(depLookup, vueloDep);
       if (!arr && !dep) continue;
 
       const patch = {};
@@ -1182,13 +1246,12 @@ async function syncPayloadToRtdb(payload) {
         changelog.push(llegadaFieldLabel(arr.llegadaFuente));
       }
 
-      const rowProgStored = (row.llegadaProgramada || "").toString().trim();
-      if (!rowProgStored && arr?.llegadaProgramada) {
-        const v = arr.llegadaProgramada;
-        if (String(v) !== String(row.llegadaProgramada || "")) {
-          patch.llegadaProgramada = v;
-          changelog.push("llegadaProgramada");
-        }
+      if (
+        arr?.llegadaProgramada &&
+        String(arr.llegadaProgramada) !== String(row.llegadaProgramada || "")
+      ) {
+        patch.llegadaProgramada = arr.llegadaProgramada;
+        changelog.push("llegadaProgramada");
       }
 
       if (
@@ -1217,7 +1280,7 @@ async function syncPayloadToRtdb(payload) {
         patch.salida = dep.salida;
         changelog.push("salida");
       }
-      const g = dep?.gateDep || arr?.gateArr;
+      const g = dep?.gate || arr?.gate;
       if (g && g !== (row.gate || "")) {
         patch.gate = g;
         changelog.push("gate");

@@ -194,7 +194,15 @@ let titlesData = {};
 let visibilityData = {};
 let airlinesExtraData = {};
 let positionsData = {};
-let selectedDate = new Date().toISOString().slice(0, 10);
+
+/** Zona horaria del aeropuerto (POP / Puerto Plata). */
+const BOARD_TZ_IANA = "America/Santo_Domingo";
+
+function dateTodayInPop() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: BOARD_TZ_IANA }).format(new Date());
+}
+
+let selectedDate = dateTodayInPop();
 let unsubscribeFlightsByDate = null;
 
 /** Hora de llegada a POP (RD, UTC-4 fijo, sin DST). */
@@ -341,6 +349,7 @@ function buildArrivalPhrase(vuelo, minutes) {
 
 function speakTwiceLatino(text) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return;
+    try { speechSynthesis.cancel(); } catch (e) { /* noop */ }
     prepareSpeechSynth();
     const voice = pickLatinoSpanishVoice();
     const lang = voice?.lang?.startsWith("es") ? voice.lang : "es-MX";
@@ -431,7 +440,7 @@ function getArrivalSpeechMilestone(diffMin){
     const sorted = [...arrivalSpeechMinutes].sort((a, b) => b - a);
     for(const m of sorted){
         const floor = Math.max(0, m - arrivalSpeechTolerance);
-        if(diffMin <= m && diffMin > floor) return m;
+        if(diffMin <= m && diffMin >= floor) return m;
     }
     return null;
 }
@@ -551,14 +560,18 @@ onValue(ref(db, "config/arrivalSpeechTolerance"), snap => {
     applyArrivalSpeechSettings(undefined, snap.val());
 });
 
-// ⏰ RELOJ
+// ⏰ RELOJ (zona POP)
 setInterval(() => {
     const now = new Date();
-    const h = String(now.getHours()).padStart(2, "0");
-    const m = String(now.getMinutes()).padStart(2, "0");
-    const s = String(now.getSeconds()).padStart(2, "0");
-    document.getElementById("clock").innerText = `${h}:${m}:${s}`;
+    document.getElementById("clock").innerText = now.toLocaleTimeString("es-DO", {
+        timeZone: BOARD_TZ_IANA,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    });
     document.getElementById("date").innerText = now.toLocaleDateString("es-DO", {
+        timeZone: BOARD_TZ_IANA,
         weekday: "long",
         day: "2-digit",
         month: "short",
@@ -571,6 +584,8 @@ function watchFlightsForDate(dateStr){
     if(unsubscribeFlightsByDate) unsubscribeFlightsByDate();
     unsubscribeFlightsByDate = onValue(ref(db, "flightsByDate/" + dateStr), snap => {
         vuelosData = Object.values(snap.val() || {});
+        lastFlightsDataSig = "";
+        renderVuelos(true);
     });
 }
 
@@ -846,6 +861,10 @@ function mostrarAnuncios(){
     }
 
     function loop(){
+        if(anuncioHideTimeout){
+            clearTimeout(anuncioHideTimeout);
+            anuncioHideTimeout = null;
+        }
         if(!anuncios.length || !anunciosActivos){
             contenedor.style.display = "none";
             contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
@@ -932,90 +951,189 @@ function statusPillHtml(estado, estadoClase){
 }
 
 let lastFlightRenderCount = -1;
+let lastFlightsDataSig = "";
 
-function renderVuelos(){
+function flightsDataSignature() {
+    return (
+        selectedDate +
+        "|" +
+        vuelosData
+            .map((r) =>
+                [
+                    r.vuelo,
+                    r.llegada,
+                    r.llegadaProgramada,
+                    r.llegadaEstimada,
+                    r.llegadaReal,
+                    r.salida,
+                    r.destino,
+                    r.estado,
+                    r.gate,
+                    r.salidaOrigen,
+                    r.enRuta
+                ].join(":")
+            )
+            .join(";")
+    );
+}
+
+function computeFlightRowState(r) {
+    const eff = effectiveArrivalHhmm(r);
+    let llegadaDt = parseLlegadaInstant(selectedDate, eff);
+    if (Number.isNaN(llegadaDt.getTime())) {
+        llegadaDt = parseLlegadaInstant(selectedDate, "00:00");
+    }
+
+    const diffMs = llegadaDt.getTime() - Date.now();
+    const diffMin = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMin / 60);
+    const minutes = diffMin % 60;
+
+    const estadoNorm = (r.estado || "")
+        .toString()
+        .toUpperCase()
+        .replace(/\s+/g, "-")
+        .replace(/_/g, "-");
+    const estadoManual = ["BOARDING", "DEPARTED", "DELAYED", "CANCELLED", "DIVERTED"].includes(
+        estadoNorm
+    );
+
+    let estadoFinal = r.estado || "ON-TIME";
+    let estadoClase = estadoFinal.toLowerCase().replace(/\s+/g, "-");
+    let extraClass = "";
+    const totalMin = 120;
+    let progreso = 100 - (diffMin / totalMin) * 100;
+
+    if (progreso < 0) progreso = 0;
+    if (progreso > 100) progreso = 100;
+
+    if (!estadoManual) {
+        if (diffMin <= 0) {
+            estadoFinal = "ARRIVED";
+            estadoClase = "arrived";
+        }
+        if (diffMin <= 30 && diffMin > 0) extraClass = "blink";
+        if (diffMin <= 10 && diffMin > 0) {
+            estadoFinal = "ARRIVING";
+            estadoClase = "arriving";
+        }
+    } else if (diffMin <= 30 && diffMin > 0) {
+        extraClass = "blink";
+    }
+
+    let countdown = "0 min";
+    let countdownClass = "countdown-green";
+    if (diffMin > 0) {
+        countdown = hours > 0 ? hours + "h " + minutes + "m" : minutes + " min";
+        if (diffMin <= 60) countdownClass = "countdown-yellow";
+        if (diffMin <= 15) countdownClass = "countdown-red";
+    }
+
+    const prog = String(r.llegadaProgramada || "").trim();
+    const showProg = prog && eff && prog !== eff;
+    const airlineTheme = getFlightAirlineTheme(r);
+    const airlineClass = airlineTheme ? ` flight-row--${airlineTheme}` : "";
+
+    return {
+        eff,
+        prog,
+        showProg,
+        diffMin,
+        estadoFinal,
+        estadoClase,
+        extraClass,
+        progreso,
+        countdown,
+        countdownClass,
+        airlineClass
+    };
+}
+
+function pruneSpeechArrivalMeta() {
+    const active = new Set(
+        vuelosData.map((r) => `${selectedDate}|${(r.vuelo || "").trim() || "N/A"}`)
+    );
+    Object.keys(speechArrivalMeta).forEach((k) => {
+        if (!active.has(k)) delete speechArrivalMeta[k];
+    });
+}
+
+function tickFlightCountdowns() {
+    const rows = document.querySelectorAll("#board tr.flight-row");
+    vuelosData.forEach((r, i) => {
+        const tr = rows[i];
+        if (!tr) return;
+        const st = computeFlightRowState(r);
+        tr.className = `flight-row ${st.estadoClase}${st.airlineClass} ${st.extraClass}`.trim();
+        tr.style.setProperty("--row-progress", st.progreso + "%");
+        const pill = tr.querySelector(".countdown-pill");
+        if (pill) {
+            pill.textContent = st.countdown;
+            pill.className = "countdown-pill " + st.countdownClass;
+        }
+        const bar = tr.querySelector(".flight-bar");
+        const planeWrap = tr.querySelector(".flight-progress__plane-wrap");
+        if (bar) bar.style.width = st.progreso + "%";
+        if (planeWrap) planeWrap.style.left = st.progreso + "%";
+        const statusCell = tr.querySelector(".flight-row-grid > .flight-row-cell:last-child");
+        if (statusCell) statusCell.innerHTML = statusPillHtml(st.estadoFinal, st.estadoClase);
+        tryArrivalSpeech(r, st.diffMin, selectedDate);
+    });
+    pruneSpeechArrivalMeta();
+}
+
+function selectedDateEmptyLabel() {
+    return selectedDate === dateTodayInPop()
+        ? "hoy"
+        : new Date(selectedDate + "T12:00:00").toLocaleDateString("es-DO", {
+              timeZone: BOARD_TZ_IANA,
+              day: "numeric",
+              month: "long"
+          });
+}
+
+function renderVuelos(forceFull) {
     const countEl = document.getElementById("flightCount");
     const n = vuelosData.length;
     const countChanged = n !== lastFlightRenderCount;
-    if(countEl){
+    const sig = flightsDataSignature();
+    const dataChanged = forceFull || sig !== lastFlightsDataSig;
+
+    if (countEl) {
         countEl.textContent = n === 1 ? "1 vuelo" : n + " vuelos";
     }
 
-    if(!n){
+    if (!dataChanged && n > 0 && document.querySelector("#board .flight-row")) {
+        tickFlightCountdowns();
+        return;
+    }
+
+    lastFlightsDataSig = sig;
+
+    if (!n) {
         lastFlightRenderCount = 0;
+        const when = selectedDateEmptyLabel();
         document.getElementById("board").innerHTML = `
         <tr class="fids-empty">
             <td colspan="6">
                 <div class="fids-empty__inner">
                     <span class="fids-empty__icon">✈</span>
-                    <span class="fids-empty__text">Sin vuelos programados para hoy</span>
+                    <span class="fids-empty__text">Sin vuelos programados para ${escapeHtmlBoard(when)}</span>
                 </div>
             </td>
         </tr>`;
         fitFlightsToViewport(true);
+        pruneSpeechArrivalMeta();
         return;
     }
 
     let html = "";
-    vuelosData.forEach(r => {
-        const eff = effectiveArrivalHhmm(r);
-        let llegadaDt = parseLlegadaInstant(selectedDate, eff);
-        if(Number.isNaN(llegadaDt.getTime())) {
-            llegadaDt = parseLlegadaInstant(selectedDate, "00:00");
-        }
-
-        let diffMs = llegadaDt.getTime() - Date.now();
-        let diffMin = Math.floor(diffMs / 60000);
-        let hours = Math.floor(diffMin / 60);
-        let minutes = diffMin % 60;
-
-        let estadoNorm = (r.estado || "").toString().toUpperCase().replace(/\s+/g,"-").replace(/_/g,"-");
-        let estadoManual = ["BOARDING","DEPARTED","DELAYED","CANCELLED","DIVERTED"].includes(estadoNorm);
-
-        let estadoFinal = r.estado || "ON-TIME";
-        let estadoClase = estadoFinal.toLowerCase().replace(/\s+/g,"-");
-        let extraClass = "";
-        let totalMin = 120;
-        let progreso = 100 - (diffMin / totalMin * 100);
-        
-        if(progreso < 0) progreso = 0;
-        if(progreso > 100) progreso = 100;
-
-        if(!estadoManual){
-            if(diffMin <= 0){
-                estadoFinal = "ARRIVED";
-                estadoClase = "arrived";
-            }
-            if(diffMin <= 30 && diffMin > 0) extraClass = "blink";
-            if(diffMin <= 10 && diffMin > 0){
-                estadoFinal = "ARRIVING";
-                estadoClase = "arriving";
-            }
-        } else if(diffMin <= 30 && diffMin > 0) {
-            extraClass = "blink";
-        }
-
-        let countdown = "0 min";
-        let countdownClass = "countdown-green";
-        if(diffMin > 0){
-            countdown = hours > 0 ? hours + "h " + minutes + "m" : minutes + " min";
-            if(diffMin <= 60) countdownClass = "countdown-yellow";
-            if(diffMin <= 15) countdownClass = "countdown-red";
-        }
-
-        tryArrivalSpeech(r, diffMin, selectedDate);
-
-        const prog = String(r.llegadaProgramada || "").trim();
-        const showProg =
-            prog &&
-            eff &&
-            prog !== eff;
-
-        const airlineTheme = getFlightAirlineTheme(r);
-        const airlineClass = airlineTheme ? ` flight-row--${airlineTheme}` : "";
+    vuelosData.forEach((r) => {
+        const st = computeFlightRowState(r);
+        tryArrivalSpeech(r, st.diffMin, selectedDate);
 
         html += `
-        <tr class="flight-row ${estadoClase}${airlineClass} ${extraClass}" style="--row-progress:${progreso}%">
+        <tr class="flight-row ${st.estadoClase}${st.airlineClass} ${st.extraClass}" style="--row-progress:${st.progreso}%">
         <td colspan="6" class="flight-row-shell">
             <div class="flight-row-bg" aria-hidden="true">
                 <div class="flight-row-fill"><span class="flight-row-frontier" aria-hidden="true"></span></div>
@@ -1024,18 +1142,18 @@ function renderVuelos(){
                 <div class="flight-row-cell"><span class="flight-code">${escapeHtmlBoard(r.vuelo || "")}</span></div>
                 <div class="flight-row-cell"><span class="destino-text">${escapeHtmlBoard(r.destino || "")}</span></div>
                 <div class="flight-row-cell td-llegada">
-                    <span class="hora-llegada">${escapeHtmlBoard(eff)}</span>
-                    ${showProg ? `<small class="ruta-origen">Programado ${escapeHtmlBoard(prog)}</small>` : ""}
+                    <span class="hora-llegada">${escapeHtmlBoard(st.eff)}</span>
+                    ${st.showProg ? `<small class="ruta-origen">Programado ${escapeHtmlBoard(st.prog)}</small>` : ""}
                     ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${escapeHtmlBoard(r.salidaOrigen)}</small>` : ""}
-                    <span class="countdown-line"><span class="countdown-pill ${countdownClass}">${countdown}</span></span>
+                    <span class="countdown-line"><span class="countdown-pill ${st.countdownClass}">${st.countdown}</span></span>
                     <div class="flight-progress">
-                        <div class="flight-bar" style="width:${progreso}%"></div>
-                        <div class="flight-progress__plane-wrap" style="left:${progreso}%">${flightProgressPlaneHtml()}</div>
+                        <div class="flight-bar" style="width:${st.progreso}%"></div>
+                        <div class="flight-progress__plane-wrap" style="left:${st.progreso}%">${flightProgressPlaneHtml()}</div>
                     </div>
                 </div>
                 <div class="flight-row-cell td-salida">${escapeHtmlBoard(r.salida || "—")}</div>
                 <div class="flight-row-cell"><span class="gate-pill">${escapeHtmlBoard(r.gate || "—")}</span></div>
-                <div class="flight-row-cell">${statusPillHtml(estadoFinal, estadoClase)}</div>
+                <div class="flight-row-cell">${statusPillHtml(st.estadoFinal, st.estadoClase)}</div>
             </div>
         </td>
         </tr>`;
@@ -1043,6 +1161,7 @@ function renderVuelos(){
     document.getElementById("board").innerHTML = html;
     lastFlightRenderCount = n;
     fitFlightsToViewport(countChanged);
+    pruneSpeechArrivalMeta();
 }
 
 let flightScrollRaf = null;
@@ -1116,7 +1235,7 @@ window.addEventListener("resize", () => {
     fitFlightsToViewport(true);
 });
 
-setInterval(renderVuelos, 1000);
+setInterval(() => renderVuelos(false), 1000);
 
 // 👥 POSICIONES — catálogos por aerolínea, slides fullscreen y rotación
 const FLIGHT_NS_JB = "__jetblue-";

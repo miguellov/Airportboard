@@ -923,7 +923,16 @@ function escapeHtmlPanel(s) {
     return String(s ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
-        .replace(/"/g, "&quot;");
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+/** URLs seguras para fotos (https o data:image del panel). */
+function sanitizePanelMediaUrl(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    if (/^data:image\/[a-z0-9+.-]+;base64,/i.test(s)) return s;
+    return sanitizeBoardEmbedUrl(s) || "";
 }
 
 function updateEditandoUI() {
@@ -1862,14 +1871,15 @@ window.agregarCumpleanero = async () => {
         document.getElementById("previewFoto").style.display = "none";
 
         alert("✅ Cumpleañero agregado");
-        cargarCumpleañeros();
     };
     reader.readAsDataURL(fotoFile);
 };
 
 /* CARGAR CUMPLEAÑEROS */
+let unsubscribeCumpleanos = null;
 function cargarCumpleañeros() {
-    onValue(cumpleanosRef, (snap) => {
+    if (unsubscribeCumpleanos) unsubscribeCumpleanos();
+    unsubscribeCumpleanos = onValue(cumpleanosRef, (snap) => {
         const data = snap.val() || {};
         renderCumpleBoardPreview(data);
         let html = "";
@@ -1877,10 +1887,11 @@ function cargarCumpleañeros() {
         Object.entries(data).forEach(([id, cumple]) => {
             const nombre = escapeHtmlPanel(cumple.nombre || "Sin nombre");
             const fecha = escapeHtmlPanel(formatearFechaCartulina(cumple.fecha));
-            const foto = cumple.foto || "";
+            const foto = sanitizePanelMediaUrl(cumple.foto || "");
             const fotoHtml = foto
-                ? `<img src="${cumple.foto}" class="cumple-card-photo" alt="">`
+                ? `<img src="${escapeHtmlPanel(foto)}" class="cumple-card-photo" alt="">`
                 : `<div class="cumple-card-photo cumple-card-photo--empty">👤</div>`;
+            const idArg = JSON.stringify(id);
             html += `
             <div class="cumple-card">
                 ${fotoHtml}
@@ -1888,7 +1899,7 @@ function cargarCumpleañeros() {
                     <strong>${nombre}</strong>
                     <span>${fecha}</span>
                 </div>
-                <button type="button" class="btn-delete" onclick="eliminarCumple('${id}')">🗑 Eliminar</button>
+                <button type="button" class="btn-delete" onclick='eliminarCumple(${idArg})'>🗑 Eliminar</button>
             </div>
             `;
         });
@@ -2006,7 +2017,7 @@ function cargarAnunciosActivos() {
                 ${thumb}
                 <div class="anuncio-item-body">
                     <div class="anuncio-item-head">
-                        <h4><span class="anuncio-type-icon">${meta.icon}</span> ${meta.label} ${badge}</h4>
+                        <h4><span class="anuncio-type-icon">${meta.icon}</span> ${escapeHtmlPanel(meta.label)} ${badge}</h4>
                         <span class="anuncio-duration-chip">${duracion}s</span>
                     </div>
                     <p class="anuncio-item-text">${textoShort}</p>
@@ -3605,14 +3616,6 @@ window.manualFlightRefresh = async () => {
     btn.disabled = true;
     statusEl.style.color = "#7dd3fc";
     statusEl.textContent = "Actualizando...";
-    const apiBase = getPanelApiBase();
-    if(!apiBase){
-        statusEl.style.color = "#f87171";
-        statusEl.textContent = "❌ Configura la URL del servidor API arriba";
-        finish();
-        return;
-    }
-    const url = apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
     const finish = () => {
         btn.disabled = false;
         flightRefreshToastTimer = setTimeout(() => {
@@ -3621,6 +3624,14 @@ window.manualFlightRefresh = async () => {
             flightRefreshToastTimer = null;
         }, 5000);
     };
+    const apiBase = getPanelApiBase();
+    if(!apiBase){
+        statusEl.style.color = "#f87171";
+        statusEl.textContent = "❌ Configura la URL del servidor API arriba";
+        finish();
+        return;
+    }
+    const url = apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
     try {
         const res = await fetch(url, { method: "GET" });
         let data = {};
@@ -3649,7 +3660,25 @@ window.manualFlightRefresh = async () => {
             statusEl.textContent = `✅ ${data.updated} cambios actualizados`;
         } else {
             statusEl.style.color = "#4ade80";
-            statusEl.textContent = "✅ Todo sincronizado";
+            try {
+                const live = await fetch(panelApiFlightsUrl(), { cache: "no-store" });
+                if (live.ok) {
+                    const j = await live.json();
+                    const n = (j.llegadas?.length || 0) + (j.salidas?.length || 0);
+                    if (j.live && !j.fallback) {
+                        statusEl.textContent = `✅ En vivo · ${n} vuelos FlightAware`;
+                    } else if (j.fallback) {
+                        statusEl.style.color = "#fbbf24";
+                        statusEl.textContent = `⚠️ Sin vivo — usando Firebase (${j.apiError || "fallback"})`;
+                    } else {
+                        statusEl.textContent = "✅ Todo sincronizado";
+                    }
+                } else {
+                    statusEl.textContent = "✅ Todo sincronizado";
+                }
+            } catch (_) {
+                statusEl.textContent = "✅ Todo sincronizado";
+            }
         }
     } catch (e) {
         statusEl.style.color = "#f87171";
@@ -3766,7 +3795,7 @@ function getPanelApiBase(){
 
 function panelApiFlightsUrl(){
     const b = getPanelApiBase();
-    return b ? `${b}/flights` : "";
+    return b ? `${b}/flights?_=${Date.now()}` : "";
 }
 
 function panelApiRefreshUrl(){
@@ -3849,9 +3878,10 @@ async function refreshSyncControlUI() {
         if (statusEl && !flightRefreshToastTimer) {
             statusEl.style.color = enabled ? "#4ade80" : "#fbbf24";
             const mins = Math.max(1, Math.round((data.pollingSec || 600) / 60));
+            const fa = data.flightaware ? "FlightAware ✓" : "sin FA_API_KEY";
             statusEl.textContent = enabled
-                ? `▶ Sync automático cada ${mins} min`
-                : "⏸ Sync automático pausado";
+                ? `▶ Sync cada ${mins} min · ${fa}`
+                : `⏸ Sync pausado · ${fa}`;
         }
     } catch (_) {
         statusEl.style.color = "#f87171";
@@ -4140,7 +4170,7 @@ function flightRowMatchesApiIdent(apiVuelo, candidates) {
     });
 }
 
-function filterCarrierFlightsByQuery(flights, query) {
+function filterCarrierFlightsByQuery(flights, query, legMode) {
     const raw = String(query || "").trim();
     if (!raw) return [];
     const list = restrictToAllowedCarriers(flights || []);
@@ -4152,7 +4182,19 @@ function filterCarrierFlightsByQuery(flights, query) {
     }
 
     const dual = parseDualFlightIdsFromField(raw);
-    if (dual.arrCandidates.length || dual.depCandidates.length) {
+    if (legMode === "arr" && dual.arrCandidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
+        );
+        if (hits.length) return hits;
+    }
+    if (legMode === "dep" && dual.depCandidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
+        );
+        if (hits.length) return hits;
+    }
+    if (!legMode && (dual.arrCandidates.length || dual.depCandidates.length)) {
         const cands = [...dual.arrCandidates, ...dual.depCandidates];
         const hits = list.filter((f) => flightRowMatchesApiIdent(f.vuelo, cands));
         if (hits.length) return hits;
@@ -4196,11 +4238,11 @@ function filterCarrierFlightsByQuery(flights, query) {
 }
 
 function filterArrivalsBySearchQuery(llegadas, query) {
-    return filterCarrierFlightsByQuery(llegadas, query);
+    return filterCarrierFlightsByQuery(llegadas, query, "arr");
 }
 
 function filterDeparturesBySearchQuery(salidas, query) {
-    return filterCarrierFlightsByQuery(salidas, query);
+    return filterCarrierFlightsByQuery(salidas, query, "dep");
 }
 
 function findArrivalForVueloField(llegadas, raw) {
@@ -4272,7 +4314,10 @@ window.buscarDatosVueloTarjeta = async (index) => {
         msg.style.color = "";
     }
     try {
-        await fetch(panelApiRefreshUrl(), { method: "GET" });
+        const refreshRes = await fetch(panelApiRefreshUrl(), { method: "GET" });
+        if (!refreshRes.ok) {
+            throw new Error("refresh HTTP " + refreshRes.status);
+        }
         const j = await fetchFlightsJsonAfterRefresh();
         const arr = findArrivalForVueloField(j.llegadas, raw);
         const dep = findDepartureForVueloField(j.salidas, raw);
@@ -4351,18 +4396,21 @@ async function fetchFlightsPayload() {
     }
     let res;
     try {
-        res = await fetch(apiUrl);
+        res = await fetch(apiUrl, { cache: "no-store" });
     } catch (e) {
         throw new Error(
-            `Sin conexión con ${apiUrl}. ${panelApiErrorHint()}`
+            `Sin conexión con ${getPanelApiBase()}. ${panelApiErrorHint()}`
         );
     }
     if (!res.ok) {
-        throw new Error(`HTTP ${res.status} en ${apiUrl}`);
+        throw new Error(`HTTP ${res.status} en ${getPanelApiBase()}/flights`);
     }
     const data = await res.json();
     if (data.error) {
         throw new Error(data.detalle || data.error);
+    }
+    if (data.fallback && data.apiError) {
+        console.warn("Vuelos en modo fallback (no en vivo):", data.apiError);
     }
     return data;
 }
@@ -4377,6 +4425,7 @@ function flightApiErrorHtml(err) {
 }
 
 const flightSearchDebounce = {};
+const flightSearchSeq = {};
 
 function flightsSearchEmptyHtml(query, data, tipo) {
     const q = escapeDataAttr(query);
@@ -4411,11 +4460,15 @@ window.buscarVueloLlegada = async (input, index) => {
         return;
     }
     resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;
-    runFlightSearchDebounced("arr" + index, async () => {
+    const seqKey = "arr" + index;
+    flightSearchSeq[seqKey] = (flightSearchSeq[seqKey] || 0) + 1;
+    const seq = flightSearchSeq[seqKey];
+    runFlightSearchDebounced(seqKey, async () => {
         const qNow = input.value.toLowerCase().trim();
         if (qNow.length < 2) return;
         try {
             const data = await fetchFlightsPayload();
+            if (seq !== flightSearchSeq[seqKey]) return;
             const filtrados = filterArrivalsBySearchQuery(data.llegadas, qNow);
             resultsDiv.innerHTML = filtrados.length
                 ? filtrados
@@ -4432,11 +4485,13 @@ window.buscarVueloLlegada = async (input, index) => {
                               f.retraso != null && f.retraso !== ""
                                   ? String(f.retraso)
                                   : "";
-                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+                          const label = `${escapeHtmlPanel(f.vuelo)} · desde ${escapeHtmlPanel(orig)} · POP ${escapeHtmlPanel(hora || "N/A")}${escapeHtmlPanel(txtSo)}`;
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${label}</div>`;
                       })
                       .join("")
                 : flightsSearchEmptyHtml(qNow, data, "llegada");
         } catch (e) {
+            if (seq !== flightSearchSeq[seqKey]) return;
             console.error("ERROR BUSCANDO LLEGADAS:", e);
             resultsDiv.innerHTML = flightApiErrorHtml(e);
         }
@@ -4457,11 +4512,15 @@ window.buscarVueloSalida = async (input, index) => {
         return;
     }
     resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;
-    runFlightSearchDebounced("dep" + index, async () => {
+    const seqKey = "dep" + index;
+    flightSearchSeq[seqKey] = (flightSearchSeq[seqKey] || 0) + 1;
+    const seq = flightSearchSeq[seqKey];
+    runFlightSearchDebounced(seqKey, async () => {
         const qNow = input.value.toLowerCase().trim();
         if (qNow.length < 2) return;
         try {
             const data = await fetchFlightsPayload();
+            if (seq !== flightSearchSeq[seqKey]) return;
             const filtrados = filterDeparturesBySearchQuery(data.salidas, qNow);
             resultsDiv.innerHTML = filtrados.length
                 ? filtrados
@@ -4469,11 +4528,13 @@ window.buscarVueloSalida = async (input, index) => {
                           const hora = convertirHora24(f.salida || "");
                           const dest = f.destino || "";
                           const gate = f.gate || "";
-                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
+                          const label = `${escapeHtmlPanel(f.vuelo)} → ${escapeHtmlPanel(dest)} · sale ${escapeHtmlPanel(hora || "N/A")}`;
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${label}</div>`;
                       })
                       .join("")
                 : flightsSearchEmptyHtml(qNow, data, "salida");
         } catch (e) {
+            if (seq !== flightSearchSeq[seqKey]) return;
             console.error("ERROR BUSCANDO SALIDAS:", e);
             resultsDiv.innerHTML = flightApiErrorHtml(e);
         }

@@ -767,12 +767,30 @@ input[type="file"] { font-size: 0.8rem; }
   padding: 0.55rem 0.65rem;
   cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
   font-size: 0.78rem;
   font-family: var(--mono);
 }
 
+.results-row.results-hint {
+  cursor: default;
+  color: var(--pop-muted);
+  font-family: var(--font);
+  background: rgba(31, 243, 255, 0.05);
+  border: 1px dashed rgba(31, 243, 255, 0.2);
+}
+
+.results-row.results-empty {
+  cursor: default;
+  color: #fbbf24;
+  font-family: var(--font);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  line-height: 1.45;
+}
+
 .results div:hover,
-.results-row:hover {
+.results-row:hover:not(.results-hint):not(.results-empty) {
   background: var(--pop-cyan-dim);
   color: var(--pop-cyan);
 }

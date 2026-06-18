@@ -260,6 +260,17 @@ body.panel-native-app .api-search-hint {
   border-radius: 10px;
   background: rgba(31, 243, 255, 0.06);
   margin-bottom: 0.65rem;
+  line-height: 1.35;
+  max-height: 3.2em;
+  overflow: hidden;
+}
+
+body.panel-native-app .results-row.results-hint,
+body.panel-native-app .results-row.results-empty {
+  font-size: 0.82rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  margin-top: 0.35rem;
 }
 
 body.panel-native-app .fld-label {

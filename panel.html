@@ -4355,6 +4355,27 @@ function flightApiErrorHtml(err) {
     return `<div class="results-row results-empty">Error al consultar la API (${escapeDataAttr(raw)}). ${hint}</div>`;
 }
 
+const flightSearchDebounce = {};
+
+function flightsSearchEmptyHtml(query, data, tipo) {
+    const q = escapeDataAttr(query);
+    const apiErr = data && data.apiError ? String(data.apiError) : "";
+    if (/FA_API_KEY|no configurada/i.test(apiErr)) {
+        return `<div class="results-row results-empty">FlightAware no está en Render. Escribe el vuelo abajo y usa <strong>Buscar datos del vuelo</strong>, o completa los campos a mano.</div>`;
+    }
+    const total = (data?.llegadas?.length || 0) + (data?.salidas?.length || 0);
+    if (data?.fallback && total === 0) {
+        return `<div class="results-row results-empty">Sin vuelos en vivo hoy. Prueba <strong>Buscar datos del vuelo</strong> o edita manualmente.</div>`;
+    }
+    const ej = tipo === "salida" ? "1528 o B6" : "627 o B6";
+    return `<div class="results-row results-empty">Sin coincidencias para «${q}». Prueba el número (${ej}).</div>`;
+}
+
+function runFlightSearchDebounced(key, fn, ms) {
+    if (flightSearchDebounce[key]) clearTimeout(flightSearchDebounce[key]);
+    flightSearchDebounce[key] = setTimeout(fn, ms || 320);
+}
+
 // 🔍 Llegadas (hora de aterrizaje de otro #, ej. 627)
 window.buscarVueloLlegada = async (input, index) => {
     const query = input.value.toLowerCase().trim();
@@ -4364,32 +4385,41 @@ window.buscarVueloLlegada = async (input, index) => {
         resultsDiv.innerHTML = "";
         return;
     }
-    try {
-        const { llegadas } = await fetchFlightsPayload();
-        const filtrados = filterArrivalsBySearchQuery(llegadas, query);
-        resultsDiv.innerHTML = filtrados.length
-            ? filtrados
-                  .map((f) => {
-                      const hora = convertirHora24(f.llegada || "");
-                      const lp = convertirHora24(f.llegadaProgramada || "");
-                      const le = convertirHora24(f.llegadaEstimada || "");
-                      const lr = convertirHora24(f.llegadaReal || "");
-                      const so = convertirHora24(f.salidaOrigen || "");
-                      const orig = f.origen || f.destino || "";
-                      const ruta = f.enRuta ? " · EN RUTA" : "";
-                      const txtSo = so ? ` · salió ${so}${ruta}` : "";
-                      const ret =
-                          f.retraso != null && f.retraso !== ""
-                              ? String(f.retraso)
-                              : "";
-                      return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
-                  })
-                  .join("")
-            : `<div class="results-row results-empty">Sin vuelos para «${escapeDataAttr(query)}» en FlightAware hoy</div>`;
-    } catch (e) {
-        console.error("ERROR BUSCANDO LLEGADAS:", e);
-        resultsDiv.innerHTML = flightApiErrorHtml(e);
+    if (query.length < 2) {
+        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>627</strong> o <strong>B6</strong></div>`;
+        return;
     }
+    resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;
+    runFlightSearchDebounced("arr" + index, async () => {
+        const qNow = input.value.toLowerCase().trim();
+        if (qNow.length < 2) return;
+        try {
+            const data = await fetchFlightsPayload();
+            const filtrados = filterArrivalsBySearchQuery(data.llegadas, qNow);
+            resultsDiv.innerHTML = filtrados.length
+                ? filtrados
+                      .map((f) => {
+                          const hora = convertirHora24(f.llegada || "");
+                          const lp = convertirHora24(f.llegadaProgramada || "");
+                          const le = convertirHora24(f.llegadaEstimada || "");
+                          const lr = convertirHora24(f.llegadaReal || "");
+                          const so = convertirHora24(f.salidaOrigen || "");
+                          const orig = f.origen || f.destino || "";
+                          const ruta = f.enRuta ? " · EN RUTA" : "";
+                          const txtSo = so ? ` · salió ${so}${ruta}` : "";
+                          const ret =
+                              f.retraso != null && f.retraso !== ""
+                                  ? String(f.retraso)
+                                  : "";
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+                      })
+                      .join("")
+                : flightsSearchEmptyHtml(qNow, data, "llegada");
+        } catch (e) {
+            console.error("ERROR BUSCANDO LLEGADAS:", e);
+            resultsDiv.innerHTML = flightApiErrorHtml(e);
+        }
+    });
 };
 
 // 🔍 Salidas (nº principal en tablero + hora de salida, ej. 1528)
@@ -4401,23 +4431,32 @@ window.buscarVueloSalida = async (input, index) => {
         resultsDiv.innerHTML = "";
         return;
     }
-    try {
-        const { salidas } = await fetchFlightsPayload();
-        const filtrados = filterDeparturesBySearchQuery(salidas, query);
-        resultsDiv.innerHTML = filtrados.length
-            ? filtrados
-                  .map((f) => {
-                      const hora = convertirHora24(f.salida || "");
-                      const dest = f.destino || "";
-                      const gate = f.gate || "";
-                      return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
-                  })
-                  .join("")
-            : `<div class="results-row results-empty">Sin vuelos para «${escapeDataAttr(query)}» en FlightAware hoy</div>`;
-    } catch (e) {
-        console.error("ERROR BUSCANDO SALIDAS:", e);
-        resultsDiv.innerHTML = flightApiErrorHtml(e);
+    if (query.length < 2) {
+        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>1528</strong> o <strong>B6</strong></div>`;
+        return;
     }
+    resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;
+    runFlightSearchDebounced("dep" + index, async () => {
+        const qNow = input.value.toLowerCase().trim();
+        if (qNow.length < 2) return;
+        try {
+            const data = await fetchFlightsPayload();
+            const filtrados = filterDeparturesBySearchQuery(data.salidas, qNow);
+            resultsDiv.innerHTML = filtrados.length
+                ? filtrados
+                      .map((f) => {
+                          const hora = convertirHora24(f.salida || "");
+                          const dest = f.destino || "";
+                          const gate = f.gate || "";
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
+                      })
+                      .join("")
+                : flightsSearchEmptyHtml(qNow, data, "salida");
+        } catch (e) {
+            console.error("ERROR BUSCANDO SALIDAS:", e);
+            resultsDiv.innerHTML = flightApiErrorHtml(e);
+        }
+    });
 };
 
 window.seleccionarLlegadaApi = (index, el) => {

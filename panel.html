@@ -735,7 +735,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "933c97406ad862095eade39aef8a1f5d",
@@ -899,6 +899,10 @@ async function ensureMediaFitsRtdb(media, mediaTypeHint) {
 
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
+
+function positionRefByKey(key) {
+    return child(positionsRef, String(key || ""));
+}
 const configRef = ref(db,"config");
 const cumpleanosRef = ref(db,"cumpleanos");
 const visibilityRef = ref(db,"visibility");
@@ -2663,14 +2667,14 @@ window.clearActiveFlightPositions = (airlineKind) => {
             if(!slug && c.legacy) keysToClear.push(key);
         }
     });
-    keysToClear.forEach((key) => set(ref(db, "positions/" + key), null));
+    keysToClear.forEach((key) => set(positionRefByKey(key), null));
 };
 
 window.clearAllOrphanPositions = () => {
     const orphans = Object.keys(positionsPanelData).filter((k) => classifyPositionKey(k).kind === "orphan");
     if(!orphans.length){ alert("No hay asignaciones antiguas."); return; }
     if(!confirm(`¿Eliminar ${orphans.length} asignación(es) antigua(s)? Ya no aparecerán en pantalla.`)) return;
-    orphans.forEach((key) => set(ref(db, "positions/" + key), null));
+    orphans.forEach((key) => set(positionRefByKey(key), null));
 };
 
 function renderOrphansPanel(){
@@ -2699,7 +2703,7 @@ function renderOrphansPanel(){
             ${orphans.map((o) => `
                 <div class="orphan-row">
                     <span>${escapeHtmlPanel(o.airline)} · <em>${escapeHtmlPanel(o.roleLabel)}</em> → ${escapeHtmlPanel(o.name)}</span>
-                    <button type="button" class="pos-card-delete" onclick="deletePosition(${JSON.stringify(o.roleKey)})">🗑</button>
+                    <button type="button" class="pos-card-delete" onclick='deletePosition(${JSON.stringify(o.roleKey)})'>🗑</button>
                 </div>
             `).join("")}
         </div>`;
@@ -2815,8 +2819,8 @@ function renderExtraEmployeeSelect(){
 window.assignPositionFromMatrix = (airlineKind, roleKey, selectEl) => {
     const fbKey = positionFirebaseKey(roleKey, airlineKind, getActiveFlightSlug(airlineKind));
     const val = (selectEl?.value || "").trim();
-    if(val) set(ref(db, "positions/" + fbKey), val);
-    else set(ref(db, "positions/" + fbKey), null);
+    if(val) set(positionRefByKey(fbKey), val);
+    else set(positionRefByKey(fbKey), null);
 };
 
 window.setEmpleadosPool = (pool) => {
@@ -2906,7 +2910,7 @@ function buildPosCardHtml(roleKey, name, airlineKind){
                 <div class="pos-card-role">${escapeHtmlPanel(label)}</div>
                 <div class="pos-card-name">${safeName}</div>
             </div>
-            <button type="button" class="pos-card-delete" onclick="deletePosition(${roleArg})">🗑</button>
+            <button type="button" class="pos-card-delete" onclick='deletePosition(${roleArg})'>🗑</button>
         </div>`;
 }
 
@@ -2977,7 +2981,7 @@ function renderTablaPanel(){
                 <div class="celda">${escapeHtmlPanel(r.flightName || "—")}</div>
                 <div class="tabla-posicion">${escapeHtmlPanel(r.roleLabel)}</div>
                 <div class="celda">${escapeHtmlPanel(r.name)}</div>
-                <div class="celda"><button type="button" class="pos-card-delete" onclick="deletePosition(${JSON.stringify(r.roleKey)})" title="Quitar">🗑</button></div>
+                <div class="celda"><button type="button" class="pos-card-delete" onclick='deletePosition(${JSON.stringify(r.roleKey)})' title="Quitar">🗑</button></div>
             `).join("")}
         </div>`;
 }
@@ -3189,7 +3193,7 @@ window.savePositionExtra = () => {
         alert("Selecciona vuelo, rol y nombre.");
         return;
     }
-    set(ref(db, "positions/" + role + "__" + slug), name);
+    set(positionRefByKey(role + "__" + slug), name);
     document.getElementById("posNameExtra").value = "";
     const sel = document.getElementById("posNameExtraSelect");
     if(sel) sel.value = "";
@@ -3218,7 +3222,7 @@ window.deleteExtraAirline = (slug) => {
         const data = snap.val() || {};
         Object.keys(data).forEach((roleKey) => {
             if(roleKey.endsWith("__" + slug)){
-                set(ref(db, "positions/" + roleKey), null);
+                set(positionRefByKey(roleKey), null);
             }
         });
     }, { onlyOnce: true });
@@ -3299,8 +3303,10 @@ onValue(positionsRef, (snap) => {
 });
 
 window.deletePosition = (role) => {
-    if(confirm("¿Eliminar esta posición?")){
-        set(ref(db,"positions/"+role), null);
+    const key = String(role || "").trim();
+    if(!key) return;
+    if(confirm("¿Eliminar esta asignación?")){
+        set(positionRefByKey(key), null);
     }
 };
 

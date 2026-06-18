@@ -505,6 +505,14 @@ async function buildFlightsPayloadLive() {
 
 /** GET /flights: API en vivo, o Firebase si la API falla */
 async function buildFlightsPayload() {
+  if (!AERO_API_KEY || AERO_API_KEY.length < 8) {
+    const fb = await buildFlightsPayloadFromFirebase();
+    return {
+      ...fb,
+      fallback: true,
+      apiError: "FA_API_KEY no configurada en el servidor"
+    };
+  }
   try {
     return await buildFlightsPayloadLive();
   } catch (e) {
@@ -665,6 +673,7 @@ app.get("/flights", async (req, res) => {
       llegadas: payload.llegadas,
       source: payload.source || "live",
       fallback: Boolean(payload.fallback),
+      apiError: payload.apiError || null,
       date: payload.date || null
     });
   } catch (error) {
@@ -672,11 +681,19 @@ app.get("/flights", async (req, res) => {
       "❌ /flights:",
       error.response?.data || error.message
     );
-    res.status(503).json({
-      error: "API de vuelos no disponible",
-      detalle: error.response?.data || error.message,
-      hint:
-        "Configura FA_API_KEY (FlightAware AeroAPI) en .env o edita vuelos en Firebase."
+    const fb = await buildFlightsPayloadFromFirebase().catch(() => ({
+      salidas: [],
+      llegadas: [],
+      source: "firebase",
+      date: null
+    }));
+    res.json({
+      salidas: fb.salidas || [],
+      llegadas: fb.llegadas || [],
+      source: "firebase",
+      fallback: true,
+      apiError: error.message,
+      date: fb.date || null
     });
   }
 });

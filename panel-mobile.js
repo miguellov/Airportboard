@@ -1,11 +1,19 @@
 (function () {
+  function isMobileBrowser() {
+    return /Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(
+      navigator.userAgent || ""
+    );
+  }
+
   function isNativeAppContext() {
     try {
       var q = new URLSearchParams(location.search);
       if (q.get("app") === "1" || q.get("mobile") === "1") return true;
     } catch (_) {}
     var ua = navigator.userAgent || "";
-    return ua.indexOf("POPFIDSPanel") !== -1;
+    if (ua.indexOf("POPFIDSPanel") !== -1) return true;
+    if (isMobileBrowser() && window.innerWidth < 960) return true;
+    return false;
   }
 
   if (!isNativeAppContext()) return;

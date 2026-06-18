@@ -3434,13 +3434,13 @@ function renderFlightsPanel(data){
         div.id = "flightCard" + i;
 
         div.innerHTML=`
-<p class="api-search-hint">Llegada: busca el vuelo que <strong>aterriza</strong> aquí (ej. 627). La API trae hora <strong>real o estimada en POP</strong> cuando existe; si no, programada. Salida: el que <strong>sale</strong> (ej. 1528).</p>
+<p class="api-search-hint">Solo <strong>JetBlue</strong> (B6/JBU) y <strong>WestJet</strong> (WS/WJA). Busca por número (<strong>627</strong>, <strong>2507</strong>), código (<strong>WS</strong>, <strong>B6</strong>) o completo (<strong>JBU627</strong>, <strong>WJA2909</strong>).</p>
 <div class="search-box">
-    <input placeholder="🔽 Llegadas API — ej. 627" oninput="buscarVueloLlegada(this, ${i})">
+    <input placeholder="🔽 Llegadas — 627, B6, JBU627, WS, 2507…" oninput="buscarVueloLlegada(this, ${i})">
     <div id="resultsLlegada${i}" class="results" onmousedown="event.preventDefault()"></div>
 </div>
 <div class="search-box">
-    <input placeholder="🔼 Salidas API — ej. 1528 (nº en tablero)" oninput="buscarVueloSalida(this, ${i})">
+    <input placeholder="🔼 Salidas — 1528, WS, WJA, 2909…" oninput="buscarVueloSalida(this, ${i})">
     <div id="resultsSalida${i}" class="results" onmousedown="event.preventDefault()"></div>
 </div>
 
@@ -3954,11 +3954,66 @@ function airlinePrefixVariants(prefix) {
     const set = new Set([p]);
     if (p === "B6") set.add("JBU");
     if (p === "JBU") set.add("B6");
-    if (p === "WS" || p === "WJA") {
+    if (p === "WS" || p === "WJA" || p === "WEN") {
         set.add("WS");
         set.add("WJA");
+        set.add("WEN");
     }
     return [...set];
+}
+
+const CARRIER_PREFIXES_JB = ["B6", "JBU"];
+const CARRIER_PREFIXES_WJ = ["WS", "WJA", "WEN"];
+
+function getFlightIdentPrefix(vuelo) {
+    const fn = normFlightIdent(vuelo);
+    return (fn.match(/^([A-Z]+)/) || [])[1] || "";
+}
+
+function getFlightIdentDigits(vuelo) {
+    const fn = normFlightIdent(vuelo);
+    return (fn.match(/(\d+)$/) || [])[1] || "";
+}
+
+/** Solo JetBlue y WestJet en búsqueda API del panel. */
+function isAllowedCarrierFlight(f) {
+    const vuelo = typeof f === "string" ? f : f && f.vuelo;
+    const fn = normFlightIdent(vuelo);
+    if (!fn) return false;
+    const prefix = getFlightIdentPrefix(fn);
+    const variants = airlinePrefixVariants(prefix);
+    if (CARRIER_PREFIXES_JB.some((p) => variants.includes(p) || fn.startsWith(p))) {
+        return true;
+    }
+    if (CARRIER_PREFIXES_WJ.some((p) => variants.includes(p) || fn.startsWith(p))) {
+        return true;
+    }
+    const al = String((typeof f === "object" && f && f.aerolinea) || "").toLowerCase();
+    if (/jetblue|\bjbu\b|\bb6\b/.test(al)) return true;
+    if (/westjet|\bwja\b|\bws\b|\bwen\b/.test(al)) return true;
+    return false;
+}
+
+function restrictToAllowedCarriers(list) {
+    return (list || []).filter(isAllowedCarrierFlight);
+}
+
+function parsePrefixOnlyFilter(raw) {
+    const s = String(raw || "").trim().toUpperCase().replace(/\s+/g, "");
+    if (/^(B6|JBU|WS|WJA|WEN)$/.test(s)) {
+        return airlinePrefixVariants(s);
+    }
+    return null;
+}
+
+function flightMatchesPrefixFilter(vuelo, prefixFilter) {
+    const fn = normFlightIdent(vuelo);
+    if (!fn) return false;
+    const p = getFlightIdentPrefix(fn);
+    const vars = airlinePrefixVariants(p);
+    return (prefixFilter || []).some(
+        (pf) => vars.includes(pf) || fn.startsWith(pf)
+    );
 }
 
 function setFlightCardVueloSelected(index, cleanCode) {
@@ -3988,6 +4043,15 @@ function parseCompactFlightIdent(raw) {
     if (!s0 || s0.includes("/")) {
         return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
     }
+    const digitsOnly = s0.replace(/\s+/g, "");
+    if (/^\d{2,5}$/.test(digitsOnly)) {
+        const prefs = [...CARRIER_PREFIXES_JB, ...CARRIER_PREFIXES_WJ];
+        return {
+            candidates: prefs.map((pr) => `${pr}${digitsOnly}`),
+            fallbackNeedles: [digitsOnly],
+            digitSearch: digitsOnly
+        };
+    }
     const s = normFlightIdent(s0);
     if (!s) {
         return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
@@ -3997,9 +4061,8 @@ function parseCompactFlightIdent(raw) {
         return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
     }
     const prefs = airlinePrefixVariants(m[1]);
-    const num = m[2];
     return {
-        candidates: prefs.map((pr) => `${pr}${num}`),
+        candidates: prefs.map((pr) => `${pr}${m[2]}`),
         fallbackNeedles: extractVueloSearchNeedles(s0)
     };
 }
@@ -4071,128 +4134,77 @@ function flightRowMatchesApiIdent(apiVuelo, candidates) {
     });
 }
 
-function filterArrivalsBySearchQuery(llegadas, query) {
+function filterCarrierFlightsByQuery(flights, query) {
     const raw = String(query || "").trim();
     if (!raw) return [];
-    const list = llegadas || [];
+    const list = restrictToAllowedCarriers(flights || []);
+    if (!list.length) return [];
+
+    const prefixFilter = parsePrefixOnlyFilter(raw);
+    if (prefixFilter) {
+        return list.filter((f) => flightMatchesPrefixFilter(f.vuelo, prefixFilter));
+    }
+
     const dual = parseDualFlightIdsFromField(raw);
-    if (dual.arrCandidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
+    if (dual.arrCandidates.length || dual.depCandidates.length) {
+        const cands = [...dual.arrCandidates, ...dual.depCandidates];
+        const hits = list.filter((f) => flightRowMatchesApiIdent(f.vuelo, cands));
+        if (hits.length) return hits;
+    }
+
+    const one = parseCompactFlightIdent(raw);
+    if (one.digitSearch) {
+        const hits = list.filter(
+            (f) => getFlightIdentDigits(f.vuelo) === one.digitSearch
         );
         if (hits.length) return hits;
     }
-    const one = parseCompactFlightIdent(raw);
     if (one.candidates.length) {
         const hits = list.filter((f) =>
             flightRowMatchesApiIdent(f.vuelo, one.candidates)
         );
         if (hits.length) return hits;
     }
+
     const fallbackNeedles =
         dual.fallbackNeedles.length > 0
             ? dual.fallbackNeedles
             : one.fallbackNeedles;
     if (fallbackNeedles.length) {
         const hits = list.filter((f) => {
-            const fv = String(f.vuelo || "").toLowerCase();
-            return fallbackNeedles.some((n) => n && fv.includes(n));
+            const fv = normFlightIdent(f.vuelo);
+            const fd = getFlightIdentDigits(f.vuelo);
+            return fallbackNeedles.some((n) => {
+                if (!n) return false;
+                const nn = String(n).toLowerCase();
+                if (/^\d+$/.test(nn) && fd === nn) return true;
+                return fv.toLowerCase().includes(nn);
+            });
         });
         if (hits.length) return hits;
     }
-    const q = raw.toLowerCase();
-    return list.filter((f) => String(f.vuelo || "").toLowerCase().includes(q));
+
+    const q = normFlightIdent(raw).toLowerCase();
+    if (!q) return [];
+    return list.filter((f) => normFlightIdent(f.vuelo).toLowerCase().includes(q));
+}
+
+function filterArrivalsBySearchQuery(llegadas, query) {
+    return filterCarrierFlightsByQuery(llegadas, query);
 }
 
 function filterDeparturesBySearchQuery(salidas, query) {
-    const raw = String(query || "").trim();
-    if (!raw) return [];
-    const list = salidas || [];
-    const dual = parseDualFlightIdsFromField(raw);
-    if (dual.depCandidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
-        );
-        if (hits.length) return hits;
-    }
-    const one = parseCompactFlightIdent(raw);
-    if (one.candidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, one.candidates)
-        );
-        if (hits.length) return hits;
-    }
-    const fallbackNeedles =
-        dual.fallbackNeedles.length > 0
-            ? dual.fallbackNeedles
-            : one.fallbackNeedles;
-    if (fallbackNeedles.length) {
-        const hits = list.filter((f) => {
-            const fv = String(f.vuelo || "").toLowerCase();
-            return fallbackNeedles.some((n) => n && fv.includes(n));
-        });
-        if (hits.length) return hits;
-    }
-    const q = raw.toLowerCase();
-    return list.filter((f) => String(f.vuelo || "").toLowerCase().includes(q));
+    return filterCarrierFlightsByQuery(salidas, query);
 }
 
 function findArrivalForVueloField(llegadas, raw) {
-    const list = llegadas || [];
-    const dual = parseDualFlightIdsFromField(raw);
-    if (dual.arrCandidates.length) {
-        const hit = list.find((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
-        );
-        if (hit) return hit;
-    }
-    const one = parseCompactFlightIdent(raw);
-    if (one.candidates.length) {
-        const hit = list.find((f) =>
-            flightRowMatchesApiIdent(f.vuelo, one.candidates)
-        );
-        if (hit) return hit;
-    }
-    const fallbackNeedles =
-        dual.fallbackNeedles.length > 0
-            ? dual.fallbackNeedles
-            : one.fallbackNeedles;
-    if (!fallbackNeedles.length) return null;
-    return (
-        list.find((f) => {
-            const fv = String(f.vuelo || "").toLowerCase();
-            return fallbackNeedles.some((n) => n && fv.includes(n));
-        }) || null
-    );
+    const hits = filterArrivalsBySearchQuery(llegadas, raw);
+    return hits[0] || null;
 }
 
 function findDepartureForVueloField(salidas, raw) {
-    const list = salidas || [];
-    const dual = parseDualFlightIdsFromField(raw);
-    if (dual.depCandidates.length) {
-        const hit = list.find((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
-        );
-        if (hit) return hit;
-    }
-    const one = parseCompactFlightIdent(raw);
-    if (one.candidates.length) {
-        const hit = list.find((f) =>
-            flightRowMatchesApiIdent(f.vuelo, one.candidates)
-        );
-        if (hit) return hit;
-    }
-    const fallbackNeedles =
-        dual.fallbackNeedles.length > 0
-            ? dual.fallbackNeedles
-            : one.fallbackNeedles;
-    if (!fallbackNeedles.length) return null;
-    return (
-        list.find((f) => {
-            const fv = String(f.vuelo || "").toLowerCase();
-            return fallbackNeedles.some((n) => n && fv.includes(n));
-        }) || null
-    );
+    const hits = filterDeparturesBySearchQuery(salidas, raw);
+    return hits[0] || null;
 }
 
 async function fetchFlightsJsonAfterRefresh() {
@@ -4370,8 +4382,8 @@ function flightsSearchEmptyHtml(query, data, tipo) {
     if (data?.fallback && total === 0) {
         return `<div class="results-row results-empty">Sin vuelos en vivo hoy. Prueba <strong>Buscar datos del vuelo</strong> o edita manualmente.</div>`;
     }
-    const ej = tipo === "salida" ? "1528 o B6" : "627 o B6";
-    return `<div class="results-row results-empty">Sin coincidencias para «${q}». Prueba el número (${ej}).</div>`;
+    const ej = tipo === "salida" ? "1528, WS, WJA2909" : "627, B6, JBU627, WS, 2507";
+    return `<div class="results-row results-empty">Sin JetBlue/WestJet para «${q}». Prueba: ${ej}.</div>`;
 }
 
 function runFlightSearchDebounced(key, fn, ms) {
@@ -4389,7 +4401,7 @@ window.buscarVueloLlegada = async (input, index) => {
         return;
     }
     if (query.length < 2) {
-        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>627</strong> o <strong>B6</strong></div>`;
+        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>627</strong>, <strong>WS</strong>, <strong>2507</strong></div>`;
         return;
     }
     resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;
@@ -4435,7 +4447,7 @@ window.buscarVueloSalida = async (input, index) => {
         return;
     }
     if (query.length < 2) {
-        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>1528</strong> o <strong>B6</strong></div>`;
+        resultsDiv.innerHTML = `<div class="results-row results-hint">Sigue escribiendo… ej. <strong>1528</strong>, <strong>WS</strong>, <strong>2909</strong></div>`;
         return;
     }
     resultsDiv.innerHTML = `<div class="results-row results-hint">Buscando…</div>`;

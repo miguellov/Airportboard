@@ -559,9 +559,21 @@ function flightAwareMatchesQuery(vuelo, q) {
   const digits = q.replace(/\D/g, "");
   const vn = normalizeIdent(vuelo);
   if (!vn) return false;
+  if (!isAllowedCarrierIdent(vn)) return false;
   if (compact.length >= 2 && vn.includes(compact)) return true;
   if (digits.length >= 2 && vn.replace(/\D/g, "").includes(digits)) return true;
   return vn.toLowerCase().includes(qLower);
+}
+
+function isAllowedCarrierIdent(vn) {
+  const id = String(vn || "").toUpperCase();
+  if (/^(B6|JBU)\d/.test(id) || id.startsWith("B6") || id.startsWith("JBU")) {
+    return true;
+  }
+  if (/^(WS|WJA|WEN)\d/.test(id) || id.startsWith("WS") || id.startsWith("WJA") || id.startsWith("WEN")) {
+    return true;
+  }
+  return false;
 }
 
 async function searchFlightAwareSuggest(q) {

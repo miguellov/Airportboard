@@ -100,7 +100,8 @@ const POLLING_MIN_SEC = 600; // 10 min
 
 const SYNC_SECRET = process.env.SYNC_SECRET || "POP_sync_2026_airport";
 
-const AERO_API_KEY = process.env.FA_API_KEY || "";
+const AERO_API_KEY =
+  process.env.FA_API_KEY || process.env.API_KEY || "";
 
 const PANEL_JWT_SECRET =
   process.env.PANEL_JWT_SECRET || SYNC_SECRET + "_panel_jwt_2026";

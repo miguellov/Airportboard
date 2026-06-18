@@ -1,805 +1,60 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Control Vuelos PRO</title>
-
-<style>
-
-    .ticker-box {
-    background: #0a0f1c;
-    border: 1px solid #00e0ff;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-}
-
-    .asignaciones-container {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.tabla-asignaciones {
-    display: grid;
-    grid-auto-rows: 40px;
-    gap: 5px;
-    align-items: center;
-    text-align: center;
-}
-
-.tabla-header {
-    font-weight: bold;
-    color: #00e0ff;
-}
-
-.tabla-posicion {
-    text-align: left;
-    font-weight: bold;
-    padding-left: 10px;
-}
-
-.celda {
-    color: #ccc;
-}
-
-.tabs {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-    flex-wrap: wrap;
-}
-
-.tabs button {
-    background: #1e3a5f;
-    border: none;
-    padding: 10px 20px;
-    color: white;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.tabs button:hover {
-    background: #00eaff;
-    color: black;
-}
-
-.card-anuncio{
-    background:#020617;
-    border:1px solid #0ea5e9;
-    border-radius:10px;
-    padding:15px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    max-width:600px;
-    margin:auto;
-}
-
-.card-anuncio input,
-.card-anuncio select{
-    padding:10px;
-    background:#020617;
-    border:1px solid #334155;
-    color:#7dd3fc;
-    border-radius:6px;
-}
-
-.canvas-editor{
-    background:#0b1220;
-    border:1px solid #334155;
-    border-radius:8px;
-    padding:10px;
-    display:grid;
-    gap:8px;
-}
-
-.canvas-row{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-}
-
-.canvas-preview{
-    min-height:160px;
-    border:1px dashed #334155;
-    border-radius:8px;
-    position:relative;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    padding:10px;
-}
-
-.canvas-preview-media{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    z-index:0;
-}
-
-.canvas-preview-overlay{
-    position:absolute;
-    inset:0;
-    background:linear-gradient(180deg, rgba(2,6,23,.25), rgba(2,6,23,.58));
-    z-index:1;
-}
-
-.canvas-preview-text{
-    position:relative;
-    z-index:2;
-    max-width:90%;
-}
-
-.canvas-preview-text.pos-left{ text-align:left; align-self:flex-end; justify-self:flex-start; }
-.canvas-preview-text.pos-center{ text-align:center; align-self:center; justify-self:center; }
-.canvas-preview-text.pos-right{ text-align:right; align-self:flex-end; justify-self:flex-end; }
-
-.canvas-preview-title{
-    font-size:28px;
-    font-weight:800;
-    line-height:1.1;
-    margin:0 0 8px;
-}
-
-.canvas-preview-sub{
-    font-size:16px;
-    margin:0;
-    opacity:.95;
-}
-
-.canvas-preview--studio{
-    min-height:unset;
-    padding:0;
-    display:block;
-    border:1px solid #334155;
-}
-
-.canvas-studio-hint{
-    font-size:12px;
-    color:#94a3b8;
-    line-height:1.4;
-    margin:0 0 6px;
-}
-
-.canvas-studio-toolbar{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-    margin-bottom:8px;
-    font-size:12px;
-}
-
-.canvas-studio-toolbar button{
-    padding:6px 10px;
-    font-size:11px;
-}
-
-.canvas-studio-stage{
-    position:relative;
-    width:100%;
-    aspect-ratio:16/9;
-    border-radius:8px;
-    overflow:hidden;
-    touch-action:none;
-    cursor:default;
-}
-
-.canvas-studio-bg-wrap{
-    position:absolute;
-    transform:translate(-50%,-50%);
-    overflow:hidden;
-    z-index:1;
-    box-sizing:border-box;
-}
-.canvas-studio-bg-wrap.is-selected{
-    outline:2px solid #38bdf8;
-    outline-offset:-2px;
-}
-.canvas-studio-bg-wrap img,
-.canvas-studio-bg-wrap video{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-    pointer-events:none;
-    user-select:none;
-}
-
-.canvas-studio-resize{
-    position:absolute;
-    width:16px;
-    height:16px;
-    right:-2px;
-    bottom:-2px;
-    background:#38bdf8;
-    border:1px solid #0f172a;
-    border-radius:3px;
-    cursor:nwse-resize;
-    z-index:4;
-    box-sizing:border-box;
-}
-
-.canvas-studio-overlay{
-    position:absolute;
-    inset:0;
-    z-index:2;
-    pointer-events:none;
-}
-
-.canvas-studio-texts{
-    position:absolute;
-    inset:0;
-    z-index:3;
-    pointer-events:none;
-}
-
-.canvas-text-layer{
-    position:absolute;
-    transform:translate(-50%,-50%);
-    pointer-events:auto;
-    padding:6px 10px;
-    line-height:1.25;
-    word-wrap:break-word;
-    cursor:grab;
-    box-sizing:border-box;
-    min-width:40px;
-    min-height:1.2em;
-    border-radius:4px;
-    user-select:none;
-}
-.canvas-text-layer.is-selected{
-    box-shadow:0 0 0 2px #f472b6, 0 0 0 4px rgba(244,114,182,.25);
-}
-.canvas-text-layer:active{
-    cursor:grabbing;
-}
-
-.canvas-free-text-wrap{
-    margin-top:8px;
-    display:none;
-}
-.canvas-free-text-wrap.visible{
-    display:block;
-}
-.canvas-free-text-wrap label{
-    font-size:12px;
-    color:#94a3b8;
-}
-.canvas-free-text-wrap textarea{
-    width:100%;
-    min-height:64px;
-    margin-top:4px;
-    box-sizing:border-box;
-}
-
-/* Mismo z-index base: el bloque de abajo (Salida) tapaba el desplegable de Llegada.
-   El que tiene foco (o clic dentro) sube y queda delante. */
-.card .search-box{
-    position: relative;
-    z-index: 1;
-}
-.card .search-box:focus-within{
-    z-index: 200001;
-}
-
-.search-box input{
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: none;
-    background: #0f172a;
-    color: white;
-}
-
-.api-search-hint{
-    font-size: 11px;
-    color: #94a3b8;
-    margin: 0 0 2px 0;
-}
-
-.fld-label{
-    font-size: 12px;
-    font-weight: 600;
-    color: #94a3b8;
-    margin-top: 6px;
-    margin-bottom: 2px;
-}
-
-.preset-ruta{
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #334155;
-    background: #0f172a;
-    color: #e2e8f0;
-    margin-bottom: 4px;
-}
-
-.fld-vuelo, .fld-destino{
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    box-sizing: border-box;
-}
-
-.fld-vuelo-row{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-    width:100%;
-}
-.fld-vuelo-row .fld-vuelo{
-    flex:1 1 160px;
-    min-width:120px;
-    width:auto;
-}
-.btn-buscar-vuelo{
-    flex:0 0 auto;
-    padding:8px 10px;
-    font-size:12px;
-    white-space:nowrap;
-    background:#1e3a5f;
-    color:#fff;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-.btn-buscar-vuelo:disabled{
-    opacity:0.65;
-    cursor:not-allowed;
-}
-.buscar-vuelo-msg{
-    display:block;
-    font-size:12px;
-    min-height:1.2em;
-    margin:4px 0 0;
-}
-
-.results{
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: #0f172a;
-    border: 1px solid #1e293b;
-    border-radius: 6px;
-    z-index: 5;
-    max-height: 150px;
-    overflow-y: auto;
-    box-shadow: 0 8px 24px rgba(0,0,0,.45);
-}
-
-.results div{
-    padding: 8px;
-    cursor: pointer;
-    border-bottom: 1px solid #1e293b;
-    font-size: 12px;
-}
-
-.results div:hover{
-    background: #1e293b;
-}
-
-:root{
-    --bg:#0f172a;
-    --card:#1e293b;
-    --text:#e5e7eb;
-    --input:#0f172a;
-}
-
-.light{
-    --bg:#f8fafc;
-    --card:#ffffff;
-    --text:#0f172a;
-    --input:#e2e8f0;
-}
-
-.airport{
-    --bg:#000;
-    --card:#0a0a0a;
-    --text:#00ff9c;
-    --input:#000;
-    font-family:monospace;
-}
-
-body{
-    margin:0;
-    padding:10px;
-    background:var(--bg);
-    color:var(--text);
-    font-family:Arial;
-}
-
-h2{ text-align:center; }
-
-.top-buttons{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    justify-content:center;
-    align-items:center;
-}
-
-#flightsTab > .top-buttons{
-    position:sticky;
-    top:0;
-    z-index:100001;
-    background:var(--bg);
-    padding:10px 4px 12px;
-    margin:0 0 6px;
-    border-bottom:1px solid #334155;
-    box-shadow:0 4px 12px rgba(0,0,0,0.25);
-}
-
-.flight-refresh-status{
-    flex:0 1 auto;
-    text-align:center;
-    font-size:12px;
-    min-height:1.2em;
-    color:#7dd3fc;
-    line-height:1.35;
-    max-width:100%;
-}
-
-.flight-arr-primary-label{
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-    color:#94a3b8;
-    margin-top:8px;
-    font-weight:600;
-}
-.flight-time-primary{
-    font-size:1.35rem;
-    font-weight:700;
-    color:#ffffff !important;
-    width:100%;
-    box-sizing:border-box;
-    margin-top:4px;
-}
-body.light .flight-time-primary{
-    color:#0f172a !important;
-}
-body.airport .flight-time-primary{
-    color:#00ff9c !important;
-}
-.flight-arr-secondary-label{
-    font-size:11px;
-    color:#64748b;
-    margin-top:10px;
-}
-.flight-time-secondary{
-    font-size:0.85rem;
-    color:#94a3b8 !important;
-    width:100%;
-    box-sizing:border-box;
-    margin-top:4px;
-}
-body.light .flight-time-secondary{
-    color:#64748b !important;
-}
-.flight-retraso{
-    margin-top:8px;
-    font-size:13px;
-    font-weight:600;
-    min-height:1.2em;
-}
-.flight-retraso-late{ color:#f87171; }
-.flight-retraso-early{ color:#4ade80; }
-
-#btnManualFlightRefresh:disabled{
-    opacity:0.65;
-    cursor:not-allowed;
-}
-
-button{
-    padding:8px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    background:#334155;
-    color:white;
-}
-
-.add{ background:#3b82f6; }
-.toggle-btn { background: #7c3aed; }
-.toggle-btn.visible { background: #10b981; }
-.anuncios-toggle.on { background: #16a34a; }
-.anuncios-toggle.off { background: #dc2626; }
-
-#panel{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-    gap:10px;
-}
-
-.card{
-    background:var(--card);
-    padding:10px;
-    border-radius:10px;
-    display:flex;
-    flex-direction:column;
-    gap:5px;
-}
-
-/* Por encima del desplegable de búsqueda (z-index 99999) para poder pulsar B / DEP, etc. */
-.card .btn-row{
-    position:relative;
-    z-index:100000;
-}
-.card > button:last-child{
-    position:relative;
-    z-index:100000;
-}
-
-input, select{
-    background:var(--input);
-    color:var(--text);
-    border:none;
-    padding:8px;
-    border-radius:6px;
-}
-
-.btn-row{
-    display:flex;
-    gap:5px;
-    flex-wrap: wrap;
-}
-
-.btn-row button{ flex:1; min-width: 40px; }
-
-.boarding{background:#2563eb;}
-.delayed{background:#dc2626;}
-.ontime{background:#16a34a;}
-.departed{background:#f59e0b;}
-.cancelled{background:#475569;}
-.diverted{background:#7c3aed;}
-
-.ticker-box{
-    background:#000;
-    padding:10px;
-    border-radius:10px;
-    margin-bottom:15px;
-}
-
-.ticker-box input{
-    width:100%;
-    margin-bottom:5px;
-    box-sizing: border-box;
-}
-
-#positionsList,
-#positionsJet,
-#positionsWest,
-#positionsExtraAdmin{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:10px;
-}
-
-.pos-item{
-    background:#111;
-    padding:10px;
-    border-radius:8px;
-    display:flex;
-    flex-direction:column;
-    gap:5px;
-}
-
-.pos-actions{
-    display:flex;
-    gap:5px;
-    flex-wrap: wrap;
-}
-
-.pos-actions button{
-    flex:1;
-    min-width: 50px;
-}
-
-.cumple-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.cumple-card {
-    background: #1e293b;
-    padding: 15px;
-    border-radius: 8px;
-    border: 2px solid #7c3aed;
-}
-
-.anuncios-activos {
-    margin-top: 15px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
-}
-
-.anuncio-item {
-    background: #0b1220;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.anuncio-item h4 {
-    margin: 0;
-    color: #38bdf8;
-    font-size: 14px;
-}
-
-.anuncio-meta {
-    font-size: 12px;
-    color: #94a3b8;
-}
-
-.anuncio-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:4px;
-}
-
-.anuncio-actions button{
-    flex:1;
-    min-width:100px;
-    padding:8px;
-    font-size:12px;
-}
-
-.anuncio-badge-pausa{
-    display:inline-block;
-    font-size:11px;
-    font-weight:700;
-    padding:2px 8px;
-    border-radius:999px;
-    margin-left:6px;
-    vertical-align:middle;
-}
-.anuncio-badge-pausa.on{ background:#14532d; color:#86efac; }
-.anuncio-badge-pausa.off{ background:#450a0a; color:#fca5a5; }
-
-.anuncio-editando-banner{
-    background:#1e3a5f;
-    border:1px solid #38bdf8;
-    border-radius:8px;
-    padding:10px 12px;
-    margin-bottom:10px;
-    display:none;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:8px;
-    font-size:13px;
-    color:#bae6fd;
-}
-
-.cumple-foto {
-    width: 100%;
-    height: 150px;
-    border-radius: 6px;
-    object-fit: cover;
-    margin-bottom: 10px;
-}
-
-.cumple-info {
-    color: #e5e7eb;
-    font-size: 14px;
-}
-
-@media (max-width: 768px) {
-    .tabs {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .tabs button {
-        width: 100%;
-    }
-    
-    .top-buttons button {
-        font-size: 12px;
-        padding: 6px;
-    }
-}
-
-.board-preview-card {
-    background: #020617;
-    border: 1px solid #0ea5e9;
-    border-radius: 10px;
-    padding: 12px;
-    margin: 0 auto 16px;
-    max-width: 1200px;
-    box-sizing: border-box;
-}
-
-.board-preview-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    color: #bae6fd;
-}
-
-.board-preview-header button,
-.board-preview-header a {
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: #1e3a5f;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.board-preview-header a:hover {
-    background: #00eaff;
-    color: #000;
-}
-
-.board-preview-frame-wrap {
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #334155;
-    background: #000;
-    height: min(52vh, 520px);
-    min-height: 280px;
-}
-
-.board-preview-frame-wrap iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    display: block;
-}
-</style>
+<title>POP FIDS — Panel de Control</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="panel.css">
 </head>
 
 <body>
 
-<h2>✈️ Panel de Control</h2>
+<div class="panel-app">
 
-<div class="tabs">
-    <button onclick="showTab('flightsTab')">🛫 Vuelos</button>
-    <button onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
-    <button onclick="showTab('anunciosTab')">📢 Anuncios</button>
-    <button onclick="showTab('configTab')">⚙️ Config</button>
+<header class="panel-header">
+    <div class="panel-header__brand">
+        <div class="panel-header__icon" aria-hidden="true">✈</div>
+        <div>
+            <h1>POP FIDS — Consola</h1>
+            <p class="panel-header__sub">Gregorio Luperón · MDPP / POP</p>
+        </div>
+    </div>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Secciones del panel">
+    <button type="button" class="tab-active" data-tab="flightsTab" onclick="showTab('flightsTab')">🛫 Vuelos</button>
+    <button type="button" data-tab="positionsTab" onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
+    <button type="button" data-tab="anunciosTab" onclick="showTab('anunciosTab')">📢 Anuncios</button>
+    <button type="button" data-tab="configTab" onclick="showTab('configTab')">⚙️ Config</button>
 </div>
 
-<div class="board-preview-card">
+<div class="board-preview-card" id="boardPreviewCard">
     <div class="board-preview-header">
         <strong>🖥️ Vista previa del tablero</strong>
+        <button type="button" id="btnToggleBoardPreview" onclick="toggleBoardPreview()" title="Ocultar vista previa del tablero">👁️ Ocultar vista</button>
         <button type="button" onclick="reloadBoardPreview()">↻ Recargar</button>
         <a id="boardPreviewOpen" href="index.html" target="_blank" rel="noopener">Abrir en pestaña</a>
+        <span class="board-preview-aspect-label">16∶9 · 1920×1080</span>
     </div>
-    <div class="board-preview-frame-wrap">
-        <iframe id="boardPreviewFrame" title="Vista previa Airport Board"></iframe>
+    <div class="board-preview-body" id="boardPreviewBody">
+        <div class="board-preview-frame-wrap" id="boardPreviewWrap">
+            <div class="board-preview-scaler">
+                <iframe id="boardPreviewFrame" title="Vista previa Airport Board"></iframe>
+            </div>
+        </div>
+        <p class="board-preview-hint">
+            Miniatura del tablero TV (misma proporción que pantalla Samsung). Para ver a tamaño real usa
+            <strong>Abrir en pestaña</strong> o <code>http://localhost:4000/index.html</code>.
+        </p>
     </div>
-    <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;line-height:1.4;">
-        Mismo contenido que <code style="color:#7dd3fc;">index.html</code>. Con el servidor en marcha usa
-        <code style="color:#7dd3fc;">http://localhost:4000/panel.html</code> para que el marco cargue bien.
-    </p>
 </div>
 <script>
+var BOARD_PREVIEW_W = 1920;
+var BOARD_PREVIEW_H = 1080;
+
 function boardPreviewUrl() {
     if (location.protocol === "file:") {
         return new URL("index.html", location.href).href;
@@ -807,14 +62,78 @@ function boardPreviewUrl() {
     var base = location.origin + location.pathname.replace(/[^/]*$/, "");
     return new URL("index.html", base || location.origin + "/").href;
 }
+
+function fitBoardPreview() {
+    var wrap = document.getElementById("boardPreviewWrap");
+    var iframe = document.getElementById("boardPreviewFrame");
+    if (!wrap || !iframe) return;
+    var w = wrap.clientWidth;
+    if (w <= 0) return;
+    var scale = w / BOARD_PREVIEW_W;
+    iframe.style.width = BOARD_PREVIEW_W + "px";
+    iframe.style.height = BOARD_PREVIEW_H + "px";
+    iframe.style.transform = "scale(" + scale + ")";
+}
+
 function reloadBoardPreview() {
     var f = document.getElementById("boardPreviewFrame");
     var a = document.getElementById("boardPreviewOpen");
+    var card = document.getElementById("boardPreviewCard");
+    if (card && card.classList.contains("is-collapsed")) return;
     var u = boardPreviewUrl();
     if (a) a.href = u;
-    if (f) f.src = u;
+    if (f) {
+        f.onload = function () { fitBoardPreview(); };
+        f.src = u;
+    }
+    requestAnimationFrame(fitBoardPreview);
 }
-document.addEventListener("DOMContentLoaded", reloadBoardPreview);
+
+function setBoardPreviewVisible(visible, persist) {
+    var card = document.getElementById("boardPreviewCard");
+    var btn = document.getElementById("btnToggleBoardPreview");
+    var frame = document.getElementById("boardPreviewFrame");
+    if (!card || !btn) return;
+    if (visible) {
+        card.classList.remove("is-collapsed");
+        btn.textContent = "👁️ Ocultar vista";
+        btn.title = "Ocultar vista previa del tablero";
+        reloadBoardPreview();
+    } else {
+        card.classList.add("is-collapsed");
+        btn.textContent = "👁️ Mostrar vista";
+        btn.title = "Mostrar vista previa del tablero";
+        if (frame) frame.src = "about:blank";
+    }
+    if (persist !== false) {
+        try {
+            localStorage.setItem("boardPreviewVisible", visible ? "1" : "0");
+        } catch (_) {}
+    }
+}
+
+function toggleBoardPreview() {
+    var card = document.getElementById("boardPreviewCard");
+    if (!card) return;
+    setBoardPreviewVisible(card.classList.contains("is-collapsed"), true);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    var saved = null;
+    try {
+        saved = localStorage.getItem("boardPreviewVisible");
+    } catch (_) {}
+    if (saved === "0") {
+        setBoardPreviewVisible(false, false);
+    } else {
+        reloadBoardPreview();
+    }
+    window.addEventListener("resize", fitBoardPreview);
+    if (typeof ResizeObserver !== "undefined") {
+        var wrap = document.getElementById("boardPreviewWrap");
+        if (wrap) new ResizeObserver(fitBoardPreview).observe(wrap);
+    }
+});
 </script>
 
 <!-- ========================= -->
@@ -833,6 +152,13 @@ document.addEventListener("DOMContentLoaded", reloadBoardPreview);
         <label>Tiempo que se muestra la sección Vuelos (segundos):</label>
         <input id="flightSectionSeconds" type="number" value="15" min="5" max="180">
         <button onclick="saveFlightSectionConfig()">🕒 Guardar Tiempo de Sección</button>
+        <hr style="margin: 12px 0; border: 1px solid #334155;">
+        <label>🔊 Avisos de voz antes de llegada (minutos, separados por coma):</label>
+        <input id="arrivalSpeechMinutes" placeholder="30, 15, 1" value="30, 15, 1">
+        <label>Tolerancia sync API (± minutos, cubre actualizaciones cada 10 min):</label>
+        <input id="arrivalSpeechTolerance" type="number" value="7" min="3" max="15">
+        <button type="button" onclick="saveArrivalSpeechConfig()">🔊 Guardar Avisos de Voz</button>
+        <p class="ticker-box-hint">La TV debe tocarse una vez para activar la voz. Si la API cambia la hora, los avisos se recalculan solos.</p>
     </div>
 
     <div class="top-buttons">
@@ -841,6 +167,8 @@ document.addEventListener("DOMContentLoaded", reloadBoardPreview);
         <button onclick="redo()">⏩ Redo</button>
         <button onclick="changeDateFlights()">📅 Cambiar Fecha</button>
         <button type="button" id="btnManualFlightRefresh" onclick="manualFlightRefresh()">🔄 Refresh Manual</button>
+        <button type="button" id="btnSyncPause" onclick="pauseFlightSync()" title="Pausar sync automático cada 10 min">⏸ Pausar sync</button>
+        <button type="button" id="btnSyncPlay" onclick="resumeFlightSync()" title="Reanudar sync automático">▶ Play sync</button>
         <button onclick="setTheme('dark')">🌙</button>
         <button onclick="setTheme('light')">🌞</button>
         <button onclick="setTheme('airport')">✈️</button>
@@ -857,69 +185,149 @@ document.addEventListener("DOMContentLoaded", reloadBoardPreview);
 <!-- ========================= -->
 <!-- 👨‍✈️ TAB POSICIONES -->
 <!-- ========================= -->
-<div id="positionsTab" style="display:none;">
+<div id="positionsTab" class="positions-tab" style="display:none;">
 
-    <h2>👨‍✈️ Asignación de Posiciones</h2>
+    <header class="positions-hero">
+        <div class="positions-hero-text">
+            <h2>Asignación de posiciones</h2>
+            <p class="positions-sub">Carga el equipo por aerolínea. En la TV rotan a pantalla completa con tipografía legible.</p>
+        </div>
+        <div class="positions-hero-actions">
+            <span id="positionsCountBadge" class="positions-count-badge">0 asignados</span>
+            <button type="button" id="togglePositionsBtn" class="positions-toggle on" onclick="togglePositionsBoard()">🟢 En pantalla</button>
+        </div>
+    </header>
 
-    <!-- TABLA AUTOMÁTICA -->
-    <div class="asignaciones-container">
-        <div id="tablaPanel"></div>
+    <div class="positions-layout">
+
+        <section class="card-positions positions-editor">
+            <div class="positions-editor-head">
+                <h3>Editor</h3>
+                <p>Elige aerolínea, asigna roles y guarda. Los cambios se publican al instante.</p>
+            </div>
+
+            <div class="positions-airline-pills" role="tablist" aria-label="Aerolínea">
+                <button type="button" class="positions-airline-pill active" data-airline="jetblue" onclick="setPositionsAirline('jetblue')">🔵 JetBlue</button>
+                <button type="button" class="positions-airline-pill" data-airline="westjet" onclick="setPositionsAirline('westjet')">🟢 WestJet</button>
+                <button type="button" class="positions-airline-pill" data-airline="extra" onclick="setPositionsAirline('extra')">✈️ Otros vuelos</button>
+            </div>
+
+            <div id="posEditorJetblue" class="pos-editor-panel active">
+                <div class="pos-editor-toolbar">
+                    <button type="button" class="toggle-btn visible" id="toggleJet" onclick="toggleVisibility('jetblue')">👁️ Visible</button>
+                    <label class="pos-field-inline">Duración (s)
+                        <input id="jetblueDuration" type="number" value="12" min="5" max="90" onchange="saveJetblueDuration()">
+                    </label>
+                </div>
+                <label class="field-label" for="jetblueTitle">Título en pantalla</label>
+                <div class="pos-title-row">
+                    <input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
+                    <button type="button" onclick="saveJetblueTitle()">💾</button>
+                </div>
+                <label class="field-label" for="jetblueFlightSelector">Vuelo / turno del día</label>
+                <div class="pos-title-row">
+                    <select id="jetblueFlightSelector" onchange="onJetblueFlightSelected()"></select>
+                    <input id="newJetblueFlight" placeholder="Ej: B6 627">
+                    <button type="button" onclick="addJetblueFlight()" title="Agregar vuelo">➕</button>
+                </div>
+                <div class="pos-flight-actions">
+                    <button type="button" class="btn-clear-turno" onclick="clearActiveFlightPositions('jetblue')">🗑 Limpiar este turno</button>
+                </div>
+                <p class="positions-hint">Asigna un empleado a cada posición. Los cambios se guardan al elegir en el desplegable.</p>
+                <div id="positionsMatrixJetblue" class="positions-matrix"></div>
+            </div>
+
+            <div id="posEditorWestjet" class="pos-editor-panel">
+                <div class="pos-editor-toolbar">
+                    <button type="button" class="toggle-btn visible" id="toggleWest" onclick="toggleVisibility('westjet')">👁️ Visible</button>
+                    <label class="pos-field-inline">Duración (s)
+                        <input id="westjetDuration" type="number" value="12" min="5" max="90" onchange="saveWestjetDuration()">
+                    </label>
+                </div>
+                <label class="field-label" for="westjetTitle">Título en pantalla</label>
+                <div class="pos-title-row">
+                    <input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS 2507">
+                    <button type="button" onclick="saveWestjetTitle()">💾</button>
+                </div>
+                <label class="field-label" for="westjetFlightSelector">Vuelo / turno del día</label>
+                <div class="pos-title-row">
+                    <select id="westjetFlightSelector" onchange="onWestjetFlightSelected()"></select>
+                    <input id="newWestjetFlight" placeholder="Ej: WS 2507">
+                    <button type="button" onclick="addWestjetFlight()" title="Agregar vuelo">➕</button>
+                </div>
+                <div class="pos-flight-actions">
+                    <button type="button" class="btn-clear-turno" onclick="clearActiveFlightPositions('westjet')">🗑 Limpiar este turno</button>
+                </div>
+                <p class="positions-hint">Asigna un empleado a cada posición. Los cambios se guardan al elegir en el desplegable.</p>
+                <div id="positionsMatrixWestjet" class="positions-matrix"></div>
+            </div>
+
+            <div id="posEditorExtra" class="pos-editor-panel">
+                <h4 class="pos-extra-heading">Vuelos / aerolíneas adicionales</h4>
+                <div class="pos-add-row">
+                    <input id="newAirlineName" placeholder="Ej: Arajet, Copa, Delta">
+                    <button type="button" onclick="addExtraAirline()">➕ Crear vuelo</button>
+                </div>
+                <label class="field-label" for="airlineSelector">Vuelo activo</label>
+                <select id="airlineSelector" onchange="onExtraAirlineSelected()"></select>
+                <div class="pos-editor-toolbar" id="extraDurationToolbar" style="display:none;">
+                    <label class="pos-field-inline">Duración (s)
+                        <input id="extraDuration" type="number" value="12" min="5" max="90" onchange="saveExtraDuration()">
+                    </label>
+                </div>
+                <div class="pos-add-row" id="extraAddRow" style="display:none;">
+                    <select id="posRoleExtra" class="pos-role-select"></select>
+                    <select id="posNameExtraSelect" class="pos-employee-select"></select>
+                    <input id="posNameExtra" placeholder="O escribe nombre">
+                    <button type="button" onclick="savePositionExtra()">➕ Agregar</button>
+                </div>
+                <div id="positionsExtraList" class="positions-cards-list"></div>
+                <div id="positionsExtraAdmin" class="positions-extra-admin"></div>
+            </div>
+
+            <div class="positions-global-settings">
+                <label class="field-label" for="positionsGapSeconds">Intervalo entre rotaciones (segundos)</label>
+                <div class="pos-title-row">
+                    <input id="positionsGapSeconds" type="number" value="45" min="20" max="300">
+                    <button type="button" onclick="savePositionsGap()">💾 Guardar</button>
+                </div>
+                <p class="positions-hint">Cada intervalo, la TV muestra las asignaciones a pantalla completa y rota entre aerolíneas visibles.</p>
+            </div>
+        </section>
+
+        <section class="card-positions positions-preview-section">
+            <div class="positions-preview-head">
+                <h3>Vista previa TV</h3>
+                <p>Así se verá el slide en rotación.</p>
+            </div>
+            <div id="positionsBoardPreview" class="positions-board-preview" aria-label="Vista previa posiciones"></div>
+        </section>
+
     </div>
 
-    <!-- POSICIONES MANUALES -->
-    <div class="ticker-box">
+    <section class="card-positions empleados-section">
+        <div class="empleados-head">
+            <div>
+                <h3>Directorio de empleados</h3>
+                <p class="positions-hint">Guarda los nombres del equipo para asignarlos rápido en cada posición.</p>
+            </div>
+            <span id="empleadosCountBadge" class="positions-count-badge">0 empleados</span>
+        </div>
+        <div class="empleados-airline-pills" role="tablist" aria-label="Aerolínea del empleado">
+            <button type="button" class="empleados-airline-pill active" data-pool="jetblue" onclick="setEmpleadosPool('jetblue')">🔵 JetBlue</button>
+            <button type="button" class="empleados-airline-pill" data-pool="westjet" onclick="setEmpleadosPool('westjet')">🟢 WestJet</button>
+            <button type="button" class="empleados-airline-pill" data-pool="both" onclick="setEmpleadosPool('both')">👥 Ambas</button>
+        </div>
+        <div class="empleados-add-row">
+            <input id="newEmpleadoName" placeholder="Nombre completo del empleado">
+            <button type="button" onclick="addEmpleado()">➕ Agregar empleado</button>
+        </div>
+        <div id="empleadosList" class="empleados-chips"></div>
+    </section>
 
-        <h3>👨‍✈️ POSICIONES</h3>
-
-        <!-- 🔵 JETBLUE -->
-        <h4 style="color:#3b82f6;">🔵 JETBLUE
-            <button class="toggle-btn visible" id="toggleJet" onclick="toggleVisibility('jetblue')" style="float: right; font-size: 11px; padding: 4px 8px;">👁️</button>
-        </h4>
-
-        <input id="jetblueTitle" placeholder="Ej: Asignaciones JetBlue B6 627">
-        <button onclick="saveJetblueTitle()">💾 Guardar Título</button>
-        <label>Duración (segundos):</label>
-        <input id="jetblueDuration" type="number" value="10" min="1" max="60">
-
-        <input id="posRoleJet" placeholder="Posición JetBlue">
-        <input id="posNameJet" placeholder="Nombre empleado">
-        <button onclick="savePositionJet()">➕ Agregar JetBlue</button>
-
-        <div id="positionsJet"></div>
-
-        <hr style="margin:15px 0; border:1px solid #333;">
-
-        <!-- 🟢 WESTJET -->
-        <h4 style="color:#22c55e;">🟢 WESTJET
-            <button class="toggle-btn visible" id="toggleWest" onclick="toggleVisibility('westjet')" style="float: right; font-size: 11px; padding: 4px 8px;">👁️</button>
-        </h4>
-
-        <input id="westjetTitle" placeholder="Ej: Asignaciones WestJet WS2507">
-        <button onclick="saveWestjetTitle()">💾 Guardar Título</button>
-        <label>Duración (segundos):</label>
-        <input id="westjetDuration" type="number" value="10" min="1" max="60">
-
-        <input id="posRoleWest" placeholder="Posición WestJet">
-        <input id="posNameWest" placeholder="Nombre empleado">
-        <button onclick="savePositionWest()">➕ Agregar WestJet</button>
-
-        <div id="positionsWest"></div>
-
-        <hr style="margin:15px 0; border:1px solid #333;">
-
-        <!-- 🆕 OTROS VUELOS -->
-        <h4 style="color:#f59e0b;">🆕 OTROS VUELOS / AEROLINEAS</h4>
-        <input id="newAirlineName" placeholder="Ej: Arajet / Copa / Delta">
-        <button onclick="addExtraAirline()">➕ Crear Vuelo</button>
-
-        <label>Seleccionar vuelo:</label>
-        <select id="airlineSelector"></select>
-        <input id="posRoleExtra" placeholder="Posicion del vuelo seleccionado">
-        <input id="posNameExtra" placeholder="Nombre empleado">
-        <button onclick="savePositionExtra()">➕ Agregar a Vuelo Seleccionado</button>
-        <div id="positionsExtraAdmin"></div>
-        <div id="positionsExtraList"></div>
-
+    <div class="asignaciones-container">
+        <div id="orphansPanel" class="orphans-panel"></div>
+        <div id="tablaPanel"></div>
     </div>
 
 </div>
@@ -927,136 +335,282 @@ document.addEventListener("DOMContentLoaded", reloadBoardPreview);
 <!-- ========================= -->
 <!-- 📢 TAB ANUNCIOS -->
 <!-- ========================= -->
-<div id="anunciosTab" style="display:none;">
+<div id="anunciosTab" style="display:none;" class="anuncios-tab">
 
-    <h2>📢 Gestión de Anuncios</h2>
-
-    <div class="card-anuncio">
-
-        <div id="anuncioEditandoBanner" class="anuncio-editando-banner">
-            <span>✏️ Editando anuncio <strong id="anuncioEditandoIdText"></strong> — Guardar aplicará los cambios a este anuncio.</span>
-            <button type="button" onclick="limpiarEdicionAnuncio()" style="background:#475569;">Cancelar edición</button>
+    <header class="anuncios-hero">
+        <div class="anuncios-hero-text">
+            <h2>Anuncios en pantalla</h2>
+            <p class="anuncios-sub">Mensajes, cumpleaños y canvas animados para la rotación del tablero TV.</p>
         </div>
-
-        <label>Tipo</label>
-        <select id="tipoAnuncio" onchange="cambiarTipoAnuncio()">
-            <option value="mensaje">Mensaje</option>
-            <option value="cumple">Cumpleaños</option>
-            <option value="asignacion">Asignación</option>
-            <option value="canvas">Canvas Animado</option>
-        </select>
-
-        <!-- Mensaje -->
-        <div id="msgFields">
-            <input id="textoAnuncio" placeholder="Texto">
-            <input type="file" id="fileAnuncio" accept="image/*,video/*">
-            <label>Vista Previa:</label>
-            <div id="previewMsg" style="min-height: 100px; border: 1px solid #334155; border-radius: 6px; padding: 10px; color: #7dd3fc;">Aquí aparecerá la vista previa</div>
+        <div class="anuncios-hero-actions">
+            <span id="anunciosCountBadge" class="anuncios-count-badge">0 en rotación</span>
+            <button type="button" id="toggleAnunciosBtn" class="anuncios-toggle on anuncios-power-btn" onclick="toggleAnuncios()">🟢 Encendido</button>
+            <button type="button" class="anuncios-new-btn" onclick="nuevoAnuncio()">＋ Nuevo anuncio</button>
         </div>
+    </header>
 
-        <!-- Cumpleaños -->
-        <div id="cumpleFields" style="display: none;">
-            <h4>Cumpleañeros del mes</h4>
-            <div style="font-size:13px; color:#bae6fd; margin-bottom:10px; line-height:1.45; max-width:520px;">
-                Solo completa <strong>foto</strong>, <strong>nombre</strong> y <strong>fecha</strong> por persona. Esa información es la que verás en el tablero (foto circular, nombre y fecha estilo cartelera).
-                Publica con el botón de abajo cuando quieras mostrar el panel en pantalla.
+    <div class="anuncios-layout">
+
+        <section class="card-anuncio anuncios-editor">
+            <div class="anuncios-editor-head">
+                <h3 id="anunciosEditorTitle">Crear anuncio</h3>
+                <p class="anuncios-editor-hint">Elige el tipo, edita el contenido y guarda. Los cambios se publican en el tablero.</p>
             </div>
-            <label>Nombre</label>
-            <input id="cumpleNombre" placeholder="Nombre completo" maxlength="50">
-            <label>Fecha de cumpleaños</label>
-            <input id="cumpleFecha" type="date">
-            <label>Foto (desde tu galería)</label>
-            <input type="file" id="cumpleFoto" accept="image/*">
-            <label>Vista previa</label>
-            <img id="previewFoto" src="" style="max-width: 150px; border-radius: 6px; display: none;">
-            <button onclick="agregarCumpleanero()">➕ Agregar a Cumpleañeros</button>
-            <div id="cumpleLista" class="cumple-list"></div>
-        </div>
 
-        <!-- Canvas -->
-        <div id="canvasFields" style="display:none;">
-            <h4>🎨 Editor tipo Canvas</h4>
-            <div class="canvas-editor">
-                <select id="canvasPreset" onchange="aplicarCanvasPreset(this.value)">
-                    <option value="">Plantilla: personalizada</option>
-                    <option value="promo">Promoción</option>
-                    <option value="aviso">Aviso operativo</option>
-                    <option value="emergencia">Emergencia</option>
-                </select>
-                <input id="canvasTitulo" maxlength="90" placeholder="Título principal (ej: Oferta especial hoy)" oninput="syncCanvasTitleInputsToLayout()">
-                <input id="canvasSubtitulo" maxlength="140" placeholder="Subtítulo opcional" oninput="syncCanvasTitleInputsToLayout()">
-                <div class="canvas-row">
-                    <select id="canvasAnimacion" onchange="renderCanvasPreview()">
-                        <option value="fade-up">Animación: Fade Up</option>
-                        <option value="zoom-in">Animación: Zoom In</option>
-                        <option value="slide-left">Animación: Slide Left</option>
-                        <option value="glow">Animación: Glow</option>
-                    </select>
-                    <input id="canvasDuracionTexto" type="number" min="1" max="12" value="3" placeholder="Duración animación texto (seg)" oninput="renderCanvasPreview()">
+            <div id="anuncioEditandoBanner" class="anuncio-editando-banner">
+                <span>✏️ Editando <strong id="anuncioEditandoIdText"></strong></span>
+                <button type="button" class="btn-ghost" onclick="limpiarEdicionAnuncio()">Cancelar</button>
+            </div>
+
+            <label class="field-label" for="tipoAnuncio">Tipo de contenido</label>
+            <div class="anuncio-type-pills" role="tablist" aria-label="Tipo de anuncio">
+                <button type="button" class="anuncio-type-pill active" data-tipo="mensaje" onclick="setAnuncioTipo('mensaje')">💬 Mensaje</button>
+                <button type="button" class="anuncio-type-pill" data-tipo="cumple" onclick="setAnuncioTipo('cumple')">🎂 Cumpleaños</button>
+                <button type="button" class="anuncio-type-pill" data-tipo="canvas" onclick="setAnuncioTipo('canvas')">🎨 Canvas</button>
+            </div>
+            <select id="tipoAnuncio" class="anuncio-tipo-select" onchange="syncAnuncioTipoPills(); cambiarTipoAnuncio()" aria-hidden="true" tabindex="-1">
+                <option value="mensaje">Mensaje</option>
+                <option value="cumple">Cumpleaños</option>
+                <option value="asignacion">Asignación</option>
+                <option value="canvas">Canvas Animado</option>
+            </select>
+
+            <div id="msgFields" class="anuncio-panel">
+                <div class="field-group">
+                    <label class="field-label" for="textoAnuncio">Texto del mensaje</label>
+                    <textarea id="textoAnuncio" class="anuncio-textarea" rows="3" placeholder="Ej: Bienvenidos a Puerto Plata…"></textarea>
                 </div>
-                <div class="canvas-row">
-                    <label>Color texto <input id="canvasTextColor" type="color" value="#ffffff" onchange="applyCanvasTextColorToSelection(); renderCanvasPreview();"></label>
-                    <label>Fondo sólido <input id="canvasBgColor" type="color" value="#0f172a" onchange="renderCanvasPreview()"></label>
-                </div>
-                <div class="canvas-row">
-                    <select id="canvasFontFamily" onchange="applyCanvasFontFamilyToSelection(); renderCanvasPreview();">
-                        <option value="Inter, Arial, sans-serif">Fuente: Inter</option>
-                        <option value="Orbitron, Arial, sans-serif">Fuente: Orbitron</option>
-                        <option value="Montserrat, Arial, sans-serif">Fuente: Montserrat</option>
-                        <option value="Georgia, serif">Fuente: Serif</option>
-                    </select>
-                    <select id="canvasTextPosition" onchange="applyCanvasTextPositionToLayout(); renderCanvasPreview();">
-                        <option value="center">Posición: Centro</option>
-                        <option value="left">Posición: Izquierda</option>
-                        <option value="right">Posición: Derecha</option>
-                    </select>
-                </div>
-                <div class="canvas-row">
-                    <label>Overlay <input id="canvasOverlayOpacity" type="range" min="0" max="80" step="5" value="35" oninput="updateCanvasOverlayLabel(this.value);renderCanvasPreview()"></label>
-                    <label>Opacidad: <span id="canvasOverlayValue">35</span>%</label>
-                </div>
-                <input type="file" id="canvasMedia" accept="image/*,video/*" onchange="previewCanvasMedia(event)">
-                <label style="display:block;margin-top:10px;color:#bae6fd;font-size:13px;">Contenido por URL (cualquier página https, YouTube, Vimeo o .mp4/.webm…)</label>
-                <input id="canvasEmbedUrl" type="url" inputmode="url" placeholder="https://… (página, YouTube, Vimeo o enlace directo a vídeo)" style="width:100%;max-width:520px;box-sizing:border-box;margin-top:4px;">
-                <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#cbd5e1;max-width:520px;line-height:1.35;">
-                    <input type="checkbox" id="canvasEmbedFullscreen">
-                    Pantalla completa en el tablero (cubre reloj, vuelos y cinta mientras se muestra este anuncio)
-                </label>
-                <p class="canvas-studio-hint">Si hay URL, <strong>tiene prioridad</strong> sobre el archivo en el tablero. Muchas webs <strong>no permiten</strong> verse dentro de un marco (X-Frame-Options): en ese caso verás vacío o error; YouTube/Vimeo y archivos .mp4 suelen ir bien. Arrastra el <strong>fondo</strong> y la esquina azul; arrastra cada <strong>texto</strong>.</p>
-                <div class="canvas-studio-toolbar">
-                    <span id="canvasStudioSelectionLabel" style="color:#bae6fd;">Capa: ninguna</span>
-                    <button type="button" onclick="addCanvasTextLayer()">➕ Texto libre</button>
-                    <button type="button" id="canvasRemoveLayerBtn" style="background:#7f1d1d;display:none;" onclick="removeSelectedCanvasTextLayer()">🗑 Quitar texto libre</button>
-                    <label style="display:flex;align-items:center;gap:6px;">Tamaño capa
-                        <input id="canvasLayerFontSize" type="range" min="2" max="14" step="0.25" value="6" style="width:100px;" oninput="onCanvasLayerFontSizeInput(this.value)">
+                <div class="field-group">
+                    <label class="field-label">Imagen o video (opcional)</label>
+                    <label class="anuncio-file-zone" for="fileAnuncio">
+                        <span class="anuncio-file-zone-label">📎 Arrastra o toca para subir</span>
+                        <span class="anuncio-file-zone-hint">JPG, PNG, MP4, WebM</span>
+                        <input type="file" id="fileAnuncio" accept="image/*,video/*">
                     </label>
                 </div>
-                <div id="canvasFreeTextWrap" class="canvas-free-text-wrap">
-                    <label>Texto de la capa seleccionada</label>
-                    <textarea id="canvasFreeTextarea" placeholder="Escribe aquí…" oninput="onCanvasFreeTextareaInput()"></textarea>
+                <div class="field-group anuncio-preview-block">
+                    <label class="field-label">Vista previa</label>
+                    <div id="previewMsg" class="anuncio-live-preview">Aquí aparecerá la vista previa</div>
                 </div>
-                <div id="canvasPreview" class="canvas-preview canvas-preview--studio"></div>
             </div>
-        </div>
 
-        <!-- Duración general -->
-        <label>Duración (segundos):</label>
-        <input id="duracionAnuncio" type="number" placeholder="Duración (segundos)" value="10" min="1" max="120">
+            <div id="cumpleFields" class="anuncio-panel" style="display:none;">
+                <p class="anuncios-panel-intro">Foto circular, nombre y fecha sobre la plantilla <strong>Formatocumpleaños.png</strong>. Publica con «Guardar anuncio».</p>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label class="field-label" for="cumpleNombre">Nombre</label>
+                        <input id="cumpleNombre" placeholder="Nombre completo" maxlength="50">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="cumpleFecha">Fecha</label>
+                        <input id="cumpleFecha" type="date">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Foto</label>
+                    <label class="anuncio-file-zone anuncio-file-zone--compact" for="cumpleFoto">
+                        <span class="anuncio-file-zone-label">📷 Elegir foto</span>
+                        <input type="file" id="cumpleFoto" accept="image/*">
+                    </label>
+                    <img id="previewFoto" class="cumple-preview-thumb" src="" alt="" style="display:none;">
+                </div>
+                <button type="button" class="btn-secondary" onclick="agregarCumpleanero()">➕ Agregar a cumpleañeros</button>
+                <div id="cumpleLista" class="cumple-list"></div>
+                <div class="cumple-board-preview-wrap">
+                    <label class="field-label">Vista en tablero (plantilla)</label>
+                    <div id="cumpleBoardPreview" class="cumple-board-preview" aria-label="Vista previa cumpleaños"></div>
+                </div>
+            </div>
 
-        <label>Tamaño de imagen en pantalla (<span id="anuncioSizeValue">60</span>%)</label>
-        <input id="anuncioImageScale" type="range" min="30" max="100" step="5" value="60" oninput="updateAnuncioScaleLabel(this.value)">
-        <button onclick="saveAnuncioImageScale()">🖼️ Guardar Tamaño Imagen</button>
+            <div id="canvasFields" class="anuncio-panel canvas-studio-pro-wrap" style="display:none;">
 
-        <button onclick="guardarAnuncio()">💾 <span id="guardarAnuncioLabel">Guardar</span></button>
-        <button id="toggleAnunciosBtn" class="anuncios-toggle on" onclick="toggleAnuncios()">🟢 Encendido</button>
+                <header class="canvas-pro-hero">
+                    <div class="canvas-pro-hero-text">
+                        <h4>Canvas Studio</h4>
+                        <p class="canvas-pro-sub">Diseña slides 16:9 para la TV. Arrastra texto y fondo en el lienzo; los cambios se ven al instante.</p>
+                    </div>
+                    <div class="canvas-pro-hero-actions">
+                        <button type="button" class="canvas-pro-btn" onclick="previewCanvasAnimation()">▶ Probar animación</button>
+                        <button type="button" class="canvas-pro-btn canvas-pro-btn--ghost" onclick="addCanvasTextLayer()">＋ Capa de texto</button>
+                    </div>
+                </header>
+
+                <div class="canvas-studio-pro">
+
+                    <aside class="canvas-pro-sidebar">
+
+                        <section class="canvas-pro-section">
+                            <h5 class="canvas-pro-section-title">Plantillas</h5>
+                            <div class="canvas-preset-grid" id="canvasPresetGrid" role="listbox" aria-label="Plantillas canvas">
+                                <button type="button" class="canvas-preset-card active" data-preset="" onclick="selectCanvasPresetCard('')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--custom"></span>
+                                    <span class="canvas-preset-card-label">Personalizada</span>
+                                </button>
+                                <button type="button" class="canvas-preset-card" data-preset="promo" onclick="selectCanvasPresetCard('promo')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--promo"></span>
+                                    <span class="canvas-preset-card-label">Promoción</span>
+                                </button>
+                                <button type="button" class="canvas-preset-card" data-preset="bienvenida" onclick="selectCanvasPresetCard('bienvenida')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--bienvenida"></span>
+                                    <span class="canvas-preset-card-label">Bienvenida</span>
+                                </button>
+                                <button type="button" class="canvas-preset-card" data-preset="aviso" onclick="selectCanvasPresetCard('aviso')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--aviso"></span>
+                                    <span class="canvas-preset-card-label">Aviso</span>
+                                </button>
+                                <button type="button" class="canvas-preset-card" data-preset="boarding" onclick="selectCanvasPresetCard('boarding')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--boarding"></span>
+                                    <span class="canvas-preset-card-label">Boarding</span>
+                                </button>
+                                <button type="button" class="canvas-preset-card" data-preset="emergencia" onclick="selectCanvasPresetCard('emergencia')">
+                                    <span class="canvas-preset-card-bg canvas-preset-card-bg--emergencia"></span>
+                                    <span class="canvas-preset-card-label">Emergencia</span>
+                                </button>
+                            </div>
+                            <select id="canvasPreset" class="canvas-preset-select-hidden" onchange="aplicarCanvasPreset(this.value)" aria-hidden="true" tabindex="-1">
+                                <option value="">Personalizada</option>
+                                <option value="promo">Promoción</option>
+                                <option value="bienvenida">Bienvenida</option>
+                                <option value="aviso">Aviso operativo</option>
+                                <option value="boarding">Boarding</option>
+                                <option value="emergencia">Emergencia</option>
+                            </select>
+                        </section>
+
+                        <section class="canvas-pro-section">
+                            <h5 class="canvas-pro-section-title">Contenido</h5>
+                            <label class="field-label" for="canvasTitulo">Título</label>
+                            <input id="canvasTitulo" class="canvas-pro-input" maxlength="90" placeholder="Ej: Oferta especial hoy" oninput="syncCanvasTitleInputsToLayout()">
+                            <label class="field-label" for="canvasSubtitulo">Subtítulo</label>
+                            <input id="canvasSubtitulo" class="canvas-pro-input" maxlength="140" placeholder="Texto secundario (opcional)" oninput="syncCanvasTitleInputsToLayout()">
+                        </section>
+
+                        <section class="canvas-pro-section">
+                            <h5 class="canvas-pro-section-title">Tipografía</h5>
+                            <div class="canvas-pro-row-2">
+                                <label class="canvas-pro-color">Texto <input id="canvasTextColor" type="color" value="#ffffff" onchange="applyCanvasTextColorToSelection(); renderCanvasPreview();"></label>
+                                <select id="canvasFontFamily" class="canvas-pro-input" onchange="applyCanvasFontFamilyToSelection(); renderCanvasPreview();">
+                                    <option value="Inter, Arial, sans-serif">Inter</option>
+                                    <option value="Orbitron, Arial, sans-serif">Orbitron</option>
+                                    <option value="Montserrat, Arial, sans-serif">Montserrat</option>
+                                    <option value="Georgia, serif">Serif</option>
+                                </select>
+                            </div>
+                            <div class="canvas-align-toolbar" role="group" aria-label="Alineación">
+                                <button type="button" class="canvas-align-btn" title="Izquierda" onclick="alignCanvasLayer('left')">⬅</button>
+                                <button type="button" class="canvas-align-btn" title="Centro" onclick="alignCanvasLayer('center')">⬌</button>
+                                <button type="button" class="canvas-align-btn" title="Derecha" onclick="alignCanvasLayer('right')">➡</button>
+                                <button type="button" class="canvas-align-btn" title="Negrita capa" onclick="toggleCanvasLayerBold()"><strong>B</strong></button>
+                            </div>
+                            <select id="canvasTextPosition" class="canvas-pro-input" onchange="applyCanvasTextPositionToLayout(); renderCanvasPreview();" aria-hidden="true" tabindex="-1">
+                                <option value="center">center</option>
+                                <option value="left">left</option>
+                                <option value="right">right</option>
+                            </select>
+                            <label class="canvas-pro-range-label">Tamaño capa
+                                <input id="canvasLayerFontSize" type="range" min="2" max="14" step="0.25" value="6" oninput="onCanvasLayerFontSizeInput(this.value)">
+                            </label>
+                        </section>
+
+                        <section class="canvas-pro-section">
+                            <h5 class="canvas-pro-section-title">Fondo y media</h5>
+                            <div class="canvas-pro-row-2">
+                                <label class="canvas-pro-color">Fondo <input id="canvasBgColor" type="color" value="#0f172a" onchange="renderCanvasPreview()"></label>
+                                <label class="canvas-pro-range-label">Overlay
+                                    <input id="canvasOverlayOpacity" type="range" min="0" max="80" step="5" value="35" oninput="updateCanvasOverlayLabel(this.value);renderCanvasPreview()">
+                                    <span id="canvasOverlayValue">35</span>%
+                                </label>
+                            </div>
+                            <label class="anuncio-file-zone anuncio-file-zone--compact" for="canvasMedia">
+                                <span class="anuncio-file-zone-label">🖼️ Imagen o video de fondo</span>
+                                <span class="anuncio-file-zone-hint">JPG, PNG, MP4</span>
+                                <input type="file" id="canvasMedia" accept="image/*,video/*" onchange="previewCanvasMedia(event)">
+                            </label>
+                            <label class="field-label" for="canvasEmbedUrl">URL (YouTube, Vimeo, MP4)</label>
+                            <input id="canvasEmbedUrl" type="url" inputmode="url" class="canvas-pro-input" placeholder="https://…">
+                            <label class="anuncio-check-row">
+                                <input type="checkbox" id="canvasEmbedFullscreen">
+                                Pantalla completa en tablero
+                            </label>
+                        </section>
+
+                        <section class="canvas-pro-section">
+                            <h5 class="canvas-pro-section-title">Animación</h5>
+                            <div class="canvas-pro-row-2">
+                                <select id="canvasAnimacion" class="canvas-pro-input" onchange="renderCanvasPreview()">
+                                    <option value="fade-up">Fade Up</option>
+                                    <option value="zoom-in">Zoom In</option>
+                                    <option value="slide-left">Slide Left</option>
+                                    <option value="glow">Glow</option>
+                                </select>
+                                <label class="canvas-pro-inline">Seg
+                                    <input id="canvasDuracionTexto" type="number" min="1" max="12" value="3" oninput="renderCanvasPreview()">
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="canvas-pro-section canvas-pro-layers-section">
+                            <div class="canvas-pro-section-head">
+                                <h5 class="canvas-pro-section-title">Capas</h5>
+                                <button type="button" id="canvasRemoveLayerBtn" class="canvas-layer-del-btn" style="display:none;" onclick="removeSelectedCanvasTextLayer()">🗑</button>
+                            </div>
+                            <p id="canvasStudioSelectionLabel" class="canvas-layer-label">Ninguna seleccionada</p>
+                            <div id="canvasLayersList" class="canvas-layers-list"></div>
+                            <div id="canvasFreeTextWrap" class="canvas-free-text-wrap">
+                                <label class="field-label" for="canvasFreeTextarea">Texto de la capa</label>
+                                <textarea id="canvasFreeTextarea" class="canvas-pro-textarea" placeholder="Escribe aquí…" oninput="onCanvasFreeTextareaInput()"></textarea>
+                            </div>
+                        </section>
+
+                    </aside>
+
+                    <main class="canvas-pro-main">
+                        <div class="canvas-tv-frame">
+                            <div class="canvas-tv-chrome">
+                                <span class="canvas-tv-dot"></span>
+                                <span class="canvas-tv-title">Vista previa TV · 16:9</span>
+                                <span class="canvas-tv-badge">LIVE</span>
+                            </div>
+                            <div id="canvasPreview" class="canvas-preview canvas-preview--studio"></div>
+                            <div class="canvas-tv-safe" aria-hidden="true"></div>
+                        </div>
+                        <p class="canvas-studio-hint">Clic en una capa para seleccionarla · Arrastra para mover · Esquina del fondo para redimensionar</p>
+                    </main>
+
+                </div>
+            </div>
+
+            <footer class="anuncios-editor-footer">
+                <div class="field-row field-row--tight">
+                    <div class="field-group">
+                        <label class="field-label" for="duracionAnuncio">Duración en pantalla</label>
+                        <div class="anuncio-duration-wrap">
+                            <input id="duracionAnuncio" type="number" value="10" min="1" max="120">
+                            <span class="field-suffix">seg</span>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Tamaño imagen <span id="anuncioSizeValue">60</span>%</label>
+                        <input id="anuncioImageScale" type="range" min="30" max="100" step="5" value="60" oninput="updateAnuncioScaleLabel(this.value)">
+                    </div>
+                </div>
+                <div class="anuncios-editor-actions">
+                    <button type="button" class="btn-primary" onclick="guardarAnuncio()">💾 <span id="guardarAnuncioLabel">Guardar anuncio</span></button>
+                    <button type="button" class="btn-ghost" onclick="saveAnuncioImageScale()">🖼️ Guardar tamaño global</button>
+                </div>
+            </footer>
+        </section>
+
+        <aside class="anuncios-sidebar card-anuncio">
+            <div class="anuncios-sidebar-head">
+                <h3>Biblioteca</h3>
+                <span id="anunciosTotalBadge" class="anuncios-total-badge">0 guardados</span>
+            </div>
+            <p class="anuncios-sidebar-hint">Pausa, edita o elimina sin borrar el contenido guardado.</p>
+            <div id="anunciosActivos" class="anuncios-activos"></div>
+        </aside>
 
     </div>
-
-    <div class="card-anuncio">
-        <h3>📋 Mensajes Activos</h3>
-        <div id="anunciosActivos" class="anuncios-activos"></div>
-    </div>
-
 </div>
 
 <!-- ========================= -->
@@ -1086,6 +640,8 @@ document.addEventListener("DOMContentLoaded", reloadBoardPreview);
     </div>
 
 </div>
+
+</div><!-- .panel-app -->
 
 <script type="module">
 
@@ -1280,15 +836,56 @@ function escapeHtmlPanel(s) {
 function updateEditandoUI() {
     const banner = document.getElementById("anuncioEditandoBanner");
     const label = document.getElementById("guardarAnuncioLabel");
+    const title = document.getElementById("anunciosEditorTitle");
     if(editingAnuncioKey) {
         if(banner) banner.style.display = "flex";
         const t = document.getElementById("anuncioEditandoIdText");
         if(t) t.textContent = editingAnuncioKey;
         if(label) label.textContent = "Guardar cambios";
+        if(title) title.textContent = "Editar anuncio";
     } else {
         if(banner) banner.style.display = "none";
-        if(label) label.textContent = "Guardar";
+        if(label) label.textContent = "Guardar anuncio";
+        if(title) title.textContent = "Crear anuncio";
     }
+}
+
+const ANUNCIO_TIPO_META = {
+    mensaje: { icon: "💬", label: "Mensaje" },
+    cumple: { icon: "🎂", label: "Cumpleaños" },
+    canvas: { icon: "🎨", label: "Canvas" },
+    asignacion: { icon: "👨‍✈️", label: "Asignación" }
+};
+
+window.syncAnuncioTipoPills = () => {
+    const tipo = document.getElementById("tipoAnuncio")?.value || "mensaje";
+    document.querySelectorAll(".anuncio-type-pill").forEach((pill) => {
+        pill.classList.toggle("active", pill.getAttribute("data-tipo") === tipo);
+    });
+};
+
+window.setAnuncioTipo = (tipo) => {
+    const sel = document.getElementById("tipoAnuncio");
+    if(!sel) return;
+    sel.value = tipo;
+    syncAnuncioTipoPills();
+    cambiarTipoAnuncio();
+};
+
+window.nuevoAnuncio = () => {
+    limpiarEdicionAnuncio();
+    showTab("anunciosTab");
+    document.getElementById("textoAnuncio")?.focus();
+};
+
+function updateAnunciosStats(data) {
+    const entries = Object.entries(data || {});
+    const total = entries.length;
+    const active = entries.filter(([, a]) => a?.enPantalla !== false).length;
+    const countBadge = document.getElementById("anunciosCountBadge");
+    const totalBadge = document.getElementById("anunciosTotalBadge");
+    if(countBadge) countBadge.textContent = `${active} en rotación`;
+    if(totalBadge) totalBadge.textContent = `${total} guardado${total === 1 ? "" : "s"}`;
 }
 
 function updatePreviewMsg() {
@@ -1318,6 +915,9 @@ window.limpiarEdicionAnuncio = () => {
     if(f1) f1.value = "";
     if(f2) f2.value = "";
     document.getElementById("canvasPreset").value = "";
+    document.querySelectorAll(".canvas-preset-card").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-preset") === "");
+    });
     document.getElementById("textoAnuncio").value = "";
     document.getElementById("duracionAnuncio").value = "10";
     document.getElementById("canvasTitulo").value = "";
@@ -1334,6 +934,10 @@ window.limpiarEdicionAnuncio = () => {
     const cef = document.getElementById("canvasEmbedFullscreen");
     if(ceu) ceu.value = "";
     if(cef) cef.checked = false;
+    document.getElementById("tipoAnuncio").value = "mensaje";
+    cambiarTipoAnuncio();
+    const zoneLabel = document.querySelector("#fileAnuncio")?.closest(".anuncio-file-zone")?.querySelector(".anuncio-file-zone-label");
+    if(zoneLabel) zoneLabel.textContent = "📎 Arrastra o toca para subir";
     updateEditandoUI();
     updatePreviewMsg();
     renderCanvasPreview();
@@ -1429,6 +1033,10 @@ window.editarAnuncio = async (id) => {
 document.getElementById("textoAnuncio")?.addEventListener("input", updatePreviewMsg);
 document.getElementById("fileAnuncio")?.addEventListener("change", (e) => {
     const file = e.target.files[0];
+    const zoneLabel = document.querySelector("#fileAnuncio")?.closest(".anuncio-file-zone")?.querySelector(".anuncio-file-zone-label");
+    if(zoneLabel) {
+        zoneLabel.textContent = file ? `📎 ${file.name}` : "📎 Arrastra o toca para subir";
+    }
     if(!file) {
         if(!editingAnuncioKey) msgMediaPreviewData = "";
         updatePreviewMsg();
@@ -1449,6 +1057,9 @@ window.showTab = (tab)=>{
     document.getElementById("anunciosTab").style.display = "none";
     document.getElementById("configTab").style.display = "none";
     document.getElementById(tab).style.display = "block";
+    document.querySelectorAll(".tabs button[data-tab]").forEach((btn) => {
+        btn.classList.toggle("tab-active", btn.getAttribute("data-tab") === tab);
+    });
 };
 
 /* CAMBIAR TIPO DE ANUNCIO */
@@ -1457,12 +1068,18 @@ window.cambiarTipoAnuncio = () => {
     document.getElementById("msgFields").style.display = tipo === "mensaje" ? "block" : "none";
     document.getElementById("cumpleFields").style.display = tipo === "cumple" ? "block" : "none";
     document.getElementById("canvasFields").style.display = tipo === "canvas" ? "block" : "none";
+    document.querySelector(".anuncios-layout")?.classList.toggle("anuncios-layout--canvas", tipo === "canvas");
+    document.querySelector(".anuncios-editor")?.classList.toggle("anuncios-editor--canvas", tipo === "canvas");
+    syncAnuncioTipoPills();
     if(tipo === "canvas") {
         ensureCanvasLayout();
         renderCanvasPreview();
         bindCanvasStudioPointers();
+        renderCanvasLayersList();
     }
 };
+
+syncAnuncioTipoPills();
 
 let canvasMediaPreviewData = "";
 let canvasMediaPreviewType = "";
@@ -1617,26 +1234,118 @@ function applyCanvasFontFamilyToSelection() {
     canvasLayout.texts.forEach((x) => { x.fontFamily = ff; });
 }
 
+function canvasLayerDisplayName(id){
+    if(id === "bg") return "Fondo / media";
+    if(id === "title") return "Título";
+    if(id === "subtitle") return "Subtítulo";
+    return "Texto libre";
+}
+
+function renderCanvasLayersList(){
+    const list = document.getElementById("canvasLayersList");
+    if(!list || !canvasLayout) return;
+    const items = [
+        { id: "bg", label: "Fondo / media", icon: "🖼️" },
+        ...canvasLayout.texts.map((t) => ({
+            id: t.id,
+            label: canvasLayerDisplayName(t.id),
+            icon: t.id === "title" ? "𝐓" : t.id === "subtitle" ? "𝐭" : "✎",
+            preview: (t.text || "").trim().slice(0, 28) || "(vacío)"
+        }))
+    ];
+    list.innerHTML = items.map((item) => `
+        <button type="button" class="canvas-layer-item${canvasSelectedLayerId === item.id ? " active" : ""}"
+            onclick="selectCanvasLayer(${JSON.stringify(item.id)})">
+            <span class="canvas-layer-item-icon">${item.icon}</span>
+            <span class="canvas-layer-item-body">
+                <span class="canvas-layer-item-name">${item.label}</span>
+                ${item.preview ? `<span class="canvas-layer-item-preview">${escapeHtmlPanel(item.preview)}</span>` : ""}
+            </span>
+        </button>
+    `).join("");
+}
+
+window.selectCanvasPresetCard = (preset) => {
+    document.querySelectorAll(".canvas-preset-card").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-preset") === preset);
+    });
+    const sel = document.getElementById("canvasPreset");
+    if(sel) sel.value = preset;
+    aplicarCanvasPreset(preset);
+};
+
+window.alignCanvasLayer = (align) => {
+    ensureCanvasLayout();
+    const x = align === "left" ? 28 : align === "right" ? 72 : 50;
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(t){
+        t.align = align;
+        t.x = x;
+    } else if(canvasSelectedLayerId === "title" || canvasSelectedLayerId === "subtitle" || !canvasSelectedLayerId){
+        canvasLayout.texts.forEach((layer) => {
+            if(layer.id === "title" || layer.id === "subtitle"){
+                layer.align = align;
+                layer.x = x;
+            }
+        });
+        const tp = document.getElementById("canvasTextPosition");
+        if(tp) tp.value = align;
+    }
+    document.querySelectorAll(".canvas-align-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("title")?.toLowerCase().includes(
+            align === "left" ? "izquierda" : align === "right" ? "derecha" : "centro"
+        ));
+    });
+    renderCanvasPreview();
+    bindCanvasStudioPointers();
+};
+
+window.toggleCanvasLayerBold = () => {
+    ensureCanvasLayout();
+    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    if(!t) return;
+    t.fontWeight = t.fontWeight === "800" || t.fontWeight === "700" ? "600" : "800";
+    renderCanvasPreview();
+    bindCanvasStudioPointers();
+};
+
+window.previewCanvasAnimation = () => {
+    const anim = document.getElementById("canvasAnimacion")?.value || "fade-up";
+    const sec = Math.max(1, Math.min(12, parseInt(document.getElementById("canvasDuracionTexto")?.value) || 3));
+    const layers = document.querySelectorAll("#canvasPreview .canvas-text-layer");
+    const animClass = ["fade-up", "zoom-in", "slide-left", "glow"].includes(anim) ? `canvas-anim-${anim}` : "canvas-anim-fade-up";
+    layers.forEach((el, idx) => {
+        el.classList.remove("canvas-anim-fade-up", "canvas-anim-zoom-in", "canvas-anim-slide-left", "canvas-anim-glow");
+        void el.offsetWidth;
+        el.style.setProperty("--canvas-anim-seconds", sec + "s");
+        el.style.animationDelay = (idx * 0.12) + "s";
+        el.classList.add(animClass);
+    });
+};
+
 function updateCanvasStudioChrome() {
     const label = document.getElementById("canvasStudioSelectionLabel");
     const rm = document.getElementById("canvasRemoveLayerBtn");
     const freeWrap = document.getElementById("canvasFreeTextWrap");
     const ta = document.getElementById("canvasFreeTextarea");
     if(label) {
-        if(canvasSelectedLayerId === "bg") label.textContent = "Capa: fondo (arrastra / redimensiona)";
-        else if(canvasSelectedLayerId === "title") label.textContent = "Capa: título";
-        else if(canvasSelectedLayerId === "subtitle") label.textContent = "Capa: subtítulo";
-        else if(canvasSelectedLayerId) label.textContent = "Capa: texto libre";
-        else label.textContent = "Capa: ninguna (clic en el lienzo)";
+        if(canvasSelectedLayerId === "bg") label.textContent = "Seleccionada: fondo (arrastra / redimensiona)";
+        else if(canvasSelectedLayerId) label.textContent = "Seleccionada: " + canvasLayerDisplayName(canvasSelectedLayerId);
+        else label.textContent = "Clic en el lienzo o en una capa";
     }
     const isFree = canvasSelectedLayerId && canvasSelectedLayerId.startsWith("txt_");
-    if(rm) rm.style.display = isFree ? "inline-block" : "none";
-    if(freeWrap) freeWrap.classList.toggle("visible", Boolean(isFree));
-    if(ta && isFree) {
+    if(rm) rm.style.display = isFree ? "inline-flex" : "none";
+    if(freeWrap) freeWrap.classList.toggle("visible", Boolean(isFree || canvasSelectedLayerId === "title" || canvasSelectedLayerId === "subtitle"));
+    if(ta){
         const tl = canvasLayout?.texts?.find((x) => x.id === canvasSelectedLayerId);
         if(tl && document.activeElement !== ta) ta.value = tl.text || "";
+        if(canvasSelectedLayerId === "title" || canvasSelectedLayerId === "subtitle") {
+            ta.disabled = false;
+            if(tl && document.activeElement !== ta) ta.value = tl.text || "";
+        }
     }
     updateCanvasLayerFontSizeSlider();
+    renderCanvasLayersList();
 }
 
 function updateCanvasLayerFontSizeSlider() {
@@ -1661,11 +1370,21 @@ window.onCanvasLayerFontSizeInput = (value) => {
 window.onCanvasFreeTextareaInput = () => {
     ensureCanvasLayout();
     const ta = document.getElementById("canvasFreeTextarea");
-    const t = canvasLayout.texts.find((x) => x.id === canvasSelectedLayerId);
+    const id = canvasSelectedLayerId || "title";
+    const t = canvasLayout.texts.find((x) => x.id === id);
     if(!t || !ta) return;
     t.text = ta.value;
+    if(id === "title"){
+        const tituloEl = document.getElementById("canvasTitulo");
+        if(tituloEl) tituloEl.value = ta.value;
+    }
+    if(id === "subtitle"){
+        const subEl = document.getElementById("canvasSubtitulo");
+        if(subEl) subEl.value = ta.value;
+    }
     const el = document.querySelector('#canvasPreview .canvas-text-layer[data-layer-id="' + t.id + '"]');
     if(el) el.textContent = t.text || "\u00a0";
+    renderCanvasLayersList();
 };
 
 window.addCanvasTextLayer = () => {
@@ -1705,6 +1424,15 @@ function selectCanvasLayer(id) {
     });
     const bg = document.querySelector("#canvasPreview .canvas-studio-bg-wrap");
     if(bg) bg.classList.toggle("is-selected", id === "bg");
+    if(id === "title" || id === "subtitle"){
+        const t = canvasLayout?.texts?.find((x) => x.id === id);
+        if(t){
+            const col = document.getElementById("canvasTextColor");
+            const ff = document.getElementById("canvasFontFamily");
+            if(col) col.value = t.color || "#ffffff";
+            if(ff) ff.value = t.fontFamily || "Inter, Arial, sans-serif";
+        }
+    }
     updateCanvasStudioChrome();
 }
 
@@ -1715,7 +1443,8 @@ function getCanvasStageRect() {
 
 function bindCanvasStudioPointers() {
     const stage = document.querySelector("#canvasPreview .canvas-studio-stage");
-    if(!stage || stage.dataset.bound === "1") return;
+    if(!stage) return;
+    if(stage.dataset.bound === "1") return;
     stage.dataset.bound = "1";
 
     stage.addEventListener("pointerdown", (e) => {
@@ -1876,6 +1605,26 @@ window.aplicarCanvasPreset = (preset) => {
         setVal("canvasTextPosition", "center");
         setVal("canvasOverlayOpacity", "55");
         updateCanvasOverlayLabel(55);
+    } else if(preset === "bienvenida"){
+        setVal("canvasTitulo", "BIENVENIDOS A PUERTO PLATA");
+        setVal("canvasSubtitulo", "Longport · Aeropuerto Gregorio Luperón");
+        setVal("canvasAnimacion", "fade-up");
+        setVal("canvasTextColor", "#e0f2fe");
+        setVal("canvasBgColor", "#0c4a6e");
+        setVal("canvasFontFamily", "Montserrat, Arial, sans-serif");
+        setVal("canvasTextPosition", "center");
+        setVal("canvasOverlayOpacity", "45");
+        updateCanvasOverlayLabel(45);
+    } else if(preset === "boarding"){
+        setVal("canvasTitulo", "BOARDING");
+        setVal("canvasSubtitulo", "Pasajeros con prioridad — favor presentarse en puerta");
+        setVal("canvasAnimacion", "slide-left");
+        setVal("canvasTextColor", "#ffffff");
+        setVal("canvasBgColor", "#1e3a8a");
+        setVal("canvasFontFamily", "Orbitron, Arial, sans-serif");
+        setVal("canvasTextPosition", "left");
+        setVal("canvasOverlayOpacity", "50");
+        updateCanvasOverlayLabel(50);
     }
     ensureCanvasLayout();
     const title = canvasLayout.texts.find((t) => t.id === "title");
@@ -1889,7 +1638,16 @@ window.aplicarCanvasPreset = (preset) => {
     } else if(preset === "emergencia"){
         if(title) { title.text = "ATENCION"; title.align = "center"; title.x = 50; }
         if(sub) { sub.text = "Siga las instrucciones del personal"; sub.align = "center"; sub.x = 50; }
+    } else if(preset === "bienvenida"){
+        if(title) { title.text = "BIENVENIDOS A PUERTO PLATA"; title.align = "center"; title.x = 50; title.fontWeight = "800"; }
+        if(sub) { sub.text = "Longport · Aeropuerto Gregorio Luperón"; sub.align = "center"; sub.x = 50; }
+    } else if(preset === "boarding"){
+        if(title) { title.text = "BOARDING"; title.align = "left"; title.x = 28; title.fontWeight = "800"; }
+        if(sub) { sub.text = "Pasajeros con prioridad — favor presentarse en puerta"; sub.align = "left"; sub.x = 28; }
     }
+    document.querySelectorAll(".canvas-preset-card").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-preset") === preset);
+    });
     syncLegacyFieldsFromLayout();
     renderCanvasPreview();
     bindCanvasStudioPointers();
@@ -1943,6 +1701,7 @@ window.renderCanvasPreview = () => {
     box.style.background = bgColor;
     box.innerHTML = `
         <div class="canvas-studio-stage">
+            <div class="canvas-studio-grid" aria-hidden="true"></div>
             ${mediaInner ? `
             <div class="canvas-studio-bg-wrap" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%;">
                 ${mediaInner}
@@ -2019,17 +1778,24 @@ window.agregarCumpleanero = async () => {
 function cargarCumpleañeros() {
     onValue(cumpleanosRef, (snap) => {
         const data = snap.val() || {};
+        renderCumpleBoardPreview(data);
         let html = "";
 
         Object.entries(data).forEach(([id, cumple]) => {
+            const nombre = escapeHtmlPanel(cumple.nombre || "Sin nombre");
+            const fecha = escapeHtmlPanel(formatearFechaCartulina(cumple.fecha));
+            const foto = cumple.foto || "";
+            const fotoHtml = foto
+                ? `<img src="${cumple.foto}" class="cumple-card-photo" alt="">`
+                : `<div class="cumple-card-photo cumple-card-photo--empty">👤</div>`;
             html += `
             <div class="cumple-card">
-                <img src="${cumple.foto}" class="cumple-foto">
-                <div class="cumple-info">
-                    <strong>${cumple.nombre}</strong><br>
-                    📅 ${new Date(cumple.fecha).toLocaleDateString('es-DO')}
+                ${fotoHtml}
+                <div class="cumple-card-plaque">
+                    <strong>${nombre}</strong>
+                    <span>${fecha}</span>
                 </div>
-                <button onclick="eliminarCumple('${id}')" style="width: 100%; margin-top: 10px; background: #dc2626;">🗑 Eliminar</button>
+                <button type="button" class="btn-delete" onclick="eliminarCumple('${id}')">🗑 Eliminar</button>
             </div>
             `;
         });
@@ -2060,46 +1826,114 @@ function leerUnaVez(pathRef){
     });
 }
 
+const CUMPLE_TEMPLATE_URL = "Formatocumpleaños.png";
+
+function formatearFechaCartulina(fechaISO) {
+    if (!fechaISO) return "";
+    const fecha = new Date(fechaISO + "T12:00:00");
+    const d = fecha.getDate();
+    const mes = fecha.toLocaleDateString("es-DO", { month: "long" });
+    return `${String(d).padStart(2, "0")} DE ${mes.toUpperCase()}`;
+}
+
 function formatearFechaBonita(fechaISO){
     if(!fechaISO) return "";
-    const fecha = new Date(fechaISO + "T00:00:00");
-    const texto = fecha.toLocaleDateString("es-DO", { day: "numeric", month: "long" });
-    return texto.charAt(0).toUpperCase() + texto.slice(1);
+    return formatearFechaCartulina(fechaISO);
+}
+
+function renderCumpleBoardPreview(data) {
+    const el = document.getElementById("cumpleBoardPreview");
+    if (!el) return;
+    const mesActual = new Date().getMonth();
+    const lista = Object.values(data || {}).filter((c) => {
+        if (!c?.fecha) return false;
+        return new Date(c.fecha + "T12:00:00").getMonth() === mesActual;
+    });
+    if (!lista.length) {
+        el.innerHTML =
+            '<p class="cumple-board-preview-empty">Agrega cumpleañeros del mes para ver la vista previa.</p>';
+        return;
+    }
+    const cards = lista
+        .map((item, idx) => {
+            const nombre = escapeHtmlPanel(item.nombre || "Cumpleañero");
+            const foto = item.foto || "";
+            const fecha = escapeHtmlPanel(formatearFechaCartulina(item.fecha));
+            const img = foto
+                ? `<img src="${item.foto}" alt="">`
+                : `<div class="cumple-photo-placeholder"></div>`;
+            const stagger = idx === 2 ? " cumple-person--stagger" : "";
+            return `<div class="cumple-person${stagger}">
+                <div class="cumple-photo-ring">${img}</div>
+                <div class="cumple-plaque">
+                    <div class="cumple-plaque-name">${nombre}</div>
+                    <div class="cumple-plaque-date">${fecha}</div>
+                </div>
+            </div>`;
+        })
+        .join("");
+    el.innerHTML = `<div class="cumple-board-preview-stage"><div class="cumple-grid">${cards}</div></div>`;
 }
 
 function cargarAnunciosActivos() {
     onValue(anunciosRef, (snap) => {
         const data = snap.val() || {};
         const contenedor = document.getElementById("anunciosActivos");
+        updateAnunciosStats(data);
         let html = "";
 
         Object.entries(data).forEach(([id, anuncio]) => {
             const tipo = anuncio?.tipo || "mensaje";
-            const texto = escapeHtmlPanel(anuncio?.texto || "(sin texto)");
+            const meta = ANUNCIO_TIPO_META[tipo] || { icon: "📢", label: tipo };
+            const textoRaw = anuncio?.texto || "";
+            const texto = escapeHtmlPanel(textoRaw || "(sin texto)");
+            const textoShort =
+                textoRaw.length > 72
+                    ? escapeHtmlPanel(textoRaw.slice(0, 72) + "…")
+                    : texto;
             const duracion = anuncio?.duracion || 10;
-            const mediaInfo = anuncio?.media ? "Con imagen/video" : "Sin media";
+            const media = anuncio?.media || "";
+            const hasMedia = Boolean(media);
             const enPantalla = anuncio?.enPantalla !== false;
             const badge = enPantalla
                 ? `<span class="anuncio-badge-pausa on">EN ROTACIÓN</span>`
                 : `<span class="anuncio-badge-pausa off">PAUSADO</span>`;
-            const pauseLabel = enPantalla ? "⏸ Pausar" : "▶ En pantalla";
+            const pauseLabel = enPantalla ? "⏸ Pausar" : "▶ Activar";
+            let thumb = `<div class="anuncio-thumb anuncio-thumb--empty">${meta.icon}</div>`;
+            if(hasMedia && String(media).startsWith("data:image")) {
+                thumb = `<div class="anuncio-thumb"><img src="${media}" alt=""></div>`;
+            } else if(hasMedia && String(media).startsWith("data:video")) {
+                thumb = `<div class="anuncio-thumb anuncio-thumb--video">▶</div>`;
+            } else if(tipo === "canvas") {
+                thumb = `<div class="anuncio-thumb anuncio-thumb--canvas">🎨</div>`;
+            }
 
             html += `
-            <div class="anuncio-item">
-                <h4>${tipo.toUpperCase()} ${badge}</h4>
-                <div>${texto}</div>
-                <div class="anuncio-meta">Duración: ${duracion}s · ${mediaInfo}</div>
-                <div class="anuncio-actions">
-                    <button type="button" data-anuncio-action="edit" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:#2563eb;">✏️ Editar</button>
-                    <button type="button" data-anuncio-action="toggle" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:${enPantalla ? "#ca8a04" : "#15803d"};">${pauseLabel}</button>
-                    <button type="button" data-anuncio-action="delete" data-anuncio-id="${escapeHtmlPanel(id)}" style="background:#dc2626;">🗑 Eliminar</button>
+            <article class="anuncio-item${enPantalla ? "" : " is-paused"}">
+                ${thumb}
+                <div class="anuncio-item-body">
+                    <div class="anuncio-item-head">
+                        <h4><span class="anuncio-type-icon">${meta.icon}</span> ${meta.label} ${badge}</h4>
+                        <span class="anuncio-duration-chip">${duracion}s</span>
+                    </div>
+                    <p class="anuncio-item-text">${textoShort}</p>
+                    <div class="anuncio-meta">${hasMedia ? "Con media" : "Solo texto"} · ID ${escapeHtmlPanel(id)}</div>
+                    <div class="anuncio-actions">
+                        <button type="button" class="btn-edit" data-anuncio-action="edit" data-anuncio-id="${escapeHtmlPanel(id)}">✏️ Editar</button>
+                        <button type="button" class="btn-toggle${enPantalla ? " is-on" : ""}" data-anuncio-action="toggle" data-anuncio-id="${escapeHtmlPanel(id)}">${pauseLabel}</button>
+                        <button type="button" class="btn-delete" data-anuncio-action="delete" data-anuncio-id="${escapeHtmlPanel(id)}">🗑</button>
+                    </div>
                 </div>
-            </div>
+            </article>
             `;
         });
 
         if(!html) {
-            html = `<div class="anuncio-item"><div>No hay anuncios guardados.</div></div>`;
+            html = `<div class="anuncios-empty">
+                <div class="anuncios-empty-icon">📢</div>
+                <strong>Sin anuncios guardados</strong>
+                <p>Crea el primero con el formulario de la izquierda.</p>
+            </div>`;
         }
 
         contenedor.innerHTML = html;
@@ -2129,7 +1963,10 @@ function actualizarBotonAnuncios(encendido){
     if(!btn) return;
     btn.classList.toggle("on", encendido);
     btn.classList.toggle("off", !encendido);
-    btn.textContent = encendido ? "🟢 Encendido" : "🔴 Apagado";
+    btn.textContent = encendido ? "🟢 Sistema ON" : "🔴 Sistema OFF";
+    btn.title = encendido
+        ? "Los anuncios se muestran en el tablero"
+        : "Los anuncios están apagados en el tablero";
 }
 
 window.toggleAnuncios = () => {
@@ -2249,7 +2086,7 @@ window.guardarAnuncio = async () => {
         const cumpleaneros = cumpleMes.map((cumple) => ({
             nombre: cumple.nombre || "",
             fecha: cumple.fecha || "",
-            fechaTexto: formatearFechaBonita(cumple.fecha),
+            fechaTexto: formatearFechaCartulina(cumple.fecha),
             foto: cumple.foto || ""
         }));
 
@@ -2259,6 +2096,7 @@ window.guardarAnuncio = async () => {
             tipo: "cumple",
             texto: "Cumpleaños del mes",
             cumpleaneros,
+            cumpleTemplate: CUMPLE_TEMPLATE_URL,
             duracion,
             origen: "cumpleanos",
             enPantalla: true
@@ -2411,6 +2249,29 @@ window.saveFlightSectionConfig = () => {
     alert("✅ Tiempo de sección guardado");
 };
 
+function parseArrivalSpeechMinutesInput(raw){
+    const mins = String(raw || "")
+        .split(/[,;\s]+/)
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !Number.isNaN(n) && n >= 1 && n <= 180);
+    return [...new Set(mins)].sort((a, b) => b - a);
+}
+
+window.saveArrivalSpeechConfig = () => {
+    const mins = parseArrivalSpeechMinutesInput(document.getElementById("arrivalSpeechMinutes").value);
+    if(!mins.length){
+        alert("Escribe al menos un minuto válido (1–180), separado por comas. Ej: 30, 15, 1");
+        return;
+    }
+    const tolRaw = parseInt(document.getElementById("arrivalSpeechTolerance").value, 10);
+    const tolerance = Number.isNaN(tolRaw) ? 7 : Math.max(3, Math.min(15, tolRaw));
+    set(ref(db, "config/arrivalSpeechMinutes"), mins);
+    set(ref(db, "config/arrivalSpeechTolerance"), tolerance);
+    document.getElementById("arrivalSpeechMinutes").value = mins.join(", ");
+    document.getElementById("arrivalSpeechTolerance").value = tolerance;
+    alert("✅ Avisos de voz guardados");
+};
+
 window.saveAnuncioImageScale = () => {
     const scale = parseInt(document.getElementById("anuncioImageScale").value) || 60;
     set(ref(db, "config/anuncioImageScale"), scale);
@@ -2420,6 +2281,772 @@ window.saveAnuncioImageScale = () => {
 
 onValue(tickerRef, (snap) => {
     document.getElementById("tickerInput").value = snap.val() || "";
+});
+
+/* —— POSICIONES (catálogos por aerolínea + directorio empleados) —— */
+const JETBLUE_ROLES = [
+    { key: "supervisor", label: "Supervisor", order: 1 },
+    { key: "documento", label: "Documento", order: 2 },
+    { key: "5x5", label: "5X5", order: 3 },
+    { key: "makeup", label: "Makeup", order: 4 },
+    { key: "sello", label: "Sello", order: 5 },
+    { key: "observer_makeup", label: "Observer Makeup", order: 6 },
+    { key: "segundo_punto_s10", label: "Segundo Punto (S-10)", order: 7 },
+    { key: "escolta_makeup", label: "Escolta Make UP", order: 8 },
+    { key: "puerta_delantera", label: "Puerta Delantera", order: 9 },
+    { key: "puerta_trasera", label: "Puerta Trasera", order: 10 },
+    { key: "observer_rampa", label: "Observer Rampa", order: 11 },
+    { key: "rampa_delantera", label: "Rampa Delantera", order: 12 },
+    { key: "rampa_trasera", label: "Rampa Trasera", order: 13 },
+    { key: "selectee", label: "Selectee", order: 14 },
+    { key: "escolta_aduana", label: "Escolta a Aduana", order: 15 },
+    { key: "verificacion_aduana", label: "Verificacion Aduana", order: 16 },
+    { key: "revision_1", label: "Revision 1", order: 17 },
+    { key: "revision_2", label: "Revision 2", order: 18 },
+    { key: "revision_3", label: "Revision 3", order: 19 },
+    { key: "revision_4", label: "Revision 4", order: 20 },
+    { key: "revision_5", label: "Revision 5", order: 21 },
+    { key: "revision_6", label: "Revision 6", order: 22 },
+    { key: "revision_7", label: "Revision 7", order: 23 },
+    { key: "cabin_monitor", label: "Cabin Monitor", order: 24 },
+    { key: "escolta_gatechecks", label: "Escolta Gatechecks", order: 25 }
+];
+
+const WESTJET_ROLES = [
+    { key: "supervisor", label: "Supervisor", order: 1 },
+    { key: "documento_1", label: "Documento 1", order: 2 },
+    { key: "documento_2", label: "Documento 2", order: 3 },
+    { key: "doc_fila_rapida", label: "Doc.. Fila Rapida", order: 4 },
+    { key: "5x5", label: "5X5", order: 5 },
+    { key: "makeup", label: "Makeup", order: 6 },
+    { key: "sello", label: "Sello", order: 7 },
+    { key: "segundo_punto_s10", label: "Segundo Punto (S-10)", order: 8 },
+    { key: "observer_makeup", label: "Observer Makeup", order: 9 },
+    { key: "puerta_delantera", label: "Puerta Delantera", order: 10 },
+    { key: "puerta_trasera", label: "Puerta Trasera", order: 11 },
+    { key: "rampa_delantera", label: "Rampa Delantera", order: 12 },
+    { key: "rampa_trasera", label: "Rampa Trasera", order: 13 },
+    { key: "escolta_aduanas", label: "Escolta Aduanas", order: 14 },
+    { key: "revision_1", label: "Revision 1", order: 15 },
+    { key: "revision_2", label: "Revision 2", order: 16 },
+    { key: "revision_3", label: "Revision 3", order: 17 },
+    { key: "revision_4", label: "Revision 4", order: 18 }
+];
+
+const EXTRA_ROLES = [
+    { key: "supervisor", label: "Supervisor", order: 1 },
+    { key: "documento", label: "Documento", order: 2 },
+    { key: "ramp", label: "Rampa", order: 3 },
+    { key: "gate", label: "Gate", order: 4 },
+    { key: "makeup", label: "Makeup", order: 5 },
+    { key: "other", label: "Otro", order: 99 }
+];
+
+function getRoleCatalog(airlineKind){
+    if(airlineKind === "westjet") return WESTJET_ROLES;
+    if(airlineKind === "jetblue") return JETBLUE_ROLES;
+    return EXTRA_ROLES;
+}
+
+function positionFirebaseKey(roleKey, airlineKind, flightSlug){
+    const slug = flightSlug || getActiveFlightSlug(airlineKind);
+    if(airlineKind === "westjet"){
+        if(slug) return roleKey + FLIGHT_NS_WJ + slug;
+        return roleKey + "_west";
+    }
+    if(slug) return roleKey + FLIGHT_NS_JB + slug;
+    return roleKey;
+}
+
+const FLIGHT_NS_JB = "__jetblue-";
+const FLIGHT_NS_WJ = "__westjet-";
+
+let jetblueFlightsData = {};
+let westjetFlightsData = {};
+let activeJetblueFlightSlug = "";
+let activeWestjetFlightSlug = "";
+
+function getActiveFlightSlug(airlineKind){
+    return airlineKind === "jetblue" ? activeJetblueFlightSlug : activeWestjetFlightSlug;
+}
+
+function flightMetaKey(airlineKind, slug){
+    return airlineKind + "_" + slug;
+}
+
+function classifyPositionKey(key){
+    const name = panelParseName(positionsPanelData[key]);
+    if(!name) return { kind: "empty" };
+
+    if(key.includes(FLIGHT_NS_JB)){
+        const idx = key.indexOf(FLIGHT_NS_JB);
+        const rolePart = key.slice(0, idx);
+        const slug = key.slice(idx + FLIGHT_NS_JB.length);
+        const norm = panelNormalizeRoleKey(rolePart, "jetblue");
+        const valid = JETBLUE_ROLES.some((r) => r.key === norm);
+        const flightName = jetblueFlightsData[slug]?.name || slug;
+        return {
+            kind: valid ? "jetblue" : "orphan",
+            airline: "JetBlue",
+            theme: "jetblue",
+            flightSlug: slug,
+            flightName,
+            roleKey: key,
+            roleLabel: panelRoleLabel(key, "jetblue"),
+            name,
+            order: panelRoleOrder(key, "jetblue")
+        };
+    }
+
+    if(key.includes(FLIGHT_NS_WJ)){
+        const idx = key.indexOf(FLIGHT_NS_WJ);
+        const rolePart = key.slice(0, idx);
+        const slug = key.slice(idx + FLIGHT_NS_WJ.length);
+        const norm = panelNormalizeRoleKey(rolePart, "westjet");
+        const valid = WESTJET_ROLES.some((r) => r.key === norm);
+        const flightName = westjetFlightsData[slug]?.name || slug;
+        return {
+            kind: valid ? "westjet" : "orphan",
+            airline: "WestJet",
+            theme: "westjet",
+            flightSlug: slug,
+            flightName,
+            roleKey: key,
+            roleLabel: panelRoleLabel(key, "westjet"),
+            name,
+            order: panelRoleOrder(key, "westjet")
+        };
+    }
+
+    if(key.includes("__")){
+        const slug = key.split("__")[1];
+        if(airlinesExtraData[slug]){
+            return {
+                kind: "extra",
+                airline: airlinesExtraData[slug]?.name || slug,
+                theme: "extra",
+                flightSlug: slug,
+                roleKey: key,
+                roleLabel: panelRoleLabel(key, "extra"),
+                name,
+                order: panelRoleOrder(key, "extra")
+            };
+        }
+        return { kind: "orphan", airline: "Otro", theme: "extra", roleKey: key, roleLabel: panelRoleLabel(key, "extra"), name, order: 99 };
+    }
+
+    if(key.includes("west") || key.includes("wj")){
+        const norm = panelNormalizeRoleKey(key, "westjet");
+        const valid = WESTJET_ROLES.some((r) => r.key === norm);
+        return {
+            kind: valid ? "westjet" : "orphan",
+            airline: "WestJet",
+            theme: "westjet",
+            flightSlug: "",
+            flightName: "Turno único",
+            roleKey: key,
+            roleLabel: panelRoleLabel(key, "westjet"),
+            name,
+            order: panelRoleOrder(key, "westjet"),
+            legacy: true
+        };
+    }
+
+    const norm = key.toLowerCase();
+    const valid = JETBLUE_ROLES.some((r) => r.key === norm);
+    return {
+        kind: valid ? "jetblue" : "orphan",
+        airline: "JetBlue",
+        theme: "jetblue",
+        flightSlug: "",
+        flightName: "Turno único",
+        roleKey: key,
+        roleLabel: panelRoleLabel(key, "jetblue"),
+        name,
+        order: panelRoleOrder(key, "jetblue"),
+        legacy: true
+    };
+}
+
+function renderJetblueFlightSelector(){
+    const sel = document.getElementById("jetblueFlightSelector");
+    if(!sel) return;
+    const flights = Object.entries(jetblueFlightsData || {});
+    if(!flights.length){
+        sel.innerHTML = `<option value="">Turno único (sin vuelo)</option>`;
+        activeJetblueFlightSlug = "";
+        return;
+    }
+    sel.innerHTML = flights.map(([slug, item]) =>
+        `<option value="${slug}"${slug === activeJetblueFlightSlug ? " selected" : ""}>${escapeHtmlPanel(item?.name || slug)}</option>`
+    ).join("");
+    if(!activeJetblueFlightSlug || !jetblueFlightsData[activeJetblueFlightSlug]){
+        activeJetblueFlightSlug = flights[0][0];
+        sel.value = activeJetblueFlightSlug;
+    }
+    const titleIn = document.getElementById("jetblueTitle");
+    if(titleIn){
+        const tk = flightMetaKey("jetblue", activeJetblueFlightSlug);
+        titleIn.value = titlesPanelData[tk] || titlesPanelData.jetblue || "";
+    }
+}
+
+function renderWestjetFlightSelector(){
+    const sel = document.getElementById("westjetFlightSelector");
+    if(!sel) return;
+    const flights = Object.entries(westjetFlightsData || {});
+    if(!flights.length){
+        sel.innerHTML = `<option value="">Turno único (sin vuelo)</option>`;
+        activeWestjetFlightSlug = "";
+        return;
+    }
+    sel.innerHTML = flights.map(([slug, item]) =>
+        `<option value="${slug}"${slug === activeWestjetFlightSlug ? " selected" : ""}>${escapeHtmlPanel(item?.name || slug)}</option>`
+    ).join("");
+    if(!activeWestjetFlightSlug || !westjetFlightsData[activeWestjetFlightSlug]){
+        activeWestjetFlightSlug = flights[0][0];
+        sel.value = activeWestjetFlightSlug;
+    }
+    const titleIn = document.getElementById("westjetTitle");
+    if(titleIn){
+        const tk = flightMetaKey("westjet", activeWestjetFlightSlug);
+        titleIn.value = titlesPanelData[tk] || titlesPanelData.westjet || "";
+    }
+}
+
+window.onJetblueFlightSelected = () => {
+    activeJetblueFlightSlug = document.getElementById("jetblueFlightSelector")?.value || "";
+    renderJetblueFlightSelector();
+    renderPositionsMatrix("jetblue");
+    renderPositionsBoardPreview();
+};
+
+window.onWestjetFlightSelected = () => {
+    activeWestjetFlightSlug = document.getElementById("westjetFlightSelector")?.value || "";
+    renderWestjetFlightSelector();
+    renderPositionsMatrix("westjet");
+    renderPositionsBoardPreview();
+};
+
+window.addJetblueFlight = () => {
+    const name = (document.getElementById("newJetblueFlight")?.value || "").trim();
+    if(!name){ alert("Escribe el vuelo (ej: B6 627)."); return; }
+    const slug = empleadoSlug(name);
+    if(jetblueFlightsData[slug]){ alert("Ese vuelo ya existe."); return; }
+    set(ref(db, "jetblueFlights/" + slug), { name });
+    set(ref(db, "titles/jetblue_" + slug), "ASIGNACIONES JETBLUE " + name.toUpperCase());
+    set(ref(db, "visibility/jetblue_" + slug), true);
+    set(ref(db, "config/positionsDuration/jetblue_" + slug), 12);
+    document.getElementById("newJetblueFlight").value = "";
+    activeJetblueFlightSlug = slug;
+};
+
+window.addWestjetFlight = () => {
+    const name = (document.getElementById("newWestjetFlight")?.value || "").trim();
+    if(!name){ alert("Escribe el vuelo (ej: WS 2507)."); return; }
+    const slug = empleadoSlug(name);
+    if(westjetFlightsData[slug]){ alert("Ese vuelo ya existe."); return; }
+    set(ref(db, "westjetFlights/" + slug), { name });
+    set(ref(db, "titles/westjet_" + slug), "ASIGNACIONES WESTJET " + name.toUpperCase());
+    set(ref(db, "visibility/westjet_" + slug), true);
+    set(ref(db, "config/positionsDuration/westjet_" + slug), 12);
+    document.getElementById("newWestjetFlight").value = "";
+    activeWestjetFlightSlug = slug;
+};
+
+window.clearActiveFlightPositions = (airlineKind) => {
+    const slug = getActiveFlightSlug(airlineKind);
+    const flightLabel = slug
+        ? (airlineKind === "jetblue" ? jetblueFlightsData[slug]?.name : westjetFlightsData[slug]?.name) || slug
+        : "turno único";
+    if(!confirm(`¿Limpiar todas las asignaciones de ${flightLabel}?`)) return;
+
+    const keysToClear = [];
+    Object.keys(positionsPanelData).forEach((key) => {
+        const c = classifyPositionKey(key);
+        if(c.kind === "empty") return;
+        if(airlineKind === "jetblue" && c.kind === "jetblue"){
+            if(slug && c.flightSlug === slug) keysToClear.push(key);
+            if(!slug && c.legacy) keysToClear.push(key);
+        }
+        if(airlineKind === "westjet" && c.kind === "westjet"){
+            if(slug && c.flightSlug === slug) keysToClear.push(key);
+            if(!slug && c.legacy) keysToClear.push(key);
+        }
+    });
+    keysToClear.forEach((key) => set(ref(db, "positions/" + key), null));
+};
+
+window.clearAllOrphanPositions = () => {
+    const orphans = Object.keys(positionsPanelData).filter((k) => classifyPositionKey(k).kind === "orphan");
+    if(!orphans.length){ alert("No hay asignaciones antiguas."); return; }
+    if(!confirm(`¿Eliminar ${orphans.length} asignación(es) antigua(s)? Ya no aparecerán en pantalla.`)) return;
+    orphans.forEach((key) => set(ref(db, "positions/" + key), null));
+};
+
+function renderOrphansPanel(){
+    const cont = document.getElementById("orphansPanel");
+    if(!cont) return;
+    const orphans = Object.keys(positionsPanelData)
+        .map((k) => classifyPositionKey(k))
+        .filter((c) => c.kind === "orphan");
+
+    if(!orphans.length){
+        cont.innerHTML = "";
+        cont.style.display = "none";
+        return;
+    }
+
+    cont.style.display = "block";
+    cont.innerHTML = `
+        <div class="orphans-head">
+            <div>
+                <strong>⚠️ Asignaciones antiguas</strong>
+                <p class="positions-hint">Estas posiciones ya no existen en el catálogo actual (ej: Ramp, Gate, Bhs). No salen en la matriz pero siguen en pantalla hasta que las elimines.</p>
+            </div>
+            <button type="button" class="btn-clear-turno" onclick="clearAllOrphanPositions()">🗑 Eliminar todas</button>
+        </div>
+        <div class="orphans-list">
+            ${orphans.map((o) => `
+                <div class="orphan-row">
+                    <span>${escapeHtmlPanel(o.airline)} · <em>${escapeHtmlPanel(o.roleLabel)}</em> → ${escapeHtmlPanel(o.name)}</span>
+                    <button type="button" class="pos-card-delete" onclick="deletePosition(${JSON.stringify(o.roleKey)})">🗑</button>
+                </div>
+            `).join("")}
+        </div>`;
+}
+
+let positionsPanelData = {};
+let titlesPanelData = {};
+let positionsDurationsPanel = {};
+let empleadosData = { jetblue: {}, westjet: {} };
+let activePositionsAirline = "jetblue";
+let activeEmpleadosPool = "jetblue";
+let positionsBoardEnabled = true;
+
+function panelNormalizeRoleKey(rawKey, airlineKind){
+    let k = String(rawKey || "").toLowerCase().trim();
+    if(k.includes(FLIGHT_NS_JB)) k = k.split(FLIGHT_NS_JB)[0];
+    else if(k.includes(FLIGHT_NS_WJ)) k = k.split(FLIGHT_NS_WJ)[0];
+    else if(k.includes("__")) k = k.split("__")[0];
+    k = k.replace(/_west$/, "").replace(/_jet$/, "").replace(/_wj$/, "");
+    return k;
+}
+
+function panelRoleLabel(rawKey, airlineKind){
+    const k = panelNormalizeRoleKey(rawKey, airlineKind);
+    const found = getRoleCatalog(airlineKind).find((r) => r.key === k);
+    if(found) return found.label;
+    return k.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function panelRoleOrder(rawKey, airlineKind){
+    const k = panelNormalizeRoleKey(rawKey, airlineKind);
+    const found = getRoleCatalog(airlineKind).find((r) => r.key === k);
+    return found ? found.order : 50;
+}
+
+function panelParseName(val){
+    if(val && typeof val === "object") return String(val.name || val.nombre || "").trim();
+    return String(val ?? "").trim();
+}
+
+function empleadoSlug(name){
+    return (name || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48) || "empleado";
+}
+
+function getEmpleadosList(airlineKind){
+    const pool = empleadosData[airlineKind] || {};
+    return Object.values(pool)
+        .map((n) => String(n || "").trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
+function employeeSelectOptions(airlineKind, selectedName){
+    const names = getEmpleadosList(airlineKind);
+    const sel = String(selectedName || "").trim();
+    const opts = [`<option value="">— Sin asignar —</option>`];
+    names.forEach((n) => {
+        opts.push(`<option value="${escapeHtmlPanel(n)}"${n === sel ? " selected" : ""}>${escapeHtmlPanel(n)}</option>`);
+    });
+    if(sel && !names.includes(sel)){
+        opts.push(`<option value="${escapeHtmlPanel(sel)}" selected>${escapeHtmlPanel(sel)} (manual)</option>`);
+    }
+    return opts.join("");
+}
+
+function populateExtraRoleSelect(){
+    const el = document.getElementById("posRoleExtra");
+    if(!el) return;
+    const opts = EXTRA_ROLES.map((r) => `<option value="${r.key}">${r.label}</option>`).join("");
+    el.innerHTML = `<option value="">Rol…</option>${opts}`;
+}
+populateExtraRoleSelect();
+
+function renderPositionsMatrix(airlineKind){
+    const matrixId = airlineKind === "jetblue" ? "positionsMatrixJetblue" : "positionsMatrixWestjet";
+    const cont = document.getElementById(matrixId);
+    if(!cont) return;
+    const catalog = getRoleCatalog(airlineKind);
+    const flightSlug = getActiveFlightSlug(airlineKind);
+    cont.innerHTML = catalog.map((role) => {
+        const fbKey = positionFirebaseKey(role.key, airlineKind, flightSlug);
+        const assigned = panelParseName(positionsPanelData[fbKey]);
+        return `
+            <div class="positions-matrix-row">
+                <label class="positions-matrix-role" for="matrix_${airlineKind}_${role.key}">${escapeHtmlPanel(role.label)}</label>
+                <select id="matrix_${airlineKind}_${role.key}" class="positions-matrix-select"
+                    onchange="assignPositionFromMatrix('${airlineKind}', '${role.key}', this)">
+                    ${employeeSelectOptions(airlineKind, assigned)}
+                </select>
+            </div>`;
+    }).join("");
+}
+
+function renderExtraEmployeeSelect(){
+    const sel = document.getElementById("posNameExtraSelect");
+    if(!sel) return;
+    const names = getEmpleadosList("jetblue").concat(getEmpleadosList("westjet"))
+        .filter((n, i, a) => a.indexOf(n) === i)
+        .sort((a, b) => a.localeCompare(b, "es"));
+    sel.innerHTML = `<option value="">Elegir empleado…</option>${names.map((n) => `<option value="${escapeHtmlPanel(n)}">${escapeHtmlPanel(n)}</option>`).join("")}`;
+    sel.onchange = () => {
+        const inp = document.getElementById("posNameExtra");
+        if(inp && sel.value) inp.value = sel.value;
+    };
+}
+
+window.assignPositionFromMatrix = (airlineKind, roleKey, selectEl) => {
+    const fbKey = positionFirebaseKey(roleKey, airlineKind, getActiveFlightSlug(airlineKind));
+    const val = (selectEl?.value || "").trim();
+    if(val) set(ref(db, "positions/" + fbKey), val);
+    else set(ref(db, "positions/" + fbKey), null);
+};
+
+window.setEmpleadosPool = (pool) => {
+    activeEmpleadosPool = pool;
+    document.querySelectorAll(".empleados-airline-pill").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-pool") === pool);
+    });
+    renderEmpleadosList();
+};
+
+window.addEmpleado = () => {
+    const name = (document.getElementById("newEmpleadoName")?.value || "").trim();
+    if(!name){
+        alert("Escribe el nombre del empleado.");
+        return;
+    }
+    const slug = empleadoSlug(name);
+    const pools = activeEmpleadosPool === "both" ? ["jetblue", "westjet"] : [activeEmpleadosPool];
+    pools.forEach((pool) => set(ref(db, "empleados/" + pool + "/" + slug), name));
+    document.getElementById("newEmpleadoName").value = "";
+};
+
+window.deleteEmpleado = (pool, slug) => {
+    if(!confirm("¿Eliminar este empleado del directorio?")) return;
+    set(ref(db, "empleados/" + pool + "/" + slug), null);
+};
+
+function renderEmpleadosList(){
+    const cont = document.getElementById("empleadosList");
+    if(!cont) return;
+    const pool = activeEmpleadosPool;
+    let entries = [];
+    if(pool === "both"){
+        [["jetblue", empleadosData.jetblue || {}], ["westjet", empleadosData.westjet || {}]].forEach(([p, data]) => {
+            Object.entries(data).forEach(([slug, name]) => entries.push({ pool: p, slug, name }));
+        });
+        entries.sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
+    } else {
+        entries = Object.entries(empleadosData[pool] || {})
+            .map(([slug, name]) => ({ pool, slug, name }))
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
+    }
+
+    const badge = document.getElementById("empleadosCountBadge");
+    const totalJet = Object.keys(empleadosData.jetblue || {}).length;
+    const totalWest = Object.keys(empleadosData.westjet || {}).length;
+    if(badge) badge.textContent = (totalJet + totalWest) + " empleado" + (totalJet + totalWest === 1 ? "" : "s");
+
+    if(!entries.length){
+        cont.innerHTML = `<p class="positions-hint">No hay empleados en este listado. Agrégalos arriba.</p>`;
+        return;
+    }
+
+    cont.innerHTML = entries.map((e) => {
+        const poolLabel = e.pool === "jetblue" ? "🔵" : "🟢";
+        const poolTag = pool === "both" ? `<span class="empleado-chip-pool">${poolLabel}</span>` : "";
+        return `
+            <span class="empleado-chip">
+                ${poolTag}${escapeHtmlPanel(e.name)}
+                <button type="button" class="empleado-chip-del" onclick="deleteEmpleado('${e.pool}', '${e.slug}')" title="Eliminar">×</button>
+            </span>`;
+    }).join("");
+}
+
+window.setPositionsAirline = (airline) => {
+    activePositionsAirline = airline;
+    document.querySelectorAll(".positions-airline-pill").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-airline") === airline);
+    });
+    document.querySelectorAll(".pos-editor-panel").forEach((panel) => {
+        panel.classList.remove("active");
+    });
+    const map = { jetblue: "posEditorJetblue", westjet: "posEditorWestjet", extra: "posEditorExtra" };
+    const el = document.getElementById(map[airline]);
+    if(el) el.classList.add("active");
+    renderPositionsBoardPreview();
+};
+
+function buildPosCardHtml(roleKey, name, airlineKind){
+    const safeName = escapeHtmlPanel(name);
+    const label = panelRoleLabel(roleKey, airlineKind);
+    const themeClass = airlineKind === "jetblue" ? "pos-card-item--jetblue" : airlineKind === "westjet" ? "pos-card-item--westjet" : "pos-card-item--extra";
+    const roleArg = JSON.stringify(roleKey);
+    return `
+        <div class="pos-card-item ${themeClass}">
+            <div class="pos-card-body">
+                <div class="pos-card-role">${escapeHtmlPanel(label)}</div>
+                <div class="pos-card-name">${safeName}</div>
+            </div>
+            <button type="button" class="pos-card-delete" onclick="deletePosition(${roleArg})">🗑</button>
+        </div>`;
+}
+
+function renderAllPositionsLists(){
+    const extraEl = document.getElementById("positionsExtraList");
+    const extraBuckets = {};
+    let total = 0;
+
+    Object.entries(positionsPanelData).forEach(([role, val]) => {
+        const c = classifyPositionKey(role);
+        if(c.kind === "empty" || c.kind === "orphan") return;
+        total++;
+        if(c.kind === "extra"){
+            const slug = c.flightSlug;
+            if(!extraBuckets[slug]) extraBuckets[slug] = [];
+            extraBuckets[slug].push({ role, name: c.name, order: c.order });
+        }
+    });
+
+    renderJetblueFlightSelector();
+    renderWestjetFlightSelector();
+    renderPositionsMatrix("jetblue");
+    renderPositionsMatrix("westjet");
+    renderExtraEmployeeSelect();
+    renderOrphansPanel();
+
+    if(extraEl){
+        extraEl.innerHTML = "";
+        const slug = document.getElementById("airlineSelector")?.value;
+        if(slug && extraBuckets[slug]){
+            extraBuckets[slug].sort((a, b) => a.order - b.order).forEach((r) => {
+                extraEl.innerHTML += buildPosCardHtml(r.role, r.name, "extra");
+            });
+        }
+    }
+
+    const badge = document.getElementById("positionsCountBadge");
+    if(badge) badge.textContent = total + " asignado" + (total === 1 ? "" : "s");
+
+    renderTablaPanel();
+    renderPositionsBoardPreview();
+}
+
+function renderTablaPanel(){
+    const cont = document.getElementById("tablaPanel");
+    if(!cont) return;
+    const rows = Object.keys(positionsPanelData)
+        .map((k) => classifyPositionKey(k))
+        .filter((c) => c.kind !== "empty" && c.kind !== "orphan");
+
+    if(!rows.length){
+        cont.innerHTML = `<p class="positions-hint" style="padding:1rem;">Sin asignaciones activas. Usa la matriz arriba o elimina las antiguas si aparecen abajo.</p>`;
+        return;
+    }
+
+    rows.sort((a, b) =>
+        a.airline.localeCompare(b.airline, "es") ||
+        String(a.flightName || "").localeCompare(String(b.flightName || ""), "es") ||
+        a.order - b.order
+    );
+
+    const cols = ["Aerolínea", "Vuelo / turno", "Posición", "Nombre", ""];
+    cont.innerHTML = `
+        <div class="tabla-asignaciones tabla-asignaciones--5" style="grid-template-columns:1fr 1.1fr 1.1fr 1.2fr auto;">
+            ${cols.map((c) => `<div class="tabla-header">${c}</div>`).join("")}
+            ${rows.map((r) => `
+                <div class="celda" style="color:${r.theme === "jetblue" ? "#60a5fa" : r.theme === "westjet" ? "#4ade80" : "#fbbf24"}">${escapeHtmlPanel(r.airline)}</div>
+                <div class="celda">${escapeHtmlPanel(r.flightName || "—")}</div>
+                <div class="tabla-posicion">${escapeHtmlPanel(r.roleLabel)}</div>
+                <div class="celda">${escapeHtmlPanel(r.name)}</div>
+                <div class="celda"><button type="button" class="pos-card-delete" onclick="deletePosition(${JSON.stringify(r.roleKey)})" title="Quitar">🗑</button></div>
+            `).join("")}
+        </div>`;
+}
+
+function collectPreviewItems(airlineKind){
+    const slug = getActiveFlightSlug(airlineKind);
+    return Object.keys(positionsPanelData)
+        .map((k) => ({ k, c: classifyPositionKey(k) }))
+        .filter(({ c }) => {
+            if(c.kind !== airlineKind) return false;
+            if(slug) return c.flightSlug === slug;
+            return !!c.legacy;
+        })
+        .map(({ k, c }) => ({ role: c.roleLabel, name: c.name, order: c.order }))
+        .sort((a, b) => a.order - b.order);
+}
+
+function getPreviewSlideForAirline(airline){
+    if(airline === "jetblue" && visibilityData.jetblue !== false){
+        const items = collectPreviewItems("jetblue");
+        const slug = activeJetblueFlightSlug;
+        const title = slug
+            ? (titlesPanelData[flightMetaKey("jetblue", slug)] || titlesPanelData.jetblue || "ASIGNACIONES JETBLUE")
+            : (titlesPanelData.jetblue || "ASIGNACIONES JETBLUE");
+        if(items.length) return { theme: "positions-board-preview--jetblue", badge: "🔵 JETBLUE", title, items };
+    }
+    if(airline === "westjet" && visibilityData.westjet !== false){
+        const items = collectPreviewItems("westjet");
+        const slug = activeWestjetFlightSlug;
+        const title = slug
+            ? (titlesPanelData[flightMetaKey("westjet", slug)] || titlesPanelData.westjet || "ASIGNACIONES WESTJET")
+            : (titlesPanelData.westjet || "ASIGNACIONES WESTJET");
+        if(items.length) return { theme: "positions-board-preview--westjet", badge: "🟢 WESTJET", title, items };
+    }
+    if(airline === "extra"){
+        const slug = document.getElementById("airlineSelector")?.value;
+        if(slug && visibilityData[slug] !== false){
+            const items = Object.entries(positionsPanelData)
+                .filter(([k, v]) => k.includes("__" + slug) && panelParseName(v))
+                .map(([k, v]) => ({ role: panelRoleLabel(k, "extra"), name: panelParseName(v), order: panelRoleOrder(k, "extra") }))
+                .sort((a, b) => a.order - b.order);
+            if(items.length) return {
+                theme: "positions-board-preview--extra",
+                badge: "✈️ " + (airlinesExtraData[slug]?.name || slug).toUpperCase(),
+                title: titlesPanelData[slug] || `ASIGNACIONES ${(airlinesExtraData[slug]?.name || slug).toUpperCase()}`,
+                items
+            };
+        }
+    }
+    return null;
+}
+
+function renderPositionsBoardPreview(){
+    const el = document.getElementById("positionsBoardPreview");
+    if(!el) return;
+    const slide = getPreviewSlideForAirline(activePositionsAirline);
+    if(!slide || !positionsBoardEnabled){
+        el.innerHTML = `<div class="positions-board-preview-empty">${positionsBoardEnabled ? "Agrega posiciones para ver la vista previa." : "Rotación de posiciones apagada en TV."}</div>`;
+        return;
+    }
+    const rows = slide.items.slice(0, 6).map((item) => `
+        <tr>
+            <td class="pos-preview-role">${escapeHtmlPanel(item.role)}</td>
+            <td class="pos-preview-name">${escapeHtmlPanel(item.name)}</td>
+        </tr>
+    `).join("");
+    const more = slide.items.length > 6 ? `<tr><td colspan="2" class="pos-preview-role" style="text-align:center;padding-top:0.5em;">+${slide.items.length - 6} más…</td></tr>` : "";
+    el.innerHTML = `
+        <div class="pos-preview-slide ${slide.theme}">
+            <span class="pos-preview-badge">${slide.badge}</span>
+            <h4 class="pos-preview-title">${escapeHtmlPanel(slide.title)}</h4>
+            <div class="pos-preview-line"></div>
+            <table class="pos-preview-table"><tbody>${rows}${more}</tbody></table>
+        </div>`;
+}
+
+window.togglePositionsBoard = () => {
+    const btn = document.getElementById("togglePositionsBtn");
+    const next = !positionsBoardEnabled;
+    positionsBoardEnabled = next;
+    set(ref(db, "config/positionsEnabled"), next);
+    if(btn){
+        btn.classList.toggle("on", next);
+        btn.textContent = next ? "🟢 En pantalla" : "🔴 Apagado";
+    }
+    renderPositionsBoardPreview();
+};
+
+window.onExtraAirlineSelected = () => {
+    const slug = document.getElementById("airlineSelector")?.value;
+    const show = !!slug;
+    const addRow = document.getElementById("extraAddRow");
+    const durToolbar = document.getElementById("extraDurationToolbar");
+    if(addRow) addRow.style.display = show ? "flex" : "none";
+    if(durToolbar) durToolbar.style.display = show ? "flex" : "none";
+    if(show){
+        const d = parseInt(positionsDurationsPanel[slug]) || 12;
+        const durIn = document.getElementById("extraDuration");
+        if(durIn) durIn.value = d;
+    }
+    renderExtraEmployeeSelect();
+    renderAllPositionsLists();
+};
+
+window.saveJetblueDuration = () => {
+    const v = parseInt(document.getElementById("jetblueDuration").value) || 12;
+    set(ref(db, "config/positionsDuration/jetblue"), Math.max(5, Math.min(90, v)));
+};
+
+window.saveWestjetDuration = () => {
+    const v = parseInt(document.getElementById("westjetDuration").value) || 12;
+    set(ref(db, "config/positionsDuration/westjet"), Math.max(5, Math.min(90, v)));
+};
+
+window.saveExtraDuration = () => {
+    const slug = document.getElementById("airlineSelector")?.value;
+    if(!slug) return;
+    const v = parseInt(document.getElementById("extraDuration").value) || 12;
+    set(ref(db, "config/positionsDuration/" + slug), Math.max(5, Math.min(90, v)));
+};
+
+window.savePositionsGap = () => {
+    const v = parseInt(document.getElementById("positionsGapSeconds").value) || 45;
+    set(ref(db, "config/positionsGapSeconds"), Math.max(20, Math.min(300, v)));
+};
+
+onValue(ref(db, "config/positionsEnabled"), (snap) => {
+    positionsBoardEnabled = snap.val() !== false;
+    const btn = document.getElementById("togglePositionsBtn");
+    if(btn){
+        btn.classList.toggle("on", positionsBoardEnabled);
+        btn.textContent = positionsBoardEnabled ? "🟢 En pantalla" : "🔴 Apagado";
+    }
+    renderPositionsBoardPreview();
+});
+
+onValue(ref(db, "config/positionsGapSeconds"), (snap) => {
+    const v = parseInt(snap.val());
+    const el = document.getElementById("positionsGapSeconds");
+    if(el) el.value = !Number.isNaN(v) && v >= 20 ? v : 45;
+});
+
+onValue(ref(db, "config/positionsDuration"), (snap) => {
+    positionsDurationsPanel = snap.val() || {};
+    const j = document.getElementById("jetblueDuration");
+    const w = document.getElementById("westjetDuration");
+    if(j) j.value = positionsDurationsPanel.jetblue || 12;
+    if(w) w.value = positionsDurationsPanel.westjet || 12;
+    onExtraAirlineSelected();
+});
+
+onValue(ref(db, "titles"), (snap) => {
+    titlesPanelData = snap.val() || {};
+    const jt = document.getElementById("jetblueTitle");
+    const wt = document.getElementById("westjetTitle");
+    if(jt) jt.value = titlesPanelData.jetblue || "";
+    if(wt) wt.value = titlesPanelData.westjet || "";
+    renderPositionsBoardPreview();
 });
 
 /* CAMBIAR VISIBILIDAD */
@@ -2461,20 +3088,22 @@ window.addExtraAirline = () => {
     set(ref(db, "airlinesExtra/" + slug), { name });
     set(ref(db, "titles/" + slug), "ASIGNACIONES " + name.toUpperCase());
     set(ref(db, "visibility/" + slug), true);
+    set(ref(db, "config/positionsDuration/" + slug), 12);
     nameInput.value = "";
 };
 
 window.savePositionExtra = () => {
     const slug = document.getElementById("airlineSelector").value;
     const role = (document.getElementById("posRoleExtra").value || "").toLowerCase().trim();
-    const name = (document.getElementById("posNameExtra").value || "").trim();
-    if(!slug || !role){
-        alert("Selecciona vuelo y posicion.");
+    const name = (document.getElementById("posNameExtra").value || document.getElementById("posNameExtraSelect")?.value || "").trim();
+    if(!slug || !role || !name){
+        alert("Selecciona vuelo, rol y nombre.");
         return;
     }
     set(ref(db, "positions/" + role + "__" + slug), name);
-    document.getElementById("posRoleExtra").value = "";
     document.getElementById("posNameExtra").value = "";
+    const sel = document.getElementById("posNameExtraSelect");
+    if(sel) sel.value = "";
 };
 
 window.saveExtraTitle = (slug, value) => {
@@ -2494,6 +3123,7 @@ window.deleteExtraAirline = (slug) => {
     set(ref(db, "airlinesExtra/" + slug), null);
     set(ref(db, "titles/" + slug), null);
     set(ref(db, "visibility/" + slug), null);
+    set(ref(db, "config/positionsDuration/" + slug), null);
 
     onValue(positionsRef, (snap) => {
         const data = snap.val() || {};
@@ -2527,9 +3157,9 @@ function renderExtraAirlinesAdmin(){
 
     cont.innerHTML = extras.map(([slug, item]) => `
         <div class="pos-item">
-            <div style="font-weight:bold; color:#f8fafc;">${item?.name || slug}</div>
-            <input value="${(item?.name || "").replace(/"/g, "&quot;")}" onchange="renameExtraAirline('${slug}', this.value)">
-            <input value="ASIGNACIONES ${(item?.name || slug).toUpperCase()}" onchange="saveExtraTitle('${slug}', this.value)">
+            <div style="font-weight:bold; color:#f8fafc;">${escapeHtmlPanel(item?.name || slug)}</div>
+            <input value="${escapeHtmlPanel(item?.name || "")}" onchange="renameExtraAirline('${slug}', this.value)">
+            <input value="${escapeHtmlPanel(titlesPanelData[slug] || "ASIGNACIONES " + (item?.name || slug).toUpperCase())}" onchange="saveExtraTitle('${slug}', this.value)">
             <label style="display:flex; gap:8px; align-items:center;">
                 <input type="checkbox" ${visibilityData[slug] !== false ? "checked" : ""} onchange="toggleExtraVisibility('${slug}', this.checked)">
                 Visible en pantalla
@@ -2543,109 +3173,62 @@ onValue(airlinesExtraRef, (snap) => {
     airlinesExtraData = snap.val() || {};
     renderAirlineSelector();
     renderExtraAirlinesAdmin();
+    renderAllPositionsLists();
 });
 
 onValue(visibilityRef, (snap) => {
     visibilityData = snap.val() || {};
     renderExtraAirlinesAdmin();
+    renderPositionsBoardPreview();
 });
 
-/* 🔵 JETBLUE */
-window.savePositionJet = () => {
-    const role = document.getElementById("posRoleJet").value.toLowerCase();
-    const name = document.getElementById("posNameJet").value;
-    if(!role) return;
-    set(ref(db,"positions/"+role), name);
-    document.getElementById("posRoleJet").value="";
-    document.getElementById("posNameJet").value="";
-};
+onValue(ref(db, "empleados"), (snap) => {
+    const raw = snap.val() || {};
+    empleadosData = {
+        jetblue: raw.jetblue || {},
+        westjet: raw.westjet || {}
+    };
+    renderEmpleadosList();
+    renderPositionsMatrix("jetblue");
+    renderPositionsMatrix("westjet");
+    renderExtraEmployeeSelect();
+});
 
-/* 🟢 WESTJET */
-window.savePositionWest = () => { 
-    const role = document.getElementById("posRoleWest").value.toLowerCase()+"_west";
-    const name = document.getElementById("posNameWest").value;
-    if(!role) return;
-    set(ref(db,"positions/"+role), name);
-    document.getElementById("posRoleWest").value="";
-    document.getElementById("posNameWest").value="";
-};
+onValue(ref(db, "jetblueFlights"), (snap) => {
+    jetblueFlightsData = snap.val() || {};
+    renderAllPositionsLists();
+});
 
-/* MOSTRAR POSICIONES */
+onValue(ref(db, "westjetFlights"), (snap) => {
+    westjetFlightsData = snap.val() || {};
+    renderAllPositionsLists();
+});
+
 onValue(positionsRef, (snap) => {
-    const data = snap.val() || {};
-
-    document.getElementById("positionsJet").innerHTML="";
-    document.getElementById("positionsWest").innerHTML="";
-    const extraBuckets = {};
-
-    Object.entries(data).forEach(([role,name]) => {
-        const card=`
-<div class="pos-item">
-    <input value="${role}" onchange="updatePosition('${role}','role',this.value)">
-    <input value="${name}" onchange="updatePosition('${role}','name',this.value)">
-    <div class="pos-actions">
-        <button onclick="deletePosition('${role}')">🗑</button>
-    </div>
-</div>`;
-
-        if(role.includes("__")){
-            const slug = role.split("__")[1];
-            if(!extraBuckets[slug]) extraBuckets[slug] = "";
-            extraBuckets[slug] += card;
-        } else if(role.includes("west")){
-            document.getElementById("positionsWest").innerHTML += card;
-        } else {
-            document.getElementById("positionsJet").innerHTML += card;
-        }
-    });
-
-    const cont = document.getElementById("positionsExtraList");
-    if(cont && Object.keys(extraBuckets).length){
-        const extrasHtml = Object.entries(extraBuckets).map(([slug, html]) => `
-            <div class="pos-item">
-                <div style="font-weight:bold; color:#f59e0b; margin-bottom:6px;">${(airlinesExtraData[slug]?.name || slug).toUpperCase()}</div>
-                <div style="display:grid; gap:8px;">${html}</div>
-            </div>
-        `).join("");
-        cont.innerHTML = extrasHtml;
-    } else if(cont){
-        cont.innerHTML = "";
-    }
+    positionsPanelData = snap.val() || {};
+    renderAllPositionsLists();
 });
 
 window.deletePosition = (role) => {
-    if(confirm("Eliminar esta posición?")){
+    if(confirm("¿Eliminar esta posición?")){
         set(ref(db,"positions/"+role), null);
-    }
-};
-
-window.updatePosition = (oldRole, field, value) => {
-    const currentRef = ref(db, "positions/" + oldRole);
-
-    if(field === "name"){
-        set(currentRef, value);
-    }
-
-    if(field === "role"){
-        const newRole = value.toLowerCase().trim();
-        if(!newRole) return;
-
-        onValue(currentRef, (snap) => {
-            const currentName = snap.val();
-            set(currentRef, null);
-            set(ref(db,"positions/"+newRole), currentName);
-        }, {onlyOnce:true});
     }
 };
 
 window.saveJetblueTitle = () => {
     const value = document.getElementById("jetblueTitle").value;
-    set(ref(db,"titles/jetblue"), value);
+    const slug = activeJetblueFlightSlug;
+    if(slug) set(ref(db, "titles/jetblue_" + slug), value);
+    else set(ref(db, "titles/jetblue"), value);
+    renderPositionsBoardPreview();
 };
 
 window.saveWestjetTitle = () => {
     const value = document.getElementById("westjetTitle").value;
-    set(ref(db,"titles/westjet"), value);
+    const slug = activeWestjetFlightSlug;
+    if(slug) set(ref(db, "titles/westjet_" + slug), value);
+    else set(ref(db, "titles/westjet"), value);
+    renderPositionsBoardPreview();
 };
 
 /* VUELOS */
@@ -2812,9 +3395,6 @@ ${formatRetrasoHtml(r)}
 <label class="fld-label">Salida vuelo (HH:MM)</label>
 <input type="time" value="${r.salida || ''}" onchange="updateField(${i},'salida',this.value)">
 
-<label class="fld-label">Duración (seg)</label>
-<input type="number" value="${r.duracion || 10}" min="1" max="60" onchange="updateField(${i},'duracion',this.value)">
-
 <div class="btn-row">
     <button class="boarding" onclick="setStatus(${i},'BOARDING')">B</button>
     <button class="delayed" onclick="setStatus(${i},'DELAYED')">D</button>
@@ -2880,7 +3460,6 @@ window.addFlight = (i=null) => {
         salida:"",
         gate:"",
         estado:"ON-TIME",
-        duracion:10,
         retraso:null
     };
     i==null ? a.push(n) : a.splice(i+1,0,n);
@@ -2931,8 +3510,9 @@ window.manualFlightRefresh = async () => {
     btn.disabled = true;
     statusEl.style.color = "#7dd3fc";
     statusEl.textContent = "Actualizando...";
+    const apiBase = resolvePanelApiBase();
     const url =
-        "http://localhost:4000/api/flights/refresh?secret=POP_sync_2026_airport";
+        apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
     const finish = () => {
         btn.disabled = false;
         flightRefreshToastTimer = setTimeout(() => {
@@ -2956,7 +3536,14 @@ window.manualFlightRefresh = async () => {
                 "Omitido: ya hay una sincronización en curso.";
         } else if (data.ok === false) {
             statusEl.style.color = "#f87171";
-            statusEl.textContent = "❌ Error al actualizar";
+            const noKey =
+                data.reason === "api_error" &&
+                String(data.error || data.detail || "").includes("FA_API_KEY");
+            statusEl.textContent = noKey
+                ? "❌ Añade FA_API_KEY en .env (FlightAware AeroAPI)"
+                : data.reason === "flightaware_quota"
+                    ? "❌ Límite FlightAware (429) — espera o revisa tu plan"
+                    : data.hint || "❌ Error al actualizar";
         } else if (data.changed && data.updated > 0) {
             statusEl.style.color = "#4ade80";
             statusEl.textContent = `✅ ${data.updated} cambios actualizados`;
@@ -2966,7 +3553,10 @@ window.manualFlightRefresh = async () => {
         }
     } catch (e) {
         statusEl.style.color = "#f87171";
-        statusEl.textContent = "❌ Error al actualizar";
+        const net = e && /failed to fetch/i.test(String(e.message || e));
+        statusEl.textContent = net
+            ? `❌ Servidor apagado — ejecuta npm start (${panelApiBase})`
+            : "❌ Error al actualizar";
     } finally {
         finish();
     }
@@ -3015,10 +3605,117 @@ function convertirHora24(horaCadena) {
     return `${String(horas).padStart(2, "0")}:${minutos}`;
 }
 
-const FLIGHTS_API_URL = "https://airportboard.onrender.com/flights";
+function resolvePanelApiBase() {
+    const fromParam = new URLSearchParams(location.search).get("api");
+    if (fromParam) return String(fromParam).replace(/\/+$/, "");
+    try {
+        const stored = localStorage.getItem("panelApiBase");
+        if (stored) return String(stored).replace(/\/+$/, "");
+    } catch (_) {}
+    if (location.protocol === "file:") return "http://localhost:4000";
+    const port = location.port || (location.protocol === "https:" ? "443" : "80");
+    if (port === "4000") return location.origin;
+    const host = location.hostname || "localhost";
+    return `http://${host}:4000`;
+}
+
+const panelApiBase = resolvePanelApiBase();
+const FLIGHTS_API_URL = panelApiBase + "/flights";
+const FLIGHTS_SYNC_SECRET = "POP_sync_2026_airport";
 const FLIGHTS_REFRESH_URL =
-    "http://localhost:4000/api/flights/refresh?secret=POP_sync_2026_airport";
-const FLIGHTS_LOCAL_URL = "http://localhost:4000/flights";
+    panelApiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
+const FLIGHTS_SYNC_STATE_URL = panelApiBase + "/api/flights/sync-state";
+const FLIGHTS_LOCAL_URL = FLIGHTS_API_URL;
+
+async function refreshSyncControlUI() {
+    const pauseBtn = document.getElementById("btnSyncPause");
+    const playBtn = document.getElementById("btnSyncPlay");
+    const statusEl = document.getElementById("flightRefreshStatus");
+    if (!pauseBtn || !playBtn) return;
+    try {
+        const res = await fetch(FLIGHTS_SYNC_STATE_URL);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const enabled = Boolean(data.enabled);
+        pauseBtn.disabled = !enabled;
+        playBtn.disabled = enabled;
+        pauseBtn.classList.toggle("sync-btn-active", enabled);
+        playBtn.classList.toggle("sync-btn-active", !enabled);
+        if (statusEl && !flightRefreshToastTimer) {
+            statusEl.style.color = enabled ? "#4ade80" : "#fbbf24";
+            const mins = Math.max(1, Math.round((data.pollingSec || 600) / 60));
+            statusEl.textContent = enabled
+                ? `▶ Sync automático cada ${mins} min`
+                : "⏸ Sync automático pausado";
+        }
+    } catch (_) {
+        statusEl.style.color = "#f87171";
+        statusEl.textContent =
+            `❌ Sin servidor en ${panelApiBase} — ejecuta npm start`;
+        pauseBtn.disabled = false;
+        playBtn.disabled = false;
+    }
+}
+
+async function setFlightSyncEnabled(enabled) {
+    const pauseBtn = document.getElementById("btnSyncPause");
+    const playBtn = document.getElementById("btnSyncPlay");
+    const statusEl = document.getElementById("flightRefreshStatus");
+    if (pauseBtn) pauseBtn.disabled = true;
+    if (playBtn) playBtn.disabled = true;
+    if (statusEl) {
+        statusEl.style.color = "#7dd3fc";
+        statusEl.textContent = enabled ? "Reanudando sync..." : "Pausando sync...";
+    }
+    try {
+        const res = await fetch(
+            FLIGHTS_SYNC_STATE_URL +
+                "?secret=" +
+                encodeURIComponent(FLIGHTS_SYNC_SECRET) +
+                "&enabled=" +
+                (enabled ? "true" : "false"),
+            { method: "POST" }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+        if (flightRefreshToastTimer) {
+            clearTimeout(flightRefreshToastTimer);
+            flightRefreshToastTimer = null;
+        }
+        await refreshSyncControlUI();
+    } catch (e) {
+        if (statusEl) {
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "❌ No se pudo cambiar el sync";
+        }
+        await refreshSyncControlUI();
+    }
+}
+
+window.pauseFlightSync = () => setFlightSyncEnabled(false);
+window.resumeFlightSync = () => setFlightSyncEnabled(true);
+
+async function showFlightApiStatus() {
+    const statusEl = document.getElementById("flightRefreshStatus");
+    if (!statusEl) return;
+    try {
+        const res = await fetch(panelApiBase + "/api/health");
+        if (!res.ok) return;
+        const h = await res.json();
+        if (h.flightaware) {
+            await refreshSyncControlUI();
+        } else {
+            statusEl.style.color = "#fbbf24";
+            statusEl.textContent =
+                `⚠️ FlightAware: añade FA_API_KEY en .env (${panelApiBase})`;
+        }
+    } catch (_) {
+        statusEl.style.color = "#f87171";
+        statusEl.textContent =
+            `❌ Sin servidor en ${panelApiBase} — ejecuta npm start`;
+    }
+}
+showFlightApiStatus();
 
 function extractVueloSearchNeedles(raw) {
     const s = String(raw || "").trim();
@@ -3154,9 +3851,78 @@ function flightRowMatchesApiIdent(apiVuelo, candidates) {
             const lt = cn.slice(0, cn.length - dt.length);
             if (!ln || !lt) return true;
             if (ln.includes(lt) || lt.includes(ln)) return true;
+            const vLn = airlinePrefixVariants(ln);
+            const vLt = airlinePrefixVariants(lt);
+            if (vLn.some((v) => vLt.includes(v))) return true;
         }
         return false;
     });
+}
+
+function filterArrivalsBySearchQuery(llegadas, query) {
+    const raw = String(query || "").trim();
+    if (!raw) return [];
+    const list = llegadas || [];
+    const dual = parseDualFlightIdsFromField(raw);
+    if (dual.arrCandidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
+        );
+        if (hits.length) return hits;
+    }
+    const one = parseCompactFlightIdent(raw);
+    if (one.candidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, one.candidates)
+        );
+        if (hits.length) return hits;
+    }
+    const fallbackNeedles =
+        dual.fallbackNeedles.length > 0
+            ? dual.fallbackNeedles
+            : one.fallbackNeedles;
+    if (fallbackNeedles.length) {
+        const hits = list.filter((f) => {
+            const fv = String(f.vuelo || "").toLowerCase();
+            return fallbackNeedles.some((n) => n && fv.includes(n));
+        });
+        if (hits.length) return hits;
+    }
+    const q = raw.toLowerCase();
+    return list.filter((f) => String(f.vuelo || "").toLowerCase().includes(q));
+}
+
+function filterDeparturesBySearchQuery(salidas, query) {
+    const raw = String(query || "").trim();
+    if (!raw) return [];
+    const list = salidas || [];
+    const dual = parseDualFlightIdsFromField(raw);
+    if (dual.depCandidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
+        );
+        if (hits.length) return hits;
+    }
+    const one = parseCompactFlightIdent(raw);
+    if (one.candidates.length) {
+        const hits = list.filter((f) =>
+            flightRowMatchesApiIdent(f.vuelo, one.candidates)
+        );
+        if (hits.length) return hits;
+    }
+    const fallbackNeedles =
+        dual.fallbackNeedles.length > 0
+            ? dual.fallbackNeedles
+            : one.fallbackNeedles;
+    if (fallbackNeedles.length) {
+        const hits = list.filter((f) => {
+            const fv = String(f.vuelo || "").toLowerCase();
+            return fallbackNeedles.some((n) => n && fv.includes(n));
+        });
+        if (hits.length) return hits;
+    }
+    const q = raw.toLowerCase();
+    return list.filter((f) => String(f.vuelo || "").toLowerCase().includes(q));
 }
 
 function findArrivalForVueloField(llegadas, raw) {
@@ -3345,6 +4111,34 @@ function escapeDataAttr(s) {
         .replace(/</g, "&lt;");
 }
 
+async function fetchFlightsPayload() {
+    let res;
+    try {
+        res = await fetch(FLIGHTS_API_URL);
+    } catch (e) {
+        throw new Error(
+            `Sin conexión con ${FLIGHTS_API_URL}. Abre el panel en ${panelApiBase}/panel.html y ejecuta: npm start`
+        );
+    }
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status} en ${FLIGHTS_API_URL}`);
+    }
+    const data = await res.json();
+    if (data.error) {
+        throw new Error(data.detalle || data.error);
+    }
+    return data;
+}
+
+function flightApiErrorHtml(err) {
+    const raw = err && err.message ? err.message : "fallo de red";
+    const isNetwork = /failed to fetch|sin conexión|network/i.test(raw);
+    const hint = isNetwork
+        ? `Servidor apagado o URL incorrecta. En la carpeta del proyecto ejecuta <code>npm start</code> (puerto 4000) y abre <code>${escapeDataAttr(panelApiBase)}/panel.html</code>.`
+        : `Revisa <code>FA_API_KEY</code> en .env o usa vuelos guardados en Firebase.`;
+    return `<div class="results-row results-empty">Error al consultar la API (${escapeDataAttr(raw)}). ${hint}</div>`;
+}
+
 // 🔍 Llegadas (hora de aterrizaje de otro #, ej. 627)
 window.buscarVueloLlegada = async (input, index) => {
     const query = input.value.toLowerCase().trim();
@@ -3355,27 +4149,30 @@ window.buscarVueloLlegada = async (input, index) => {
         return;
     }
     try {
-        const res = await fetch(FLIGHTS_API_URL);
-        const { llegadas } = await res.json();
-        const filtrados = (llegadas || []).filter((f) =>
-            (f.vuelo || "").toLowerCase().includes(query)
-        );
-        resultsDiv.innerHTML = filtrados
-            .map((f) => {
-                const hora = convertirHora24(f.llegada || "");
-                const lp = convertirHora24(f.llegadaProgramada || "");
-                const le = convertirHora24(f.llegadaEstimada || "");
-                const lr = convertirHora24(f.llegadaReal || "");
-                const so = convertirHora24(f.salidaOrigen || "");
-                const orig = f.origen || f.destino || "";
-                const ruta = f.enRuta ? " · EN RUTA" : "";
-                const txtSo = so ? ` · salió ${so}${ruta}` : "";
-                const ret = f.retraso != null && f.retraso !== "" ? String(f.retraso) : "";
-                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
-            })
-            .join("");
+        const { llegadas } = await fetchFlightsPayload();
+        const filtrados = filterArrivalsBySearchQuery(llegadas, query);
+        resultsDiv.innerHTML = filtrados.length
+            ? filtrados
+                  .map((f) => {
+                      const hora = convertirHora24(f.llegada || "");
+                      const lp = convertirHora24(f.llegadaProgramada || "");
+                      const le = convertirHora24(f.llegadaEstimada || "");
+                      const lr = convertirHora24(f.llegadaReal || "");
+                      const so = convertirHora24(f.salidaOrigen || "");
+                      const orig = f.origen || f.destino || "";
+                      const ruta = f.enRuta ? " · EN RUTA" : "";
+                      const txtSo = so ? ` · salió ${so}${ruta}` : "";
+                      const ret =
+                          f.retraso != null && f.retraso !== ""
+                              ? String(f.retraso)
+                              : "";
+                      return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${f.vuelo} · desde ${orig} · POP ${hora || "N/A"}${txtSo}</div>`;
+                  })
+                  .join("")
+            : `<div class="results-row results-empty">Sin vuelos para «${escapeDataAttr(query)}» en FlightAware hoy</div>`;
     } catch (e) {
         console.error("ERROR BUSCANDO LLEGADAS:", e);
+        resultsDiv.innerHTML = flightApiErrorHtml(e);
     }
 };
 
@@ -3389,21 +4186,21 @@ window.buscarVueloSalida = async (input, index) => {
         return;
     }
     try {
-        const res = await fetch(FLIGHTS_API_URL);
-        const { salidas } = await res.json();
-        const filtrados = (salidas || []).filter((f) =>
-            (f.vuelo || "").toLowerCase().includes(query)
-        );
-        resultsDiv.innerHTML = filtrados
-            .map((f) => {
-                const hora = convertirHora24(f.salida || "");
-                const dest = f.destino || "";
-                const gate = f.gate || "";
-                return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
-            })
-            .join("");
+        const { salidas } = await fetchFlightsPayload();
+        const filtrados = filterDeparturesBySearchQuery(salidas, query);
+        resultsDiv.innerHTML = filtrados.length
+            ? filtrados
+                  .map((f) => {
+                      const hora = convertirHora24(f.salida || "");
+                      const dest = f.destino || "";
+                      const gate = f.gate || "";
+                      return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-d="${escapeDataAttr(dest)}" data-s="${escapeDataAttr(hora)}" data-g="${escapeDataAttr(gate)}" onclick="seleccionarSalidaApi(${index},this)">${f.vuelo} → ${dest} · sale ${hora || "N/A"}</div>`;
+                  })
+                  .join("")
+            : `<div class="results-row results-empty">Sin vuelos para «${escapeDataAttr(query)}» en FlightAware hoy</div>`;
     } catch (e) {
         console.error("ERROR BUSCANDO SALIDAS:", e);
+        resultsDiv.innerHTML = flightApiErrorHtml(e);
     }
 };
 
@@ -3486,6 +4283,17 @@ onValue(configRef, (snap) => {
     const flightSectionSeconds = parseInt(conf.flightSectionSeconds);
     if(!Number.isNaN(flightSectionSeconds) && flightSectionSeconds >= 5 && flightSectionSeconds <= 180){
         document.getElementById("flightSectionSeconds").value = flightSectionSeconds;
+    }
+    if(Array.isArray(conf.arrivalSpeechMinutes) && conf.arrivalSpeechMinutes.length){
+        const mins = parseArrivalSpeechMinutesInput(conf.arrivalSpeechMinutes.join(", "));
+        if(mins.length) document.getElementById("arrivalSpeechMinutes").value = mins.join(", ");
+    }else if(typeof conf.arrivalSpeechMinutes === "string" && conf.arrivalSpeechMinutes.trim()){
+        const mins = parseArrivalSpeechMinutesInput(conf.arrivalSpeechMinutes);
+        if(mins.length) document.getElementById("arrivalSpeechMinutes").value = mins.join(", ");
+    }
+    const arrivalTol = parseInt(conf.arrivalSpeechTolerance, 10);
+    if(!Number.isNaN(arrivalTol) && arrivalTol >= 3 && arrivalTol <= 15){
+        document.getElementById("arrivalSpeechTolerance").value = arrivalTol;
     }
 });
 

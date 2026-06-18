@@ -9,816 +9,47 @@
 <meta charset="UTF-8">
 <title>Airport Board PRO</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Orbitron:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Great+Vibes&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-
-<style>
-
-body{
-    margin:0;
-    background:linear-gradient(180deg,#000,#05080a);
-    color:#7dd3fc;
-    font-family:'Inter', sans-serif;
-    display:flex;
-    flex-direction:column;
-    height:100vh;
-    overflow:hidden;
-}
-
-.header{
-    position:relative;
-    z-index:1000000;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:20px 40px;
-    border-bottom:2px solid #0ea5e9;
-}
-
-.left{
-    display:flex;
-    align-items:center;
-    gap:15px;
-}
-
-.logo{ height:42px; }
-
-.title{
-    font-size:38px;
-    font-family:'Orbitron', sans-serif;
-    color:#38bdf8;
-}
-
-.time{
-    font-size:70px;
-    font-family:'Inter', sans-serif;
-    font-weight:700;
-    letter-spacing:3px;
-    color:#00ffff;
-}
-
-.fullscreen-btn{
-    background:transparent;
-    color:#22d3ee;
-    border:1px solid #22d3ee;
-    padding:6px 10px;
-    border-radius:6px;
-    cursor: pointer;
-}
-
-.table-container{ flex:1; overflow:hidden; }
-
-table{ width:100%; border-collapse:collapse; }
-
-th{
-    font-size:24px;
-    padding:12px;
-    border-bottom:1px solid #0ea5e9;
-}
-
-td{
-    font-size:30px;
-    padding:14px;
-    text-align:center;
-}
-
-.on-time { color:#4ade80; }
-.delayed { color:#f87171; }
-.boarding { color:#38bdf8; }
-.departed { color:#fbbf24; }
-.arrived { color:#94a3b8; }
-
-.ruta-origen{
-    display:block;
-    margin-top:3px;
-    margin-bottom:0;
-    font-size:0.34em;
-    color:rgba(125,211,252,.72);
-    font-weight:500;
-    letter-spacing:0.03em;
-    line-height:1.2;
-}
-
-.td-llegada{
-    line-height:1.1;
-    vertical-align:middle;
-    padding-top:10px;
-    padding-bottom:10px;
-}
-
-.td-llegada .hora-llegada{
-    display:block;
-    line-height:1.05;
-}
-
-.td-llegada .countdown-line{
-    display:block;
-    margin-top:8px;
-    line-height:1.2;
-}
-
-/* Conteo regresivo: protagonista */
-.countdown-pill{
-    display:inline-block;
-    font-family:'Inter', sans-serif;
-    font-size:clamp(22px, 2.6vw, 34px);
-    font-weight:800;
-    letter-spacing:0.06em;
-    padding:8px 18px;
-    border-radius:14px;
-    border:2px solid transparent;
-    text-shadow:0 0 28px currentColor;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 4px 18px rgba(0,0,0,.35);
-}
-
-.countdown-pill.countdown-green{
-    color:#4ade80 !important;
-    background:rgba(34,197,94,.18);
-    border-color:rgba(74,222,128,.5);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 32px rgba(34,197,94,.25), 0 4px 18px rgba(0,0,0,.35);
-}
-
-.countdown-pill.countdown-yellow{
-    color:#facc15 !important;
-    background:rgba(234,179,8,.16);
-    border-color:rgba(250,204,21,.55);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 28px rgba(250,204,21,.22), 0 4px 18px rgba(0,0,0,.35);
-}
-
-.countdown-pill.countdown-red{
-    color:#f87171 !important;
-    background:rgba(239,68,68,.18);
-    border-color:rgba(248,113,113,.55);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 32px rgba(239,68,68,.28), 0 4px 18px rgba(0,0,0,.35);
-}
-
-tr.on-time { background:rgba(0,40,20,0.6); }
-tr.delayed { background:rgba(60,0,0,0.6); }
-tr.boarding { background:rgba(0,30,60,0.6); }
-tr.departed { background:rgba(60,40,0,0.6); }
-tr.arrived { background:rgba(50,50,50,0.5); }
-
-.blink{ animation:blink 1s infinite; }
-@keyframes blink{ 50%{opacity:0.4;} }
-
-.positions-wrapper{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-}
-
-.jetblue{
-    border-top:2px solid #1d4ed8;
-    background:rgba(29,78,216,0.1);
-}
-
-.westjet{
-    border-top:2px solid #16a34a;
-    background:rgba(22,163,74,0.1);
-}
-
-.positions-wrapper.hidden { display: none; }
-
-.positions-panel{
-    padding:6px 10px;
-}
-
-.panel-title{
-    font-size:14px;
-    margin-bottom:4px;
-    font-weight:bold;
-    letter-spacing:1px;
-}
-
-.positions-grid{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-}
-
-.pos-card{
-    min-width:110px;
-    padding:6px;
-    border-radius:6px;
-    background:#e2e8f0;
-    border:1px solid #94a3b8;
-    text-align:center;
-}
-
-.role{
-    font-size:10px;
-    color:#334155;
-}
-
-.name{
-    font-size:13px;
-    font-weight:bold;
-    color:#0f172a;
-}
-
-.ticker{
-    height:40px;
-    border-top:2px solid #0ea5e9;
-    display:flex;
-    align-items:center;
-    overflow:hidden;
-}
-
-.ticker-text{
-    white-space:nowrap;
-    font-size:22px;
-    padding-left:100%;
-    animation:scroll 25s linear infinite;
-}
-
-@keyframes scroll{
-    from{transform:translateX(0);}
-    to{transform:translateX(-100%);}
-}
-
-.anuncio-full{
-    position:fixed;
-    top:100px;
-    left:0;
-    width:100%;
-    height:calc(100% - 100px);
-    background:black;
-    z-index:999999;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity .5s ease;
-}
-
-.anuncio-full.active{
-    opacity:1;
-    pointer-events:auto;
-}
-
-/* Canvas con vídeo embebido (YouTube/Vimeo): cubre reloj, cabecera y ticker */
-.anuncio-full.anuncio-full--embed-fs{
-    top:0;
-    left:0;
-    width:100vw;
-    height:100vh;
-    max-height:100vh;
-    z-index:1000001;
-    align-items:stretch;
-    padding:0;
-}
-@supports (height: 100dvh){
-    .anuncio-full.anuncio-full--embed-fs{
-        width:100dvw;
-        height:100dvh;
-        max-height:100dvh;
-    }
-}
-
-/* Mensaje solo imagen/vídeo: mismo borde a borde que embed; ocultamos chrome vía body.board--msg-media-full */
-.anuncio-full.anuncio-full--msg-media-full{
-    top:0;
-    left:0;
-    width:100vw;
-    height:100vh;
-    max-height:100vh;
-    z-index:1000001;
-    align-items:stretch;
-    padding:0;
-}
-@supports (height: 100dvh){
-    .anuncio-full.anuncio-full--msg-media-full{
-        width:100dvw;
-        height:100dvh;
-        max-height:100dvh;
-    }
-}
-
-.anuncio-msg-media-shell{
-    flex:1;
-    width:100%;
-    height:100%;
-    min-height:0;
-    background:#000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-.anuncio-msg-media-fit{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-}
-
-body.board--msg-media-full .header,
-body.board--msg-media-full .table-container,
-body.board--msg-media-full .positions-wrapper,
-body.board--msg-media-full .ticker{
-    display:none;
-}
-
-body.board--msg-media-full .flight-arrival-toast{
-    z-index:1000002;
-}
-
-.anuncio-embed-shell{
-    position:relative;
-    flex:1;
-    width:100%;
-    height:100%;
-    min-height:0;
-    background:#000;
-}
-
-.anuncio-embed-iframe{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    border:0;
-}
-
-.anuncio-embed-video{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    background:#000;
-}
-
-.anuncio-canvas{
-    position:relative;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-.anuncio-canvas-media{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    z-index:0;
-}
-
-.anuncio-canvas-overlay{
-    position:absolute;
-    inset:0;
-    background:linear-gradient(180deg, rgba(2,6,23,.15), rgba(2,6,23,.58));
-    z-index:1;
-}
-
-.anuncio-canvas-content{
-    position:relative;
-    z-index:2;
-    max-width:min(90vw, 1200px);
-    padding:24px;
-}
-
-.anuncio-canvas-content.pos-left{ text-align:left; margin-right:auto; }
-.anuncio-canvas-content.pos-center{ text-align:center; margin:0 auto; }
-.anuncio-canvas-content.pos-right{ text-align:right; margin-left:auto; }
-
-.anuncio-canvas-title{
-    margin:0 0 16px;
-    font-size:clamp(42px, 8vw, 110px);
-    font-weight:800;
-    line-height:1.04;
-    letter-spacing:.02em;
-}
-
-.anuncio-canvas-subtitle{
-    margin:0;
-    font-size:clamp(20px, 3vw, 48px);
-    line-height:1.2;
-    font-weight:600;
-}
-
-.anuncio-canvas--free{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-.anuncio-canvas-board-stage{
-    position:relative;
-    overflow:hidden;
-    width:min(100vw, calc((100vh - 100px) * 16 / 9));
-    height:min(calc(100vh - 100px), calc(100vw * 9 / 16));
-}
-
-.anuncio-canvas-board-bg{
-    position:absolute;
-    transform:translate(-50%, -50%);
-    overflow:hidden;
-    z-index:0;
-    box-sizing:border-box;
-}
-
-.anuncio-canvas-board-bg img,
-.anuncio-canvas-board-bg video{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-}
-
-.anuncio-canvas-board-overlay{
-    position:absolute;
-    inset:0;
-    z-index:1;
-    pointer-events:none;
-}
-
-.anuncio-canvas-board-texts{
-    position:absolute;
-    inset:0;
-    z-index:2;
-    pointer-events:none;
-}
-
-.anuncio-canvas-text-layer{
-    position:absolute;
-    transform:translate(-50%, -50%);
-    padding:6px 10px;
-    line-height:1.25;
-    word-wrap:break-word;
-    box-sizing:border-box;
-    white-space:pre-wrap;
-}
-
-.canvas-anim-fade-up{
-    animation:canvasFadeUp var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
-}
-
-.canvas-anim-zoom-in{
-    animation:canvasZoomIn var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
-}
-
-.canvas-anim-slide-left{
-    animation:canvasSlideLeft var(--canvas-anim-seconds,3s) cubic-bezier(.22,.61,.36,1) both;
-}
-
-.canvas-anim-glow{
-    animation:canvasGlow var(--canvas-anim-seconds,3s) ease-in-out both;
-}
-
-@keyframes canvasFadeUp{
-    from{ opacity:0; transform:translateY(30px); }
-    to{ opacity:1; transform:translateY(0); }
-}
-
-@keyframes canvasZoomIn{
-    from{ opacity:0; transform:scale(.86); }
-    to{ opacity:1; transform:scale(1); }
-}
-
-@keyframes canvasSlideLeft{
-    from{ opacity:0; transform:translateX(40px); }
-    to{ opacity:1; transform:translateX(0); }
-}
-
-@keyframes canvasGlow{
-    0%{ opacity:0; text-shadow:none; }
-    100%{ opacity:1; text-shadow:0 0 20px rgba(255,255,255,.42), 0 0 40px rgba(56,189,248,.22); }
-}
-
-.anuncio-full.anuncio-full--cumple{
-    background:transparent;
-}
-
-.empty-state{
-    text-align:center;
-    padding:80px 0;
-    color:#1e3a5f;
-    font-size:clamp(16px,2vw,22px);
-    letter-spacing:.1em;
-    font-family:'Orbitron',sans-serif;
-    animation:pulse-dim 3s ease-in-out infinite;
-}
-@keyframes pulse-dim{
-    0%,100%{opacity:.4;}
-    50%{opacity:.75;}
-}
-
-/* —— Vista cumpleañeros (estilo cartelera crema / oro / marino) —— */
-.cumple-celebracion{
-    width:100%;
-    height:100%;
-    min-height:100%;
-    box-sizing:border-box;
-    padding:clamp(12px,2vw,28px) clamp(16px,3vw,48px) 24px;
-    overflow:auto;
-    background:
-        linear-gradient(90deg, rgba(201,162,39,.12) 0%, transparent 18%),
-        linear-gradient(270deg, rgba(201,162,39,.12) 0%, transparent 18%),
-        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(255,248,235,.9) 0%, #f5f0e8 45%, #ebe4d8 100%);
-    color:#1e3a5f;
-    position:relative;
-}
-
-.cumple-celebracion::before,
-.cumple-celebracion::after{
-    content:"✦";
-    position:absolute;
-    font-size:clamp(14px,2vw,22px);
-    color:rgba(201,162,39,.45);
-    pointer-events:none;
-}
-.cumple-celebracion::before{ top:8%; left:4%; }
-.cumple-celebracion::after{ bottom:12%; right:5%; }
-
-.cumple-deco-balloon{
-    position:absolute;
-    font-size:clamp(28px,4vw,44px);
-    opacity:.35;
-    pointer-events:none;
-    filter:grayscale(.2);
-}
-.cumple-deco-balloon.b1{ top:6%; left:2%; }
-.cumple-deco-balloon.b2{ top:10%; right:8%; }
-
-.cumple-topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    max-width:1200px;
-    margin:0 auto 8px;
-    padding-bottom:clamp(8px,1.5vw,16px);
-    border-bottom:1px solid rgba(30,58,95,.12);
-}
-
-.cumple-brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-.cumple-brand img{
-    height:clamp(36px,5vw,52px);
-    object-fit:contain;
-}
-
-.cumple-brand span{
-    font-family:'Montserrat',sans-serif;
-    font-weight:800;
-    font-size:clamp(14px,1.8vw,20px);
-    color:#1e4a7a;
-    letter-spacing:.04em;
-}
-
-.cumple-clock{
-    text-align:right;
-    font-family:'Inter',sans-serif;
-    color:#0891b2;
-    line-height:1.2;
-}
-.cumple-clock .d{ font-size:clamp(12px,1.4vw,16px); font-weight:600; text-transform:capitalize; }
-.cumple-clock .t{ font-size:clamp(22px,3.5vw,42px); font-weight:700; letter-spacing:.06em; }
-
-.cumple-hero{
-    text-align:center;
-    max-width:900px;
-    margin:clamp(8px,2vw,20px) auto clamp(16px,3vw,32px);
-}
-
-.cumple-hero h1{
-    margin:0;
-    font-family:'Montserrat',sans-serif;
-    font-weight:800;
-    font-size:clamp(32px,6vw,56px);
-    letter-spacing:.06em;
-    color:#0f2942;
-    line-height:1.05;
-}
-
-.cumple-hero .script{
-    display:block;
-    font-family:'Great Vibes',cursive;
-    font-size:clamp(36px,7vw,64px);
-    color:#b8860b;
-    margin-top:4px;
-    line-height:1.1;
-}
-
-.cumple-hero .script::after{
-    content:" ♥";
-    font-size:.55em;
-    vertical-align:middle;
-    opacity:.85;
-}
-
-.cumple-sub{
-    margin:clamp(10px,2vw,18px) auto 0;
-    max-width:720px;
-    font-family:'Cormorant Garamond',serif;
-    font-size:clamp(14px,1.8vw,19px);
-    font-style:italic;
-    color:#334e68;
-    letter-spacing:.02em;
-}
-
-.cumple-grid{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    align-items:flex-end;
-    gap:clamp(16px,3vw,32px);
-    max-width:1280px;
-    margin:0 auto;
-    padding-bottom:16px;
-}
-
-.cumple-person{
-    flex:0 1 auto;
-    width:clamp(140px,18vw,200px);
-    text-align:center;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-}
-
-.cumple-person.stagger{ transform:translateY(14px); }
-
-.cumple-photo-ring{
-    width:clamp(120px,16vw,180px);
-    height:clamp(120px,16vw,180px);
-    border-radius:50%;
-    padding:5px;
-    background:#fff;
-    box-shadow:
-        0 0 0 1px rgba(255,255,255,.95),
-        0 4px 14px rgba(30,58,95,.18),
-        inset 0 1px 0 rgba(255,255,255,.9);
-    margin-bottom:10px;
-}
-
-.cumple-photo-ring img{
-    width:100%;
-    height:100%;
-    border-radius:50%;
-    object-fit:cover;
-    display:block;
-}
-
-.cumple-plaque{
-    width:100%;
-    background:linear-gradient(180deg,#1a3a5c 0%, #0f2744 100%);
-    border-radius:14px;
-    padding:12px 10px 14px;
-    box-shadow:0 8px 20px rgba(15,39,68,.35);
-    border:1px solid rgba(201,162,39,.25);
-}
-
-.cumple-plaque-name{
-    font-family:'Montserrat',sans-serif;
-    font-weight:800;
-    font-size:clamp(11px,1.35vw,15px);
-    color:#fff;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    line-height:1.25;
-    margin-bottom:6px;
-    word-break:break-word;
-}
-
-.cumple-plaque-date{
-    font-family:'Montserrat',sans-serif;
-    font-weight:600;
-    font-size:clamp(10px,1.2vw,13px);
-    color:#d4af37;
-    letter-spacing:.12em;
-}
-
-/* Avioncito en la punta del progreso — simple y coqueto */
-@keyframes plane-wiggle{
-    0%,100%{ transform:translateX(-50%) translateY(0) rotate(-6deg); }
-    50%{ transform:translateX(-50%) translateY(-2px) rotate(6deg); }
-}
-
-.flight-progress{
-    position:relative;
-    height:7px;
-    background:#1e293b;
-    border-radius:10px;
-    margin-top:8px;
-    margin-bottom:4px;
-    overflow:visible;
-}
-
-.flight-bar{
-    height:100%;
-    background:#22d3ee;
-    border-radius:10px;
-    width:0%;
-    box-shadow:0 0 10px rgba(34,211,238,.35);
-}
-
-.plane{
-    position:absolute;
-    bottom:100%;
-    margin-bottom:3px;
-    font-size:clamp(17px, 2.2vw, 22px);
-    line-height:1;
-    z-index:2;
-    filter:
-        drop-shadow(0 2px 3px rgba(0,0,0,.55))
-        drop-shadow(0 0 10px rgba(34,211,238,.55));
-    animation:plane-wiggle 2.4s ease-in-out infinite;
-    transform-origin:center bottom;
-    pointer-events:none;
-}
-
-@media (prefers-reduced-motion: reduce){
-    .plane{ animation:none; transform:translateX(-50%); }
-    .canvas-anim-fade-up,
-    .canvas-anim-zoom-in,
-    .canvas-anim-slide-left,
-    .canvas-anim-glow{
-        animation:none !important;
-    }
-}
-
-/* Aviso alternativo si la voz del navegador no funciona (ej. Samsung TV) */
-.flight-arrival-toast{
-    position:fixed;
-    bottom:52px;
-    left:50%;
-    transform:translateX(-50%) translateY(160%);
-    z-index:999998;
-    min-width:min(92vw, 520px);
-    padding:16px 22px;
-    border-radius:16px;
-    background:linear-gradient(145deg, rgba(15,23,42,.97), rgba(30,41,59,.98));
-    border:2px solid rgba(34,211,238,.55);
-    box-shadow:0 12px 40px rgba(0,0,0,.55), 0 0 32px rgba(34,211,238,.2);
-    color:#e0f2fe;
-    text-align:center;
-    font-family:'Inter',sans-serif;
-    pointer-events:none;
-    opacity:0;
-    transition:transform .45s cubic-bezier(.2,.9,.2,1), opacity .35s ease;
-}
-.flight-arrival-toast.visible{
-    transform:translateX(-50%) translateY(0);
-    opacity:1;
-}
-.flight-arrival-toast .toast-title{
-    font-size:clamp(12px,1.4vw,15px);
-    font-weight:700;
-    letter-spacing:.2em;
-    text-transform:uppercase;
-    color:#67e8f9;
-    margin-bottom:8px;
-}
-.flight-arrival-toast .toast-body{
-    font-size:clamp(20px,2.8vw,32px);
-    font-weight:800;
-    line-height:1.25;
-    color:#fff;
-}
-
-@media (max-width: 768px){
-    .time{ font-size:30px; }
-    .title{ font-size:20px; }
-    th{ font-size:14px; }
-    td{ font-size:16px; padding:8px; }
-    .countdown-pill{ font-size:clamp(18px,4.5vw,26px); padding:6px 12px; }
-    .header{ padding:10px; }
-    table{ font-size:12px; }
-}
-</style>
+<link rel="stylesheet" href="board.css">
 </head>
 
-<body>
+<body class="fids-board">
+
+<div class="fids-ambient" aria-hidden="true"><div class="fids-grid-overlay"></div></div>
+
 <div id="anuncioFull" class="anuncio-full"></div>
-<div class="header">
-    <div class="left">
-        <img class="logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png">
-        <div class="title">LONGPORT BOARD POP</div>
+<div id="positionsFull" class="positions-full" aria-hidden="true"></div>
+<div id="flightArrivalToast" class="flight-arrival-toast" aria-live="polite" aria-atomic="true"></div>
+
+<div class="fids-shell">
+<header class="header fids-header">
+    <div class="left fids-header__brand">
+        <img class="logo fids-logo" src="https://trainingreport.longportsecurity.com.co/pix/logolongport.png" alt="Longport">
+        <div class="fids-brand-text">
+            <div class="title fids-board-title">LONGPORT BOARD</div>
+            <div class="fids-board-subtitle">Puerto Plata · Gregorio Luperón</div>
+        </div>
+        <span class="fids-iata" aria-label="Código IATA">MDPP</span>
     </div>
 
-    <div style="display:flex; align-items:center; gap:25px;">
-        <div style="text-align:right;">
-            <div id="date" style="font-size:20px; color:#7dd3fc;"></div>
-            <div id="clock" class="time"></div>
+    <div class="fids-header__actions">
+        <div class="fids-live" aria-hidden="true"><span class="fids-live-dot"></span>LIVE</div>
+        <div class="fids-clock-block">
+            <div id="date" class="fids-date"></div>
+            <div id="clock" class="time fids-time"></div>
         </div>
-        <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+        <button class="fullscreen-btn" type="button" onclick="toggleFullscreen()" aria-label="Pantalla completa">⛶</button>
     </div>
+</header>
+
+<div class="fids-board-head">
+    <h2 class="fids-section-title">LLEGADAS DEL DÍA</h2>
+    <span id="flightCount" class="fids-flight-count">0 vuelos</span>
 </div>
 
-<div class="table-container">
-<table>
+<div class="table-container fids-table-wrap">
+<table class="fids-table">
 <thead>
 <tr>
 <th>VUELO</th>
@@ -846,8 +77,12 @@ body.board--msg-media-full .flight-arrival-toast{
     <div id="extraAirlinePanels"></div>
 </div>
 
-<div class="ticker">
-    <div class="ticker-text" id="ticker"></div>
+<footer class="ticker fids-ticker">
+    <div class="fids-ticker__badge">INFO</div>
+    <div class="fids-ticker__viewport">
+        <div class="ticker-text" id="ticker"></div>
+    </div>
+</footer>
 </div>
 
 <script type="module">
@@ -990,9 +225,49 @@ function parseLlegadaInstant(dateStr, hhmm) {
     );
 }
 
-/** Evita repetir el mismo aviso de voz (clave: fecha|vuelo|minutos restantes) */
-let speechArrivalFlags = Object.create(null);
-const ARRIVAL_SPEECH_MINUTES = [30, 10, 1];
+/**
+ * Avisos de voz por vuelo: si la API cambia la hora (retraso/adelanto),
+ * se reinician los hitos de ese vuelo para anunciar con la nueva ETA.
+ * Clave: fecha|vuelo → { eff, announced: { '@30': true, ... } }
+ */
+let speechArrivalMeta = Object.create(null);
+let arrivalSpeechMinutes = [30, 15, 1];
+let arrivalSpeechTolerance = 7;
+
+function parseArrivalSpeechMinutesValue(val){
+    if(Array.isArray(val)){
+        const mins = val.map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n) && n >= 1 && n <= 180);
+        if(mins.length) return [...new Set(mins)].sort((a, b) => b - a);
+    }
+    if(typeof val === "string" && val.trim()){
+        const mins = val.split(/[,;\s]+/).map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n) && n >= 1 && n <= 180);
+        if(mins.length) return [...new Set(mins)].sort((a, b) => b - a);
+    }
+    return null;
+}
+
+function applyArrivalSpeechSettings(minutesVal, toleranceVal){
+    let changed = false;
+    const parsed = parseArrivalSpeechMinutesValue(minutesVal);
+    if(parsed){
+        const next = JSON.stringify(parsed);
+        if(next !== JSON.stringify(arrivalSpeechMinutes)){
+            arrivalSpeechMinutes = parsed;
+            changed = true;
+        }
+    }
+    if(toleranceVal !== undefined && toleranceVal !== null){
+        const t = parseInt(toleranceVal, 10);
+        if(!Number.isNaN(t)){
+            const clamped = Math.max(3, Math.min(15, t));
+            if(clamped !== arrivalSpeechTolerance){
+                arrivalSpeechTolerance = clamped;
+                changed = true;
+            }
+        }
+    }
+    if(changed) speechArrivalMeta = Object.create(null);
+}
 
 /** Tras un toque/tecla: desbloquea voz TTS + Web Audio (Samsung TV suele exigirlo) */
 let mediaUnlocked = false;
@@ -1059,8 +334,9 @@ function formatVueloForSpeech(vuelo) {
 
 function buildArrivalPhrase(vuelo, minutes) {
     const v = formatVueloForSpeech(vuelo);
-    const tiempo = minutes === 1 ? "1 minuto" : `${minutes} minutos`;
-    return `Vuelo ${v}. Aterrizando en ${tiempo}.`;
+    if(minutes === 1) return `Vuelo ${v}. Aterrizando en 1 minuto.`;
+    if(minutes <= 5) return `Vuelo ${v}. Aterrizando en ${minutes} minutos.`;
+    return `Vuelo ${v}. Llegada en ${minutes} minutos.`;
 }
 
 function speakTwiceLatino(text) {
@@ -1151,19 +427,40 @@ function playArrivalBeep() {
     } catch (e) { /* noop */ }
 }
 
-function tryArrivalSpeech(r, diffMin, dateStr) {
-    if(diffMin <= 0 || effectiveArrivalHhmm(r) === "00:00") return;
-    if (!ARRIVAL_SPEECH_MINUTES.includes(diffMin)) return;
-    const vuelo = (r.vuelo || "").trim() || "N/A";
-    const key = `${dateStr}|${vuelo}|${diffMin}`;
-    if (speechArrivalFlags[key]) return;
-    speechArrivalFlags[key] = true;
+function getArrivalSpeechMilestone(diffMin){
+    const sorted = [...arrivalSpeechMinutes].sort((a, b) => b - a);
+    for(const m of sorted){
+        const floor = Math.max(0, m - arrivalSpeechTolerance);
+        if(diffMin <= m && diffMin > floor) return m;
+    }
+    return null;
+}
 
-    showArrivalToast(vuelo, diffMin);
+function tryArrivalSpeech(r, diffMin, dateStr) {
+    const eff = effectiveArrivalHhmm(r);
+    if(diffMin <= 0 || eff === "00:00") return;
+
+    const milestone = getArrivalSpeechMilestone(diffMin);
+    if(!milestone) return;
+
+    const vuelo = (r.vuelo || "").trim() || "N/A";
+    const flightKey = `${dateStr}|${vuelo}`;
+    let meta = speechArrivalMeta[flightKey];
+
+    if(!meta || meta.eff !== eff){
+        speechArrivalMeta[flightKey] = { eff, announced: Object.create(null) };
+        meta = speechArrivalMeta[flightKey];
+    }
+
+    const flagKey = `@${milestone}`;
+    if(meta.announced[flagKey]) return;
+    meta.announced[flagKey] = true;
+
+    showArrivalToast(vuelo, milestone);
     playArrivalBeep();
 
-    if (mediaUnlocked && window.speechSynthesis) {
-        speakTwiceLatino(buildArrivalPhrase(vuelo, diffMin));
+    if(mediaUnlocked && window.speechSynthesis){
+        speakTwiceLatino(buildArrivalPhrase(vuelo, milestone));
     }
 }
 
@@ -1208,39 +505,6 @@ onValue(ref(db,"anuncios"), snap => {
 onValue(ref(db,"cumpleanos"), snap => {
     cumpleanosData = snap.val() || {};
 });
-onValue(ref(db,"titles/westjet"), snap => {
-    document.querySelector(".westjet .panel-title").innerText = snap.val() || "ASIGNACIONES WESTJET";
-});
-
-onValue(ref(db,"titles/jetblue"), snap => {
-    document.querySelector(".jetblue .panel-title").innerText = snap.val() || "ASIGNACIONES JETBLUE";
-});
-
-onValue(ref(db,"visibility/jetblue"), snap => {
-    const visible = snap.val() !== false;
-    document.getElementById("jetbluePanel").style.display = visible ? "block" : "none";
-});
-
-onValue(ref(db,"visibility/westjet"), snap => {
-    const visible = snap.val() !== false;
-    document.getElementById("westjetPanel").style.display = visible ? "block" : "none";
-});
-
-onValue(ref(db,"titles"), snap => {
-    titlesData = snap.val() || {};
-    renderExtraAirlinePanels();
-});
-
-onValue(ref(db,"visibility"), snap => {
-    visibilityData = snap.val() || {};
-    renderExtraAirlinePanels();
-});
-
-onValue(ref(db,"airlinesExtra"), snap => {
-    airlinesExtraData = snap.val() || {};
-    renderExtraAirlinePanels();
-    renderPositionsPanels();
-});
 
 onValue(ref(db, "visibility/anuncios"), snap => {
     anunciosActivos = snap.val() !== false;
@@ -1248,7 +512,7 @@ onValue(ref(db, "visibility/anuncios"), snap => {
         const contenedor = document.getElementById("anuncioFull");
         contenedor.style.display = "none";
         contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-        document.body.classList.remove("board--msg-media-full");
+        document.body.classList.remove("board--msg-media-full", "board--cumple-full");
     }else{
         mostrarAnuncios();
     }
@@ -1279,15 +543,26 @@ onValue(ref(db,"config/flightSectionSeconds"), snap => {
     if(anunciosActivos) mostrarAnuncios();
 });
 
+onValue(ref(db, "config/arrivalSpeechMinutes"), snap => {
+    applyArrivalSpeechSettings(snap.val(), undefined);
+});
+
+onValue(ref(db, "config/arrivalSpeechTolerance"), snap => {
+    applyArrivalSpeechSettings(undefined, snap.val());
+});
+
 // ⏰ RELOJ
 setInterval(() => {
     const now = new Date();
-    document.getElementById("clock").innerText = now.toLocaleTimeString('es-DO');
-    document.getElementById("date").innerText = now.toLocaleDateString('es-DO', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    const s = String(now.getSeconds()).padStart(2, "0");
+    document.getElementById("clock").innerText = `${h}:${m}:${s}`;
+    document.getElementById("date").innerText = now.toLocaleDateString("es-DO", {
+        weekday: "long",
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
     });
 }, 1000);
 
@@ -1303,7 +578,7 @@ onValue(ref(db, "config/selectedDate"), snap => {
     const prev = selectedDate;
     const cfgDate = snap.val();
     if (cfgDate) selectedDate = cfgDate;
-    if (prev !== selectedDate) speechArrivalFlags = Object.create(null);
+    if (prev !== selectedDate) speechArrivalMeta = Object.create(null);
     watchFlightsForDate(selectedDate);
 });
 
@@ -1497,86 +772,59 @@ function mostrarAnuncios(){
         }) || null;
     }
 
+    const CUMPLE_TEMPLATE_URL = "Formatocumpleaños.png";
+
+    function cumplePersonCardHtml(item, idx) {
+        const nombre = escapeHtml(item?.nombre || "Cumpleañero");
+        const foto = item?.foto || "";
+        const fechaShowRaw = item?.fecha
+            ? formatearFechaCartulina(item.fecha)
+            : (item?.fechaTexto || formatearFechaBonita(item?.fecha) || "");
+        const fechaShow = escapeHtml(
+            / DE /i.test(String(fechaShowRaw))
+                ? fechaShowRaw.toUpperCase()
+                : fechaShowRaw
+        );
+        const staggerClass = idx === 2 ? "cumple-person stagger" : "cumple-person";
+        const imgHtml = foto
+            ? `<img src="${foto}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+            : `<div class="cumple-photo-placeholder"></div>`;
+        return `
+            <div class="${staggerClass}">
+                <div class="cumple-photo-ring">${imgHtml}</div>
+                <div class="cumple-plaque">
+                    <div class="cumple-plaque-name">${nombre}</div>
+                    <div class="cumple-plaque-date">${fechaShow}</div>
+                </div>
+            </div>`;
+    }
+
     function renderCumpleCard(a){
-        const logoSrc = "https://trainingreport.longportsecurity.com.co/pix/logolongport.png";
+        const templateUrl = (a?.cumpleTemplate || CUMPLE_TEMPLATE_URL).replace(/"/g, "");
         const lista = Array.isArray(a.cumpleaneros) ? a.cumpleaneros : [];
         if(lista.length){
-            const cards = lista.map((item, idx) => {
-                const nombre = escapeHtml(item?.nombre || "Cumpleañero");
-                const foto = item?.foto || "";
-                const fechaShowRaw = item?.fecha
-                    ? formatearFechaCartulina(item.fecha)
-                    : (item?.fechaTexto || formatearFechaBonita(item?.fecha) || "");
-                const fechaShow = escapeHtml(fechaShowRaw);
-                const staggerClass = idx === 2 ? "cumple-person stagger" : "cumple-person";
-                const imgHtml = foto
-                    ? `<img src="${foto}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-                    : `<div style="width:100%;height:100%;border-radius:50%;background:#e2e8f0;"></div>`;
-                return `
-                    <div class="${staggerClass}">
-                        <div class="cumple-photo-ring">${imgHtml}</div>
-                        <div class="cumple-plaque">
-                            <div class="cumple-plaque-name">${nombre}</div>
-                            <div class="cumple-plaque-date">${fechaShow}</div>
-                        </div>
-                    </div>`;
-            }).join("");
-
+            const cards = lista.map((item, idx) => cumplePersonCardHtml(item, idx)).join("");
             contenedor.innerHTML = `
-                <div class="cumple-celebracion">
-                    <span class="cumple-deco-balloon b1" aria-hidden="true">🎈</span>
-                    <span class="cumple-deco-balloon b2" aria-hidden="true">🎈</span>
-                    <div class="cumple-topbar">
-                        <div class="cumple-brand">
-                            <img src="${logoSrc}" alt="">
-                            <span>LONGPORT BOARD POP</span>
-                        </div>
-                        ${relojCumpleBloque()}
+                <div class="cumple-celebracion cumple-celebracion--template" style="background-image:url('${templateUrl}')">
+                    <div class="cumple-celebracion-stage">
+                        <div class="cumple-grid">${cards}</div>
                     </div>
-                    <div class="cumple-hero">
-                        <h1>CUMPLEAÑEROS</h1>
-                        <span class="script">Del mes</span>
-                        <p class="cumple-sub">Celebramos tu vida, tu talento y todo lo que aportas cada día.</p>
-                    </div>
-                    <div class="cumple-grid">${cards}</div>
                 </div>`;
             return;
         }
 
         const nombreInferido = a.nombre || extraerNombreDesdeTexto(a.texto);
         const cumpleMatch = buscarCumplePorNombre(nombreInferido);
-        const nombre = escapeHtml(nombreInferido || cumpleMatch?.nombre || "Cumpleañero");
-        const foto = a.media || a.foto || cumpleMatch?.foto || "";
-        const fechaRaw = a.fecha || cumpleMatch?.fecha;
-        const fechaShow = escapeHtml(
-            fechaRaw ? formatearFechaCartulina(fechaRaw) : (a.fechaTexto || formatearFechaBonita(cumpleMatch?.fecha) || "")
-        );
-        const imgHtml = foto
-            ? `<img src="${foto}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-            : `<div style="width:100%;height:100%;border-radius:50%;background:#e2e8f0;"></div>`;
-
+        const single = {
+            nombre: nombreInferido || cumpleMatch?.nombre || "Cumpleañero",
+            foto: a.media || a.foto || cumpleMatch?.foto || "",
+            fecha: a.fecha || cumpleMatch?.fecha,
+            fechaTexto: a.fechaTexto || formatearFechaBonita(cumpleMatch?.fecha) || ""
+        };
         contenedor.innerHTML = `
-            <div class="cumple-celebracion">
-                <span class="cumple-deco-balloon b1" aria-hidden="true">🎈</span>
-                <div class="cumple-topbar">
-                    <div class="cumple-brand">
-                        <img src="${logoSrc}" alt="">
-                        <span>LONGPORT BOARD POP</span>
-                    </div>
-                    ${relojCumpleBloque()}
-                </div>
-                <div class="cumple-hero">
-                    <h1>CUMPLEAÑEROS</h1>
-                    <span class="script">Del mes</span>
-                </div>
-                <div class="cumple-grid">
-                    <div class="cumple-person">
-                        <div class="cumple-photo-ring">${imgHtml}</div>
-                        <div class="cumple-plaque">
-                            <div class="cumple-plaque-name">${nombre}</div>
-                            <div class="cumple-plaque-date">${fechaShow}</div>
-                        </div>
-                    </div>
+            <div class="cumple-celebracion cumple-celebracion--template" style="background-image:url('${templateUrl}')">
+                <div class="cumple-celebracion-stage">
+                    <div class="cumple-grid">${cumplePersonCardHtml(single, 0)}</div>
                 </div>
             </div>`;
     }
@@ -1593,7 +841,7 @@ function mostrarAnuncios(){
     if(!anuncios.length || !anunciosActivos){
         contenedor.style.display = "none";
         contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-        document.body.classList.remove("board--msg-media-full");
+        document.body.classList.remove("board--msg-media-full", "board--cumple-full");
         return;
     }
 
@@ -1601,7 +849,7 @@ function mostrarAnuncios(){
         if(!anuncios.length || !anunciosActivos){
             contenedor.style.display = "none";
             contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-            document.body.classList.remove("board--msg-media-full");
+            document.body.classList.remove("board--msg-media-full", "board--cumple-full");
             return;
         }
         const a = anuncios[indexAnuncio];
@@ -1610,11 +858,10 @@ function mostrarAnuncios(){
 
         contenedor.style.display = "flex";
         contenedor.classList.add("active");
-        contenedor.classList.remove("anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-        document.body.classList.remove("board--msg-media-full");
+        contenedor.classList.remove("anuncio-full--embed-fs", "anuncio-full--msg-media-full", "anuncio-full--cumple");
+        document.body.classList.remove("board--msg-media-full", "board--cumple-full");
 
         if(a.tipo === "mensaje" && !esMensajeCumple){
-            contenedor.classList.remove("anuncio-full--cumple");
             const media = a.media || "";
             const mediaType = a.mediaType || "";
             const hasVideo = media && (mediaType.startsWith("video/") || media.startsWith("data:video"));
@@ -1635,18 +882,20 @@ function mostrarAnuncios(){
 
         if(a.tipo === "cumple" || esMensajeCumple){
             contenedor.classList.add("anuncio-full--cumple");
+            document.body.classList.add("board--cumple-full");
             renderCumpleCard(a);
         }
 
         if(esCanvas){
             contenedor.classList.remove("anuncio-full--cumple");
+            document.body.classList.remove("board--cumple-full");
             renderCanvasCard(a);
         }
 
         anuncioHideTimeout = setTimeout(()=>{
             contenedor.style.display = "none";
-            contenedor.classList.remove("active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-            document.body.classList.remove("board--msg-media-full");
+            contenedor.classList.remove("active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full", "anuncio-full--cumple");
+            document.body.classList.remove("board--msg-media-full", "board--cumple-full");
         }, (a.duracion || 10) * 1000);
 
         indexAnuncio = (indexAnuncio + 1) % anuncios.length;
@@ -1656,7 +905,57 @@ function mostrarAnuncios(){
     anuncioLoopInterval = setInterval(loop, flightSectionSeconds * 1000);
 }
 
+function getFlightAirlineTheme(row){
+    const v = String(row?.vuelo || "").toUpperCase().replace(/\s+/g, "");
+    const a = String(row?.aerolinea || "").toLowerCase();
+
+    if(a.includes("jetblue") || a.includes("jet blue") || /^B6|^JBU/.test(v)){
+        return "jetblue";
+    }
+    if(a.includes("westjet") || a.includes("west jet") || /^WS|^WJA|^WEN/.test(v)){
+        return "westjet";
+    }
+    return "";
+}
+
+function flightProgressPlaneHtml(){
+    return `<span class="flight-progress__plane" aria-hidden="true" title="En ruta">
+        <svg viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg" role="img">
+            <path fill="currentColor" d="M1.5 10c0-.9.5-1.6 1.4-1.9l15.2-3.4c.6-.13 1.2-.08 1.6.12l4.8 3 10.8 1.1c1.1.1 1.9.8 1.9 1.7s-.8 1.6-1.9 1.7l-10.8 1.1-4.8 3c-.4.2-1 .25-1.6.12L2.9 11.9c-.9-.3-1.4-1-1.4-1.9zm5.2-1.3 13.6-2.7v5.4L6.7 8.7zm17.4 0v5.4l6.8-2.7-6.8-2.7z"/>
+        </svg>
+    </span>`;
+}
+
+function statusPillHtml(estado, estadoClase){
+    const cls = "status-pill status-pill--" + (estadoClase || "on-time");
+    return `<span class="${cls}">${escapeHtmlBoard(estado)}</span>`;
+}
+
+let lastFlightRenderCount = -1;
+
 function renderVuelos(){
+    const countEl = document.getElementById("flightCount");
+    const n = vuelosData.length;
+    const countChanged = n !== lastFlightRenderCount;
+    if(countEl){
+        countEl.textContent = n === 1 ? "1 vuelo" : n + " vuelos";
+    }
+
+    if(!n){
+        lastFlightRenderCount = 0;
+        document.getElementById("board").innerHTML = `
+        <tr class="fids-empty">
+            <td colspan="6">
+                <div class="fids-empty__inner">
+                    <span class="fids-empty__icon">✈</span>
+                    <span class="fids-empty__text">Sin vuelos programados para hoy</span>
+                </div>
+            </td>
+        </tr>`;
+        fitFlightsToViewport(true);
+        return;
+    }
+
     let html = "";
     vuelosData.forEach(r => {
         const eff = effectiveArrivalHhmm(r);
@@ -1688,7 +987,10 @@ function renderVuelos(){
                 estadoClase = "arrived";
             }
             if(diffMin <= 30 && diffMin > 0) extraClass = "blink";
-            if(diffMin <= 10 && diffMin > 0) estadoFinal = "ARRIVING";
+            if(diffMin <= 10 && diffMin > 0){
+                estadoFinal = "ARRIVING";
+                estadoClase = "arriving";
+            }
         } else if(diffMin <= 30 && diffMin > 0) {
             extraClass = "blink";
         }
@@ -1709,79 +1011,491 @@ function renderVuelos(){
             eff &&
             prog !== eff;
 
+        const airlineTheme = getFlightAirlineTheme(r);
+        const airlineClass = airlineTheme ? ` flight-row--${airlineTheme}` : "";
+
         html += `
-        <tr class="${estadoClase} ${extraClass}">
-        <td>${r.vuelo}</td>
-        <td>${r.destino}</td>
-        <td class="td-llegada">
-            <span class="hora-llegada">${eff}</span>
-            ${showProg ? `<small class="ruta-origen">Programado ${prog}</small>` : ""}
-            ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${r.salidaOrigen}</small>` : ""}
-            <span class="countdown-line"><span class="countdown-pill ${countdownClass}">${countdown}</span></span>
-            <div class="flight-progress">
-                <div class="flight-bar" style="width:${progreso}%"></div>
-                <div class="plane" style="left:${progreso}%" title="En ruta — vuelo comercial">✈️</div>
+        <tr class="flight-row ${estadoClase}${airlineClass} ${extraClass}" style="--row-progress:${progreso}%">
+        <td colspan="6" class="flight-row-shell">
+            <div class="flight-row-bg" aria-hidden="true">
+                <div class="flight-row-fill"></div>
+            </div>
+            <div class="flight-row-grid">
+                <div class="flight-row-cell"><span class="flight-code">${escapeHtmlBoard(r.vuelo || "")}</span></div>
+                <div class="flight-row-cell"><span class="destino-text">${escapeHtmlBoard(r.destino || "")}</span></div>
+                <div class="flight-row-cell td-llegada">
+                    <span class="hora-llegada">${escapeHtmlBoard(eff)}</span>
+                    ${showProg ? `<small class="ruta-origen">Programado ${escapeHtmlBoard(prog)}</small>` : ""}
+                    ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${escapeHtmlBoard(r.salidaOrigen)}</small>` : ""}
+                    <span class="countdown-line"><span class="countdown-pill ${countdownClass}">${countdown}</span></span>
+                    <div class="flight-progress">
+                        <div class="flight-bar" style="width:${progreso}%"></div>
+                        <div class="flight-progress__plane-wrap" style="left:${progreso}%">${flightProgressPlaneHtml()}</div>
+                    </div>
+                </div>
+                <div class="flight-row-cell td-salida">${escapeHtmlBoard(r.salida || "—")}</div>
+                <div class="flight-row-cell"><span class="gate-pill">${escapeHtmlBoard(r.gate || "—")}</span></div>
+                <div class="flight-row-cell">${statusPillHtml(estadoFinal, estadoClase)}</div>
             </div>
         </td>
-        <td>${r.salida}</td>
-        <td>${r.gate}</td>
-        <td>${estadoFinal}</td>
         </tr>`;
     });
     document.getElementById("board").innerHTML = html;
+    lastFlightRenderCount = n;
+    fitFlightsToViewport(countChanged);
 }
+
+let flightScrollRaf = null;
+let flightScrollDir = 1;
+
+function stopFlightAutoScroll(){
+    if(flightScrollRaf){
+        cancelAnimationFrame(flightScrollRaf);
+        flightScrollRaf = null;
+    }
+}
+
+function startFlightAutoScroll(wrap){
+    stopFlightAutoScroll();
+    let last = 0;
+    const step = (ts) => {
+        if(!wrap.isConnected){
+            stopFlightAutoScroll();
+            return;
+        }
+        const max = wrap.scrollHeight - wrap.clientHeight;
+        if(max <= 2){
+            wrap.scrollTop = 0;
+            stopFlightAutoScroll();
+            return;
+        }
+        if(ts - last > 35){
+            wrap.scrollTop += flightScrollDir * 2;
+            if(wrap.scrollTop >= max - 1) flightScrollDir = -1;
+            if(wrap.scrollTop <= 0) flightScrollDir = 1;
+            last = ts;
+        }
+        flightScrollRaf = requestAnimationFrame(step);
+    };
+    flightScrollRaf = requestAnimationFrame(step);
+}
+
+function fitFlightsToViewport(resetLayout){
+    const wrap = document.querySelector(".fids-table-wrap");
+    const table = document.querySelector(".fids-table");
+    if(!wrap || !table) return;
+
+    const n = vuelosData.length;
+    table.dataset.flightCount = String(n);
+    table.classList.remove("fids-compact", "fids-ultra-compact");
+
+    if(n >= 4) table.classList.add("fids-compact");
+    if(n >= 5) table.classList.add("fids-ultra-compact");
+
+    if(resetLayout){
+        wrap.scrollTop = 0;
+        stopFlightAutoScroll();
+    }
+
+    requestAnimationFrame(() => {
+        if(wrap.scrollHeight > wrap.clientHeight + 6 && n >= 5){
+            table.classList.add("fids-ultra-compact");
+        }
+
+        const overflow = wrap.scrollHeight > wrap.clientHeight + 6;
+        if(overflow){
+            if(resetLayout || !flightScrollRaf) startFlightAutoScroll(wrap);
+        }else{
+            stopFlightAutoScroll();
+            wrap.scrollTop = 0;
+        }
+    });
+}
+
+window.addEventListener("resize", () => {
+    fitFlightsToViewport(true);
+});
 
 setInterval(renderVuelos, 1000);
 
-// 👥 POSICIONES
-function renderExtraAirlinePanels(){
-    const cont = document.getElementById("extraAirlinePanels");
-    if(!cont) return;
-    const extras = Object.entries(airlinesExtraData || {});
-    if(!extras.length){
-        cont.innerHTML = "";
+// 👥 POSICIONES — catálogos por aerolínea, slides fullscreen y rotación
+const FLIGHT_NS_JB = "__jetblue-";
+const FLIGHT_NS_WJ = "__westjet-";
+let jetblueFlightsData = {};
+let westjetFlightsData = {};
+
+const JETBLUE_ROLES = [
+    { key: "supervisor", label: "Supervisor", order: 1 },
+    { key: "documento", label: "Documento", order: 2 },
+    { key: "5x5", label: "5X5", order: 3 },
+    { key: "makeup", label: "Makeup", order: 4 },
+    { key: "sello", label: "Sello", order: 5 },
+    { key: "observer_makeup", label: "Observer Makeup", order: 6 },
+    { key: "segundo_punto_s10", label: "Segundo Punto (S-10)", order: 7 },
+    { key: "escolta_makeup", label: "Escolta Make UP", order: 8 },
+    { key: "puerta_delantera", label: "Puerta Delantera", order: 9 },
+    { key: "puerta_trasera", label: "Puerta Trasera", order: 10 },
+    { key: "observer_rampa", label: "Observer Rampa", order: 11 },
+    { key: "rampa_delantera", label: "Rampa Delantera", order: 12 },
+    { key: "rampa_trasera", label: "Rampa Trasera", order: 13 },
+    { key: "selectee", label: "Selectee", order: 14 },
+    { key: "escolta_aduana", label: "Escolta a Aduana", order: 15 },
+    { key: "verificacion_aduana", label: "Verificacion Aduana", order: 16 },
+    { key: "revision_1", label: "Revision 1", order: 17 },
+    { key: "revision_2", label: "Revision 2", order: 18 },
+    { key: "revision_3", label: "Revision 3", order: 19 },
+    { key: "revision_4", label: "Revision 4", order: 20 },
+    { key: "revision_5", label: "Revision 5", order: 21 },
+    { key: "revision_6", label: "Revision 6", order: 22 },
+    { key: "revision_7", label: "Revision 7", order: 23 },
+    { key: "cabin_monitor", label: "Cabin Monitor", order: 24 },
+    { key: "escolta_gatechecks", label: "Escolta Gatechecks", order: 25 }
+];
+
+const WESTJET_ROLES = [
+    { key: "supervisor", label: "Supervisor", order: 1 },
+    { key: "documento_1", label: "Documento 1", order: 2 },
+    { key: "documento_2", label: "Documento 2", order: 3 },
+    { key: "doc_fila_rapida", label: "Doc.. Fila Rapida", order: 4 },
+    { key: "5x5", label: "5X5", order: 5 },
+    { key: "makeup", label: "Makeup", order: 6 },
+    { key: "sello", label: "Sello", order: 7 },
+    { key: "segundo_punto_s10", label: "Segundo Punto (S-10)", order: 8 },
+    { key: "observer_makeup", label: "Observer Makeup", order: 9 },
+    { key: "puerta_delantera", label: "Puerta Delantera", order: 10 },
+    { key: "puerta_trasera", label: "Puerta Trasera", order: 11 },
+    { key: "rampa_delantera", label: "Rampa Delantera", order: 12 },
+    { key: "rampa_trasera", label: "Rampa Trasera", order: 13 },
+    { key: "escolta_aduanas", label: "Escolta Aduanas", order: 14 },
+    { key: "revision_1", label: "Revision 1", order: 15 },
+    { key: "revision_2", label: "Revision 2", order: 16 },
+    { key: "revision_3", label: "Revision 3", order: 17 },
+    { key: "revision_4", label: "Revision 4", order: 18 }
+];
+
+function getBoardRoleCatalog(airlineKind){
+    if(airlineKind === "westjet") return WESTJET_ROLES;
+    if(airlineKind === "jetblue") return JETBLUE_ROLES;
+    return [];
+}
+
+function normalizeRoleKey(rawKey, airlineKind){
+    let k = String(rawKey || "").toLowerCase().trim();
+    if(k.includes(FLIGHT_NS_JB)) k = k.split(FLIGHT_NS_JB)[0];
+    else if(k.includes(FLIGHT_NS_WJ)) k = k.split(FLIGHT_NS_WJ)[0];
+    else if(k.includes("__")) k = k.split("__")[0];
+    k = k.replace(/_west$/, "").replace(/_jet$/, "").replace(/_wj$/, "");
+    return k;
+}
+
+function isValidJetblueBoardKey(k){
+    if(k.includes(FLIGHT_NS_JB)){
+        const rolePart = k.split(FLIGHT_NS_JB)[0];
+        return JETBLUE_ROLES.some((r) => r.key === normalizeRoleKey(rolePart, "jetblue"));
+    }
+    if(k.includes("__") || k.includes("west") || k.includes("wj")) return false;
+    return JETBLUE_ROLES.some((r) => r.key === k);
+}
+
+function isValidWestjetBoardKey(k){
+    if(k.includes(FLIGHT_NS_WJ)){
+        const rolePart = k.split(FLIGHT_NS_WJ)[0];
+        return WESTJET_ROLES.some((r) => r.key === normalizeRoleKey(rolePart, "westjet"));
+    }
+    if(!k.includes("west") && !k.includes("wj")) return false;
+    return WESTJET_ROLES.some((r) => r.key === normalizeRoleKey(k, "westjet"));
+}
+
+function roleLabelFromKey(rawKey, airlineKind){
+    const k = normalizeRoleKey(rawKey, airlineKind);
+    const found = getBoardRoleCatalog(airlineKind).find((r) => r.key === k);
+    if(found) return found.label;
+    return k.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).trim() || "Posición";
+}
+
+function roleSortOrder(rawKey, airlineKind){
+    const k = normalizeRoleKey(rawKey, airlineKind);
+    const found = getBoardRoleCatalog(airlineKind).find((r) => r.key === k);
+    return found ? found.order : 50;
+}
+
+function parsePositionName(val){
+    if(val && typeof val === "object") return String(val.name || val.nombre || "").trim();
+    return String(val ?? "").trim();
+}
+
+function collectAirlinePositions(filterFn, airlineKind){
+    return Object.entries(positionsData)
+        .filter(([k, v]) => filterFn(k) && parsePositionName(v))
+        .map(([k, v]) => ({
+            key: k,
+            role: roleLabelFromKey(k, airlineKind),
+            name: parsePositionName(v),
+            order: roleSortOrder(k, airlineKind)
+        }))
+        .sort((a, b) => a.order - b.order || a.role.localeCompare(b.role, "es"));
+}
+
+function buildPositionsSlides(){
+    const slides = [];
+    const dur = positionsDurationsData || {};
+
+    const jbFlights = Object.entries(jetblueFlightsData || {});
+    if(visibilityData.jetblue !== false){
+        if(jbFlights.length){
+            jbFlights.forEach(([slug, item]) => {
+                if(visibilityData["jetblue_" + slug] === false) return;
+                const items = collectAirlinePositions(
+                    (k) => k.endsWith(FLIGHT_NS_JB + slug) && isValidJetblueBoardKey(k),
+                    "jetblue"
+                );
+                if(!items.length) return;
+                slides.push({
+                    id: "jetblue-" + slug,
+                    themeClass: "pos-slide--jetblue",
+                    badge: "🔵 JETBLUE",
+                    title: titlesData["jetblue_" + slug] || titlesData.jetblue || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+                    duration: Math.max(5, Math.min(90, parseInt(dur["jetblue_" + slug] || dur.jetblue) || 12)),
+                    items
+                });
+            });
+        } else {
+            const items = collectAirlinePositions((k) => isValidJetblueBoardKey(k), "jetblue");
+            if(items.length){
+                slides.push({
+                    id: "jetblue",
+                    themeClass: "pos-slide--jetblue",
+                    badge: "🔵 JETBLUE",
+                    title: titlesData.jetblue || "ASIGNACIONES JETBLUE",
+                    duration: Math.max(5, Math.min(90, parseInt(dur.jetblue) || 12)),
+                    items
+                });
+            }
+        }
+    }
+
+    const wjFlights = Object.entries(westjetFlightsData || {});
+    if(visibilityData.westjet !== false){
+        if(wjFlights.length){
+            wjFlights.forEach(([slug, item]) => {
+                if(visibilityData["westjet_" + slug] === false) return;
+                const items = collectAirlinePositions(
+                    (k) => k.endsWith(FLIGHT_NS_WJ + slug) && isValidWestjetBoardKey(k),
+                    "westjet"
+                );
+                if(!items.length) return;
+                slides.push({
+                    id: "westjet-" + slug,
+                    themeClass: "pos-slide--westjet",
+                    badge: "🟢 WESTJET",
+                    title: titlesData["westjet_" + slug] || titlesData.westjet || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+                    duration: Math.max(5, Math.min(90, parseInt(dur["westjet_" + slug] || dur.westjet) || 12)),
+                    items
+                });
+            });
+        } else {
+            const items = collectAirlinePositions((k) => isValidWestjetBoardKey(k), "westjet");
+            if(items.length){
+                slides.push({
+                    id: "westjet",
+                    themeClass: "pos-slide--westjet",
+                    badge: "🟢 WESTJET",
+                    title: titlesData.westjet || "ASIGNACIONES WESTJET",
+                    duration: Math.max(5, Math.min(90, parseInt(dur.westjet) || 12)),
+                    items
+                });
+            }
+        }
+    }
+
+    Object.entries(airlinesExtraData || {}).forEach(([slug, item]) => {
+        if(visibilityData[slug] === false) return;
+        const items = collectAirlinePositions((k) => k.includes("__" + slug) && !k.includes(FLIGHT_NS_JB) && !k.includes(FLIGHT_NS_WJ), "extra");
+        if(!items.length) return;
+        slides.push({
+            id: slug,
+            themeClass: "pos-slide--extra",
+            badge: "✈️ " + (item?.name || slug).toUpperCase(),
+            title: titlesData[slug] || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+            duration: Math.max(5, Math.min(90, parseInt(dur[slug]) || 12)),
+            items
+        });
+    });
+
+    return slides;
+}
+
+function escapeHtmlBoard(s){
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+}
+
+function renderPositionSlideHtml(slide){
+    const rows = slide.items.map((item, idx) => `
+        <tr class="pos-slide-row" style="animation-delay:${(idx * 0.07 + 0.12).toFixed(2)}s">
+            <td class="pos-slide-role">${escapeHtmlBoard(item.role)}</td>
+            <td class="pos-slide-name">${escapeHtmlBoard(item.name)}</td>
+        </tr>
+    `).join("");
+
+    return `
+        <div class="pos-slide ${slide.themeClass}">
+            <div class="pos-slide-bg"></div>
+            <header class="pos-slide-header">
+                <span class="pos-slide-badge">${escapeHtmlBoard(slide.badge)}</span>
+                <h1 class="pos-slide-title">${escapeHtmlBoard(slide.title)}</h1>
+                <div class="pos-slide-line"></div>
+            </header>
+            <div class="pos-slide-body">
+                <table class="pos-slide-table"><tbody>${rows}</tbody></table>
+            </div>
+            <footer class="pos-slide-footer">LONGPORT · AEROPUERTO PUERTO PLATA</footer>
+        </div>`;
+}
+
+let positionsSlides = [];
+let positionsSlideIndex = 0;
+let positionsCycleTimer = null;
+let positionsSlideTimer = null;
+let positionsEnabled = true;
+let positionsGapSeconds = 45;
+let positionsDurationsData = {};
+
+function hidePositionsFull(){
+    const el = document.getElementById("positionsFull");
+    if(!el) return;
+    el.classList.remove("active");
+    el.innerHTML = "";
+    el.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("board--positions-full");
+}
+
+function showPositionSlide(slide){
+    const el = document.getElementById("positionsFull");
+    if(!el || !slide) return;
+    el.innerHTML = renderPositionSlideHtml(slide);
+    el.classList.add("active");
+    el.setAttribute("aria-hidden", "false");
+    document.body.classList.add("board--positions-full");
+}
+
+function endPositionsCycle(){
+    if(positionsSlideTimer){
+        clearTimeout(positionsSlideTimer);
+        positionsSlideTimer = null;
+    }
+    hidePositionsFull();
+    schedulePositionsCycle();
+}
+
+function advancePositionSlide(){
+    if(positionsSlideIndex >= positionsSlides.length){
+        endPositionsCycle();
+        return;
+    }
+    showPositionSlide(positionsSlides[positionsSlideIndex]);
+    const dur = positionsSlides[positionsSlideIndex].duration;
+    positionsSlideIndex++;
+    positionsSlideTimer = setTimeout(advancePositionSlide, dur * 1000);
+}
+
+function startPositionsCycle(){
+    if(positionsSlideTimer) clearTimeout(positionsSlideTimer);
+    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
+    if(!positionsEnabled) return;
+
+    positionsSlides = buildPositionsSlides();
+    if(!positionsSlides.length){
+        hidePositionsFull();
+        schedulePositionsCycle();
         return;
     }
 
-    cont.innerHTML = extras.map(([slug, item]) => {
-        const title = titlesData[slug] || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`;
-        const visible = visibilityData[slug] !== false;
-        return `
-            <div class="positions-panel" id="panel_${slug}" style="border-top:2px solid #f59e0b; background:rgba(245,158,11,0.08); display:${visible ? "block" : "none"};">
-                <div class="panel-title">${title}</div>
-                <div class="positions-grid" id="positionsExtra_${slug}"></div>
-            </div>
-        `;
-    }).join("");
+    positionsSlideIndex = 0;
+    advancePositionSlide();
 }
 
-function renderPositionsPanels(){
-    let west = "";
-    let jet = "";
-    const extraBuckets = {};
+let positionsFirstCycle = true;
 
-    Object.entries(positionsData).forEach(([k,v]) => {
-        let card = `<div class="pos-card"><div class="role">${k.toUpperCase()}</div><div class="name">${v}</div></div>`;
-        if(k.includes("__")){
-            const slug = k.split("__")[1];
-            if(!extraBuckets[slug]) extraBuckets[slug] = "";
-            extraBuckets[slug] += card;
-        } else if(k.includes("west") || k.includes("wj")) west += card;
-        else jet += card;
-    });
-
-    document.getElementById("positionsWestjet").innerHTML = west;
-    document.getElementById("positionsJetblue").innerHTML = jet;
-    Object.entries(extraBuckets).forEach(([slug, html]) => {
-        const el = document.getElementById("positionsExtra_" + slug);
-        if(el) el.innerHTML = html;
-    });
+function schedulePositionsCycle(){
+    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
+    if(!positionsEnabled) return;
+    positionsSlides = buildPositionsSlides();
+    if(!positionsSlides.length){
+        hidePositionsFull();
+        return;
+    }
+    const gap = positionsFirstCycle
+        ? 12
+        : Math.max(20, Math.min(300, positionsGapSeconds || 45));
+    positionsFirstCycle = false;
+    positionsCycleTimer = setTimeout(startPositionsCycle, gap * 1000);
 }
+
+function restartPositionsRotation(){
+    if(positionsSlideTimer) clearTimeout(positionsSlideTimer);
+    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
+    hidePositionsFull();
+    if(positionsEnabled) schedulePositionsCycle();
+}
+
+onValue(ref(db,"config/positionsEnabled"), snap => {
+    positionsEnabled = snap.val() !== false;
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"config/positionsGapSeconds"), snap => {
+    const v = parseInt(snap.val());
+    positionsGapSeconds = !Number.isNaN(v) && v >= 20 && v <= 300 ? v : 45;
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"config/positionsDuration"), snap => {
+    positionsDurationsData = snap.val() || {};
+    restartPositionsRotation();
+});
 
 onValue(ref(db,"positions"), snap => {
     positionsData = snap.val() || {};
-    renderPositionsPanels();
+    restartPositionsRotation();
 });
+
+onValue(ref(db,"titles"), snap => {
+    titlesData = snap.val() || {};
+    document.querySelector(".westjet .panel-title").innerText = titlesData.westjet || "ASIGNACIONES WESTJET";
+    document.querySelector(".jetblue .panel-title").innerText = titlesData.jetblue || "ASIGNACIONES JETBLUE";
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"visibility"), snap => {
+    visibilityData = snap.val() || {};
+    const jetVis = visibilityData.jetblue !== false;
+    const westVis = visibilityData.westjet !== false;
+    const jetPanel = document.getElementById("jetbluePanel");
+    const westPanel = document.getElementById("westjetPanel");
+    if(jetPanel) jetPanel.style.display = jetVis ? "block" : "none";
+    if(westPanel) westPanel.style.display = westVis ? "block" : "none";
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"airlinesExtra"), snap => {
+    airlinesExtraData = snap.val() || {};
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"jetblueFlights"), snap => {
+    jetblueFlightsData = snap.val() || {};
+    restartPositionsRotation();
+});
+
+onValue(ref(db,"westjetFlights"), snap => {
+    westjetFlightsData = snap.val() || {};
+    restartPositionsRotation();
+});
+
+restartPositionsRotation();
 
 // 📢 TICKER
 onValue(ref(db,"ticker/message"), snap => {

@@ -365,34 +365,6 @@ function rowHasArrivalLeg(row) {
   );
 }
 
-function rowHasDepartureLeg(row) {
-  if (!row || typeof row !== "object") return false;
-  return Boolean(String(row.salida || "").trim()) || String(row.vuelo || "").includes("/");
-}
-
-/** Tras aterrizaje (o salida en filas solo-dep), dejar de sincronizar ese vuelo con la API. */
-function shouldAutoPauseApiSync(row, arr, dep, patch) {
-  if (row.noApiSync === true) return false;
-  const mergedEst = patch?.estado !== undefined ? patch.estado : row.estado;
-  const st = normalizeEstadoKey(mergedEst);
-  if (rowHasArrivalLeg(row)) {
-    if (st === "ARRIVED" || st === "LANDED") return true;
-    if (arr?.estado === "ARRIVED") return true;
-  }
-  if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row)) {
-    if (st === "DEPARTED") return true;
-    if (dep?.estado === "DEPARTED") return true;
-  }
-  return false;
-}
-
-function applyAutoPausePatch(patch) {
-  const p = patch || {};
-  p.noApiSync = true;
-  p.apiSyncPausedAt = new Date().toISOString();
-  return p;
-}
-
 // =========================
 // ✈️ FlightAware: GET /flights, sync scheduler, /api/flights/refresh
 // =========================
@@ -1325,26 +1297,11 @@ async function syncPayloadToRtdb(payload) {
     for (const key of Object.keys(flights)) {
       const row = flights[key];
       if (!row || typeof row !== "object") continue;
-      if (row.noApiSync === true) continue;
 
       const identLabel =
         (row.vuelo && String(row.vuelo).trim()) ||
         (row.vueloLlegada && String(row.vueloLlegada).trim()) ||
         key;
-
-      const stStored = normalizeEstadoKey(row.estado);
-      if (
-        rowHasArrivalLeg(row) &&
-        (stStored === "ARRIVED" || stStored === "LANDED")
-      ) {
-        rowPatches.push({
-          key,
-          patch: applyAutoPausePatch({})
-        });
-        updatedRows++;
-        changeLines.push(`${identLabel}: sync API pausado (ya aterrizado)`);
-        continue;
-      }
 
       const { arr: vueloArr, dep: vueloDep } = splitBoardVuelo(row.vuelo);
       const arr = resolveApiFlight(arrLookup, row.vueloLlegada || vueloArr);
@@ -1353,6 +1310,12 @@ async function syncPayloadToRtdb(payload) {
 
       const patch = {};
       const changelog = [];
+
+      if (row.noApiSync === true || row.apiSyncPausedAt) {
+        patch.noApiSync = null;
+        patch.apiSyncPausedAt = null;
+        changelog.push("sync-reactivado");
+      }
 
       if (arr?.llegada && arr.llegada !== (row.llegada || "")) {
         patch.llegada = arr.llegada;
@@ -1426,11 +1389,6 @@ async function syncPayloadToRtdb(payload) {
       if (!sameRetraso(nuevoRetraso, row.retraso)) {
         patch.retraso = nuevoRetraso;
         changelog.push(formatRetrasoChangelog(nuevoRetraso));
-      }
-
-      if (shouldAutoPauseApiSync(row, arr, dep, patch)) {
-        applyAutoPausePatch(patch);
-        changelog.push("sync-pausado");
       }
 
       if (Object.keys(patch).length === 0) continue;
@@ -1535,10 +1493,26 @@ async function readSyncEnabledFromRtdb() {
     const val = await rtdbGet("config/syncEnabled");
     if (val === false || val === "false" || val === 0) return false;
     if (val === true || val === "true" || val === 1) return true;
-  } catch (_) {}
-  const local = readSyncEnabledLocal();
-  if (local !== null) return local;
-  return true;
+    return true;
+  } catch (_) {
+    const local = readSyncEnabledLocal();
+    if (local !== null) return local;
+    return true;
+  }
+}
+
+async function ensureSyncEnabledDefault() {
+  try {
+    const val = await rtdbGet("config/syncEnabled");
+    if (val === null || val === undefined) {
+      await rtdbPatch("config/syncEnabled", true);
+      flightSyncEnabled = true;
+      writeSyncEnabledLocal(true);
+      console.log("▶ config/syncEnabled inicializado en true (sync automático activo)");
+    }
+  } catch (e) {
+    console.log("⚠️ No se pudo publicar config/syncEnabled:", e.message);
+  }
 }
 
 async function setFlightSyncEnabled(enabled) {
@@ -1608,100 +1582,42 @@ async function readPollingIntervalSec() {
   return sec;
 }
 
-async function readFlightWindowInfo() {
+async function readFlightsOnBoardCount() {
   try {
     const selectedDate = await rtdbGet("config/selectedDate");
     const dateStr = (selectedDate && String(selectedDate).trim()) || dateStrTodayInRD();
     const flights = await rtdbGet("flightsByDate/" + dateStr);
-    if (!flights || typeof flights !== "object" || !Object.keys(flights).length) {
-      return { dateStr, centerInstant: null, llegada: null, pendingArrivals: 0 };
+    if (!flights || typeof flights !== "object") {
+      return { dateStr, count: 0 };
     }
-
-    let centerInstant = null;
-    let llegada = null;
-    let pendingArrivals = 0;
-
-    for (const row of Object.values(flights)) {
-      if (!row || typeof row !== "object") continue;
-      const st = (row.estado || "").toString().toUpperCase().replace(/\s+/g, " ");
-      const hasArrival =
-        Boolean(row.llegada || row.llegadaProgramada || row.vueloLlegada) ||
-        String(row.vuelo || "").includes("/");
-      if (hasArrival && !["ARRIVED", "CANCELLED", "DIVERTED"].includes(st)) {
-        pendingArrivals++;
-      }
-      const ins = flightWindowCenterInstant(dateStr, row);
-      if (!ins) continue;
-      if (!centerInstant || ins.getTime() > centerInstant.getTime()) {
-        centerInstant = ins;
-        llegada = row.llegada || row.llegadaProgramada || null;
-      }
-    }
-
-    return { dateStr, centerInstant, llegada, pendingArrivals };
+    const count = Object.values(flights).filter(
+      (row) => row && typeof row === "object"
+    ).length;
+    return { dateStr, count };
   } catch (e) {
-    return {
-      dateStr: null,
-      centerInstant: null,
-      llegada: null,
-      pendingArrivals: 0,
-      error: e.message
-    };
+    return { dateStr: null, count: 0, error: e.message };
   }
 }
 
-const FLIGHT_WINDOW_MS = 2 * 60 * 60 * 1000; // ±2 h alrededor de la llegada
-
 async function flightSyncSchedulerLoop() {
-  const fmtSDQ = (d) =>
-    normalizeToHHMM(
-      d.toLocaleTimeString("en-US", {
-        timeZone: "America/Santo_Domingo",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      })
-    );
-
   for (;;) {
     let pollingSec = await readPollingIntervalSec();
     const ts = new Date().toISOString();
 
-    const { dateStr, centerInstant, llegada, pendingArrivals, error: winError } =
-      await readFlightWindowInfo();
+    const { dateStr, count, error: boardError } = await readFlightsOnBoardCount();
 
     if (!flightSyncEnabled) {
       console.log(`[${ts}] Sync automático PAUSADO — próximo chequeo en ${Math.max(1, Math.round(pollingSec / 60))}min`);
-    } else if (winError || !dateStr) {
-      console.log(`[${ts}] No se pudo leer ventana de vuelo: ${winError || "sin fecha"}`);
-    } else if (!centerInstant) {
-      console.log(
-        `[${ts}] Sin hora de llegada/programada válida para ventana (${dateStr})`
-      );
+    } else if (boardError || !dateStr) {
+      console.log(`[${ts}] No se pudo leer tablero: ${boardError || "sin fecha"}`);
+    } else if (count === 0) {
+      console.log(`[${ts}] Sin vuelos en tablero (${dateStr}) — sync omitido`);
     } else {
-      const nowMs = Date.now();
-      const centerMs = centerInstant.getTime();
-      const windowStartMs = centerMs - FLIGHT_WINDOW_MS;
-      let windowEndMs = centerMs + FLIGHT_WINDOW_MS;
-      if (pendingArrivals > 0) {
-        windowEndMs = Math.max(windowEndMs, nowMs + 30 * 60 * 1000);
-      }
-
-      if (nowMs < windowStartMs) {
-        console.log(
-          `[${ts}] Fuera de ventana de vuelo — sync pausado hasta las ${fmtSDQ(new Date(windowStartMs))} RD (referencia ${normalizeRdHHMM(llegada) || "—"}, fecha ${dateStr})`
-        );
-      } else if (nowMs > windowEndMs) {
-        console.log(
-          `[${ts}] Ventana de vuelo cerrada para ${dateStr} (±2h RD desde referencia ${normalizeRdHHMM(llegada) || "—"})`
-        );
-      } else {
-        try {
-          const result = await syncFlightTimesToRtdbSafe();
-          logFlightSyncOutcome(result, pollingSec);
-        } catch (e) {
-          console.log(`[${ts}] Flight sync excepción no controlada:`, e.message);
-        }
+      try {
+        const result = await syncFlightTimesToRtdbSafe();
+        logFlightSyncOutcome(result, pollingSec);
+      } catch (e) {
+        console.log(`[${ts}] Flight sync excepción no controlada:`, e.message);
       }
     }
 
@@ -1869,10 +1785,11 @@ app.listen(PORT, () => {
   );
   void (async () => {
     await ensureBootstrapPanelUser();
+    await ensureSyncEnabledDefault();
     flightSyncEnabled = await readSyncEnabledFromRtdb();
     console.log(
       flightSyncEnabled
-        ? "▶ Sync automático ACTIVO"
+        ? "▶ Sync automático ACTIVO — cada vuelo en tablero"
         : "⏸ Sync automático PAUSADO (reanuda desde panel)"
     );
     flightSyncSchedulerLoop().catch((e) =>

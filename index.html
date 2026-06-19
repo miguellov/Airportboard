@@ -1366,6 +1366,28 @@ function collectAirlinePositions(filterFn, airlineKind){
         .sort((a, b) => a.order - b.order || a.role.localeCompare(b.role, "es"));
 }
 
+const POS_ROWS_PER_SLIDE = 10;
+
+function pushPositionSlideChunks(slides, base){
+    const items = base.items || [];
+    if(!items.length) return;
+    const dur = base.duration || 12;
+    const chunks = [];
+    for(let i = 0; i < items.length; i += POS_ROWS_PER_SLIDE){
+        chunks.push(items.slice(i, i + POS_ROWS_PER_SLIDE));
+    }
+    const total = chunks.length;
+    chunks.forEach((chunk, idx) => {
+        slides.push({
+            ...base,
+            id: total > 1 ? `${base.id}-p${idx + 1}` : base.id,
+            title: total > 1 ? `${base.title} (${idx + 1}/${total})` : base.title,
+            duration: dur,
+            items: chunk
+        });
+    });
+}
+
 function buildPositionsSlides(){
     const slides = [];
     const dur = positionsDurationsData || {};
@@ -1380,7 +1402,7 @@ function buildPositionsSlides(){
                     "jetblue"
                 );
                 if(!items.length) return;
-                slides.push({
+                pushPositionSlideChunks(slides, {
                     id: "jetblue-" + slug,
                     themeClass: "pos-slide--jetblue",
                     badge: "🔵 JETBLUE",
@@ -1392,7 +1414,7 @@ function buildPositionsSlides(){
         } else {
             const items = collectAirlinePositions((k) => isValidJetblueBoardKey(k), "jetblue");
             if(items.length){
-                slides.push({
+                pushPositionSlideChunks(slides, {
                     id: "jetblue",
                     themeClass: "pos-slide--jetblue",
                     badge: "🔵 JETBLUE",
@@ -1414,7 +1436,7 @@ function buildPositionsSlides(){
                     "westjet"
                 );
                 if(!items.length) return;
-                slides.push({
+                pushPositionSlideChunks(slides, {
                     id: "westjet-" + slug,
                     themeClass: "pos-slide--westjet",
                     badge: "🟢 WESTJET",
@@ -1426,7 +1448,7 @@ function buildPositionsSlides(){
         } else {
             const items = collectAirlinePositions((k) => isValidWestjetBoardKey(k), "westjet");
             if(items.length){
-                slides.push({
+                pushPositionSlideChunks(slides, {
                     id: "westjet",
                     themeClass: "pos-slide--westjet",
                     badge: "🟢 WESTJET",
@@ -1442,7 +1464,7 @@ function buildPositionsSlides(){
         if(visibilityData[slug] === false) return;
         const items = collectAirlinePositions((k) => k.includes("__" + slug) && !k.includes(FLIGHT_NS_JB) && !k.includes(FLIGHT_NS_WJ), "extra");
         if(!items.length) return;
-        slides.push({
+        pushPositionSlideChunks(slides, {
             id: slug,
             themeClass: "pos-slide--extra",
             badge: "✈️ " + (item?.name || slug).toUpperCase(),

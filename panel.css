@@ -920,6 +920,16 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   padding: 1.1rem 1.2rem;
 }
 
+.positions-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.card-positions.positions-editor {
+  max-height: calc(100vh - 5.5rem);
+}
+
 .positions-editor-head h3,
 .positions-preview-head h3 {
   margin: 0 0 0.3rem;
@@ -959,7 +969,18 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
 }
 
 .pos-editor-panel { display: none; }
-.pos-editor-panel.active { display: block; }
+.pos-editor-panel.active { display: flex; flex-direction: column; min-height: 0; }
+
+.pos-editor-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--pop-surface);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--pop-border);
+  box-shadow: 0 10px 20px rgba(5, 5, 8, 0.55);
+}
 
 .pos-editor-toolbar {
   display: flex;
@@ -1072,10 +1093,30 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.45rem;
-  max-height: min(62vh, 520px);
+  flex: 1 1 auto;
+  min-height: 12rem;
+  max-height: min(72vh, 640px);
   overflow-y: auto;
-  padding-right: 0.25rem;
-  margin-top: 0.5rem;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  padding-right: 0.35rem;
+  margin-top: 0.15rem;
+  scroll-behavior: auto;
+}
+
+.positions-matrix::-webkit-scrollbar {
+  width: 8px;
+}
+
+.positions-matrix::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.positions-matrix::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
 }
 
 .positions-matrix-row {
@@ -1266,9 +1307,10 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 8% 6%;
+  justify-content: flex-start;
+  padding: 6% 6% 4%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .positions-board-preview .pos-preview-badge {
@@ -1298,10 +1340,19 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   background: linear-gradient(90deg, transparent, var(--pv-accent, #38bdf8), transparent);
 }
 
-.positions-board-preview .pos-preview-table {
+.positions-board-preview .pos-preview-table-wrap {
   width: 100%;
   max-width: 92%;
-  font-size: clamp(8px, 1.4vw, 11px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.positions-board-preview .pos-preview-table {
+  width: 100%;
+  max-width: 100%;
+  font-size: clamp(7px, 1.2vw, 10px);
 }
 
 .positions-board-preview .pos-preview-table td {

@@ -337,6 +337,14 @@ body.panel-native-app .card-positions {
   margin-bottom: 0.85rem;
 }
 
+body.panel-native-app .card-positions.positions-editor {
+  max-height: none;
+}
+
+body.panel-native-app .positions-matrix {
+  max-height: min(58vh, 520px);
+}
+
 body.panel-native-app .anuncios-layout {
   grid-template-columns: 1fr !important;
 }

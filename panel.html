@@ -281,6 +281,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div id="posEditorJetblue" class="pos-editor-panel active">
+                <div class="pos-editor-sticky">
                 <div class="pos-editor-toolbar">
                     <button type="button" class="toggle-btn visible" id="toggleJet" onclick="toggleVisibility('jetblue')">👁️ Visible</button>
                     <label class="pos-field-inline">Duración (s)
@@ -302,10 +303,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button type="button" class="btn-clear-turno" onclick="clearActiveFlightPositions('jetblue')">🗑 Limpiar este turno</button>
                 </div>
                 <p class="positions-hint">Asigna un empleado a cada posición. Los cambios se guardan al elegir en el desplegable.</p>
+                </div>
                 <div id="positionsMatrixJetblue" class="positions-matrix"></div>
             </div>
 
             <div id="posEditorWestjet" class="pos-editor-panel">
+                <div class="pos-editor-sticky">
                 <div class="pos-editor-toolbar">
                     <button type="button" class="toggle-btn visible" id="toggleWest" onclick="toggleVisibility('westjet')">👁️ Visible</button>
                     <label class="pos-field-inline">Duración (s)
@@ -327,6 +330,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button type="button" class="btn-clear-turno" onclick="clearActiveFlightPositions('westjet')">🗑 Limpiar este turno</button>
                 </div>
                 <p class="positions-hint">Asigna un empleado a cada posición. Los cambios se guardan al elegir en el desplegable.</p>
+                </div>
                 <div id="positionsMatrixWestjet" class="positions-matrix"></div>
             </div>
 
@@ -2800,6 +2804,33 @@ function renderPositionsMatrix(airlineKind){
     if(!cont) return;
     const catalog = getRoleCatalog(airlineKind);
     const flightSlug = getActiveFlightSlug(airlineKind);
+    const canPatch =
+        cont.dataset.airline === airlineKind &&
+        cont.dataset.flight === flightSlug &&
+        cont.children.length === catalog.length;
+
+    if(canPatch){
+        const focusedId = document.activeElement?.id || "";
+        catalog.forEach((role) => {
+            const fbKey = positionFirebaseKey(role.key, airlineKind, flightSlug);
+            const assigned = panelParseName(positionsPanelData[fbKey]);
+            const sel = document.getElementById(`matrix_${airlineKind}_${role.key}`);
+            if(!sel) return;
+            const opts = employeeSelectOptions(airlineKind, assigned);
+            if(sel.innerHTML !== opts) sel.innerHTML = opts;
+            const want = assigned || "";
+            if(sel.value !== want) sel.value = want;
+        });
+        if(focusedId.startsWith(`matrix_${airlineKind}_`)){
+            const el = document.getElementById(focusedId);
+            if(el && document.activeElement !== el) el.focus({ preventScroll: true });
+        }
+        return;
+    }
+
+    const scrollTop = cont.scrollTop;
+    cont.dataset.airline = airlineKind;
+    cont.dataset.flight = flightSlug;
     cont.innerHTML = catalog.map((role) => {
         const fbKey = positionFirebaseKey(role.key, airlineKind, flightSlug);
         const assigned = panelParseName(positionsPanelData[fbKey]);
@@ -2812,6 +2843,7 @@ function renderPositionsMatrix(airlineKind){
                 </select>
             </div>`;
     }).join("");
+    cont.scrollTop = scrollTop;
 }
 
 function renderExtraEmployeeSelect(){
@@ -3053,19 +3085,20 @@ function renderPositionsBoardPreview(){
         el.innerHTML = `<div class="positions-board-preview-empty">${positionsBoardEnabled ? "Agrega posiciones para ver la vista previa." : "Rotación de posiciones apagada en TV."}</div>`;
         return;
     }
-    const rows = slide.items.slice(0, 6).map((item) => `
+    const rows = slide.items.map((item) => `
         <tr>
             <td class="pos-preview-role">${escapeHtmlPanel(item.role)}</td>
             <td class="pos-preview-name">${escapeHtmlPanel(item.name)}</td>
         </tr>
     `).join("");
-    const more = slide.items.length > 6 ? `<tr><td colspan="2" class="pos-preview-role" style="text-align:center;padding-top:0.5em;">+${slide.items.length - 6} más…</td></tr>` : "";
     el.innerHTML = `
         <div class="pos-preview-slide ${slide.theme}">
             <span class="pos-preview-badge">${slide.badge}</span>
             <h4 class="pos-preview-title">${escapeHtmlPanel(slide.title)}</h4>
             <div class="pos-preview-line"></div>
-            <table class="pos-preview-table"><tbody>${rows}${more}</tbody></table>
+            <div class="pos-preview-table-wrap">
+                <table class="pos-preview-table"><tbody>${rows}</tbody></table>
+            </div>
         </div>`;
 }
 
@@ -3547,11 +3580,6 @@ window.setStatus = (i,s) => {
     if(!a[i]) return;
     a[i].estado = s;
     a[i].manual = true;
-    const st = String(s || "").toUpperCase().replace(/\s+/g, "-");
-    if (st === "ARRIVED" || st === "LANDED") {
-        a[i].noApiSync = true;
-        a[i].apiSyncPausedAt = new Date().toISOString();
-    }
     saveFlightsForSelectedDate(toObj(a));
     currentData = toObj(a);
 };

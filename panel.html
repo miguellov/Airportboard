@@ -3580,6 +3580,11 @@ window.setStatus = (i,s) => {
     if(!a[i]) return;
     a[i].estado = s;
     a[i].manual = true;
+    const st = String(s || "").toUpperCase().replace(/\s+/g, "-");
+    if (st === "ARRIVED" || st === "LANDED" || st === "DEPARTED") {
+        a[i].noApiSync = true;
+        a[i].apiSyncPausedAt = new Date().toISOString();
+    }
     saveFlightsForSelectedDate(toObj(a));
     currentData = toObj(a);
 };

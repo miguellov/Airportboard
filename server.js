@@ -327,6 +327,17 @@ function resolveApiFlight(lookup, rawIdent) {
   return null;
 }
 
+/** Estados que indican que el vuelo ya aterrizó en POP. */
+function isLandingBoardEstado(estado) {
+  const n = normalizeEstadoKey(estado);
+  return n === "ARRIVED" || n === "LANDED" || n === "ATERIZADO";
+}
+
+function boardEstadoFromApi(estado) {
+  if (isLandingBoardEstado(estado)) return "ATERIZADO";
+  return estado || null;
+}
+
 /** Misma lógica que index.html: no pisar estado operativo manual desde el panel */
 function isEstadoStaffLocked(estado) {
   const n = (estado || "")
@@ -365,7 +376,7 @@ function deriveBoardEstadoFromAeroArrival(f, dateStr) {
   if (!f || typeof f !== "object") return undefined;
   const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
   const actIn = f.actual_in || f.actual_on;
-  if (actIn || st === "arrived" || st === "landed") return "ARRIVED";
+  if (actIn || st === "arrived" || st === "landed") return "ATERIZADO";
   if (st === "cancelled") return "CANCELLED";
   if (st === "diverted") return "DIVERTED";
 
@@ -441,7 +452,7 @@ function rowNeedsLiveApiSync(row) {
   if (!row || typeof row !== "object") return false;
   if (row.noApiSync === true) return false;
   const st = normalizeEstadoKey(row.estado);
-  if (rowHasArrivalLeg(row) && (st === "ARRIVED" || st === "LANDED")) return false;
+  if (rowHasArrivalLeg(row) && isLandingBoardEstado(st)) return false;
   if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row) && st === "DEPARTED") {
     return false;
   }
@@ -454,8 +465,8 @@ function shouldAutoPauseApiSync(row, arr, dep, patch) {
   const mergedEst = patch?.estado !== undefined ? patch.estado : row.estado;
   const st = normalizeEstadoKey(mergedEst);
   if (rowHasArrivalLeg(row)) {
-    if (st === "ARRIVED" || st === "LANDED") return true;
-    if (arr?.estado === "ARRIVED") return true;
+    if (isLandingBoardEstado(st)) return true;
+    if (isLandingBoardEstado(arr?.estado)) return true;
   }
   if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row)) {
     if (st === "DEPARTED") return true;
@@ -611,7 +622,7 @@ function aeroFlightDateRd(f) {
 
 function aeroFlightIsTerminal(f, kind) {
   if (kind === "arr") {
-    return mapAeroArrivalEstado(f, aeroFlightDateRd(f)) === "ARRIVED";
+    return isLandingBoardEstado(mapAeroArrivalEstado(f, aeroFlightDateRd(f)));
   }
   return mapAeroDepartureEstado(f) === "DEPARTED";
 }
@@ -1393,7 +1404,7 @@ async function pauseTerminalFlightsOnBoard(dateStr, flights) {
       (row.vueloLlegada && String(row.vueloLlegada).trim()) ||
       key;
     let pause = false;
-    if (rowHasArrivalLeg(row) && (st === "ARRIVED" || st === "LANDED")) pause = true;
+    if (rowHasArrivalLeg(row) && isLandingBoardEstado(st)) pause = true;
     if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row) && st === "DEPARTED") {
       pause = true;
     }
@@ -1457,7 +1468,7 @@ async function syncPayloadToRtdb(payload) {
       const stStored = normalizeEstadoKey(row.estado);
       if (
         rowHasArrivalLeg(row) &&
-        (stStored === "ARRIVED" || stStored === "LANDED")
+        isLandingBoardEstado(stStored)
       ) {
         rowPatches.push({
           key,
@@ -1521,14 +1532,28 @@ async function syncPayloadToRtdb(payload) {
         changelog.push("gate");
       }
 
-      const apiEstado = pickApiEstado(row, arr, dep);
-      if (apiEstado && !isEstadoStaffLocked(row.estado)) {
+      const apiEstado = boardEstadoFromApi(pickApiEstado(row, arr, dep));
+      const apiConfirmsLanding =
+        isLandingBoardEstado(apiEstado) ||
+        Boolean(String(arr?.llegadaReal || "").trim());
+      if (
+        apiEstado &&
+        (!isEstadoStaffLocked(row.estado) || apiConfirmsLanding)
+      ) {
         const curEst = (row.estado || "").toString();
         if (apiEstado !== curEst) {
           patch.estado = apiEstado;
           patch.manual = false;
           changelog.push("estado");
         }
+      } else if (
+        apiConfirmsLanding &&
+        rowHasArrivalLeg(row) &&
+        !isLandingBoardEstado(row.estado)
+      ) {
+        patch.estado = "ATERIZADO";
+        patch.manual = false;
+        changelog.push("estado");
       }
 
       const mergedLlegada =

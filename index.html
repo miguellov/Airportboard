@@ -209,10 +209,19 @@ let unsubscribeFlightsByDate = null;
 const BOARD_ARRIVAL_TZ = "-04:00";
 
 /** Hora efectiva en puerta: en ruta usa estimada; si ya aterrizó usa real. */
+function isLandingBoardEstado(estado) {
+    const n = String(estado || "")
+        .toUpperCase()
+        .replace(/\s+/g, "-")
+        .replace(/Ó/g, "O")
+        .replace(/_/g, "-");
+    return n === "ARRIVED" || n === "LANDED" || n === "ATERIZADO";
+}
+
 function effectiveArrivalHhmm(r) {
     const x = r || {};
-    const estado = String(x.estado || "").toUpperCase().replace(/\s+/g, "-");
-    const isArrived = estado === "ARRIVED" || estado === "LANDED";
+    const hasReal = Boolean(String(x.llegadaReal || "").trim());
+    const isArrived = isLandingBoardEstado(x.estado) || hasReal;
     if (isArrived) {
         return (
             String(x.llegadaReal || "").trim() ||
@@ -978,6 +987,13 @@ function isVagueBoardEstado(estado) {
     return !n || n === "ON-TIME" || n === "ON" || n === "EN-ROUTE" || n === "SCHEDULED";
 }
 
+function flightHasLanded(r, diffMin) {
+    if (isLandingBoardEstado(r.estado)) return true;
+    if (String(r.llegadaReal || "").trim()) return true;
+    if (diffMin <= 0 && String(r.llegada || "").trim()) return true;
+    return false;
+}
+
 let lastFlightRenderCount = -1;
 let lastFlightsDataSig = "";
 
@@ -1036,12 +1052,12 @@ function computeFlightRowState(r) {
     if (progreso < 0) progreso = 0;
     if (progreso > 100) progreso = 100;
 
-    if (!estadoManual) {
+    if (flightHasLanded(r, diffMin)) {
+        estadoFinal = "ATERIZADO";
+        estadoClase = "arrived";
+    } else if (!estadoManual) {
         if (isVagueBoardEstado(r.estado)) {
-            if (diffMin <= 0) {
-                estadoFinal = "ARRIVED";
-                estadoClase = "arrived";
-            } else if (diffMin <= 10) {
+            if (diffMin <= 10 && diffMin > 0) {
                 estadoFinal = "ARRIVING";
                 estadoClase = "arriving";
             } else if (String(r.salidaOrigen || "").trim()) {
@@ -1052,7 +1068,7 @@ function computeFlightRowState(r) {
             estadoFinal = r.estado || "ON-TIME";
             estadoClase = estadoCssClass(estadoFinal);
         }
-        if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ARRIVED") extraClass = "blink";
+        if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ATERIZADO") extraClass = "blink";
         if (estadoFinal === "ARRIVING" || estadoClase === "arriving") extraClass = "blink";
     } else if (diffMin <= 30 && diffMin > 0) {
         extraClass = "blink";

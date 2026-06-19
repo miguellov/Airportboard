@@ -350,6 +350,49 @@ function pickApiEstado(row, arr, dep) {
   return ea || ed || null;
 }
 
+function normalizeEstadoKey(estado) {
+  return String(estado || "")
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+}
+
+function rowHasArrivalLeg(row) {
+  if (!row || typeof row !== "object") return false;
+  return (
+    Boolean(row.llegada || row.llegadaProgramada || row.vueloLlegada) ||
+    String(row.vuelo || "").includes("/")
+  );
+}
+
+function rowHasDepartureLeg(row) {
+  if (!row || typeof row !== "object") return false;
+  return Boolean(String(row.salida || "").trim()) || String(row.vuelo || "").includes("/");
+}
+
+/** Tras aterrizaje (o salida en filas solo-dep), dejar de sincronizar ese vuelo con la API. */
+function shouldAutoPauseApiSync(row, arr, dep, patch) {
+  if (row.noApiSync === true) return false;
+  const mergedEst = patch?.estado !== undefined ? patch.estado : row.estado;
+  const st = normalizeEstadoKey(mergedEst);
+  if (rowHasArrivalLeg(row)) {
+    if (st === "ARRIVED" || st === "LANDED") return true;
+    if (arr?.estado === "ARRIVED") return true;
+  }
+  if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row)) {
+    if (st === "DEPARTED") return true;
+    if (dep?.estado === "DEPARTED") return true;
+  }
+  return false;
+}
+
+function applyAutoPausePatch(patch) {
+  const p = patch || {};
+  p.noApiSync = true;
+  p.apiSyncPausedAt = new Date().toISOString();
+  return p;
+}
+
 // =========================
 // ✈️ FlightAware: GET /flights, sync scheduler, /api/flights/refresh
 // =========================
@@ -1284,6 +1327,25 @@ async function syncPayloadToRtdb(payload) {
       if (!row || typeof row !== "object") continue;
       if (row.noApiSync === true) continue;
 
+      const identLabel =
+        (row.vuelo && String(row.vuelo).trim()) ||
+        (row.vueloLlegada && String(row.vueloLlegada).trim()) ||
+        key;
+
+      const stStored = normalizeEstadoKey(row.estado);
+      if (
+        rowHasArrivalLeg(row) &&
+        (stStored === "ARRIVED" || stStored === "LANDED")
+      ) {
+        rowPatches.push({
+          key,
+          patch: applyAutoPausePatch({})
+        });
+        updatedRows++;
+        changeLines.push(`${identLabel}: sync API pausado (ya aterrizado)`);
+        continue;
+      }
+
       const { arr: vueloArr, dep: vueloDep } = splitBoardVuelo(row.vuelo);
       const arr = resolveApiFlight(arrLookup, row.vueloLlegada || vueloArr);
       const dep = resolveApiFlight(depLookup, vueloDep);
@@ -1366,14 +1428,15 @@ async function syncPayloadToRtdb(payload) {
         changelog.push(formatRetrasoChangelog(nuevoRetraso));
       }
 
+      if (shouldAutoPauseApiSync(row, arr, dep, patch)) {
+        applyAutoPausePatch(patch);
+        changelog.push("sync-pausado");
+      }
+
       if (Object.keys(patch).length === 0) continue;
 
       rowPatches.push({ key, patch });
       updatedRows++;
-      const identLabel =
-        (row.vuelo && String(row.vuelo).trim()) ||
-        (row.vueloLlegada && String(row.vueloLlegada).trim()) ||
-        key;
       changeLines.push(`${identLabel}: ${changelog.join(", ")}`);
     }
 

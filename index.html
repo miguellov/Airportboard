@@ -968,15 +968,14 @@ function flightProgressPlaneHtml(){
 function statusDisplayLabel(estado) {
     const raw = String(estado || "").trim();
     const n = raw.toUpperCase().replace(/\s+/g, "-").replace(/Ó/g, "O").replace(/_/g, "-");
+    if (n === "ON-TIME" || n === "ON") return "ON-TIME";
+    if (n === "DELAYED") return "DELAYED";
     const labels = {
         ATERIZADO: "ATERIZADO",
         ARRIVED: "ATERIZADO",
         LANDED: "ATERIZADO",
         ARRIVING: "LLEGANDO",
         SALIO: "SALIÓ",
-        "ON-TIME": "A TIEMPO",
-        ON: "A TIEMPO",
-        DELAYED: "RETRASADO",
         BOARDING: "ABORDAJE",
         DEPARTED: "DESPEGÓ",
         CANCELLED: "CANCELADO",
@@ -984,7 +983,7 @@ function statusDisplayLabel(estado) {
     };
     if (labels[n]) return labels[n];
     if (raw.toUpperCase() === "SALIÓ") return "SALIÓ";
-    return raw || "A TIEMPO";
+    return raw || "ON-TIME";
 }
 
 function statusPillHtml(estado, estadoClase){

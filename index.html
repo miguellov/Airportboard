@@ -961,6 +961,23 @@ function statusPillHtml(estado, estadoClase){
     return `<span class="${cls}">${escapeHtmlBoard(estado)}</span>`;
 }
 
+function estadoCssClass(estado) {
+    return String(estado || "on-time")
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/ó/g, "o")
+        .replace(/[^a-z0-9-]/g, "") || "on-time";
+}
+
+function isVagueBoardEstado(estado) {
+    const n = String(estado || "")
+        .toUpperCase()
+        .replace(/\s+/g, "-")
+        .replace(/Ó/g, "O")
+        .replace(/_/g, "-");
+    return !n || n === "ON-TIME" || n === "ON" || n === "EN-ROUTE" || n === "SCHEDULED";
+}
+
 let lastFlightRenderCount = -1;
 let lastFlightsDataSig = "";
 
@@ -1004,13 +1021,14 @@ function computeFlightRowState(r) {
         .toString()
         .toUpperCase()
         .replace(/\s+/g, "-")
+        .replace(/Ó/g, "O")
         .replace(/_/g, "-");
-    const estadoManual = ["BOARDING", "DEPARTED", "DELAYED", "CANCELLED", "DIVERTED"].includes(
+    const estadoManual = ["BOARDING", "DELAYED", "CANCELLED", "DIVERTED"].includes(
         estadoNorm
     );
 
     let estadoFinal = r.estado || "ON-TIME";
-    let estadoClase = estadoFinal.toLowerCase().replace(/\s+/g, "-");
+    let estadoClase = estadoCssClass(estadoFinal);
     let extraClass = "";
     const totalMin = 120;
     let progreso = 100 - (diffMin / totalMin) * 100;
@@ -1019,15 +1037,23 @@ function computeFlightRowState(r) {
     if (progreso > 100) progreso = 100;
 
     if (!estadoManual) {
-        if (diffMin <= 0) {
-            estadoFinal = "ARRIVED";
-            estadoClase = "arrived";
+        if (isVagueBoardEstado(r.estado)) {
+            if (diffMin <= 0) {
+                estadoFinal = "ARRIVED";
+                estadoClase = "arrived";
+            } else if (diffMin <= 10) {
+                estadoFinal = "ARRIVING";
+                estadoClase = "arriving";
+            } else if (String(r.salidaOrigen || "").trim()) {
+                estadoFinal = "SALIÓ";
+                estadoClase = "salio";
+            }
+        } else {
+            estadoFinal = r.estado || "ON-TIME";
+            estadoClase = estadoCssClass(estadoFinal);
         }
-        if (diffMin <= 30 && diffMin > 0) extraClass = "blink";
-        if (diffMin <= 10 && diffMin > 0) {
-            estadoFinal = "ARRIVING";
-            estadoClase = "arriving";
-        }
+        if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ARRIVED") extraClass = "blink";
+        if (estadoFinal === "ARRIVING" || estadoClase === "arriving") extraClass = "blink";
     } else if (diffMin <= 30 && diffMin > 0) {
         extraClass = "blink";
     }

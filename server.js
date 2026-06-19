@@ -338,6 +338,10 @@ function isEstadoStaffLocked(estado) {
 }
 
 function pickApiEstado(row, arr, dep) {
+  if (rowHasArrivalLeg(row) && arr?.estado) return arr.estado;
+  if (rowHasDepartureLeg(row) && !rowHasArrivalLeg(row) && dep?.estado) {
+    return dep.estado;
+  }
   const ea = arr?.estado;
   const ed = dep?.estado;
   if (ea && ed && ea !== ed) {
@@ -348,6 +352,68 @@ function pickApiEstado(row, arr, dep) {
     return ea;
   }
   return ea || ed || null;
+}
+
+/** Minutos antes de ETA para mostrar LLEGANDO (alineado con tablero TV). */
+const ARRIVING_ETA_MIN = 10;
+
+/**
+ * Estado FIDS desde FlightAware (llegada a POP):
+ * ARRIVED · ARRIVING · SALIÓ (salió del origen) · DELAYED · ON-TIME · CANCELLED · DIVERTED
+ */
+function deriveBoardEstadoFromAeroArrival(f, dateStr) {
+  if (!f || typeof f !== "object") return undefined;
+  const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
+  const actIn = f.actual_in || f.actual_on;
+  if (actIn || st === "arrived" || st === "landed") return "ARRIVED";
+  if (st === "cancelled") return "CANCELLED";
+  if (st === "diverted") return "DIVERTED";
+
+  const anchorDate =
+    (dateStr && String(dateStr).trim()) ||
+    dateStrFromAeroIso(
+      f.estimated_in ||
+        f.estimated_on ||
+        f.scheduled_in ||
+        f.scheduled_on ||
+        f.scheduled_out
+    ) ||
+    dateStrTodayInRD();
+
+  const etaHhmm = formatHora(
+    f.estimated_in || f.estimated_on || f.scheduled_in || f.scheduled_on
+  );
+  let diffMin = null;
+  if (etaHhmm) {
+    const ins = rdWallClockToInstant(anchorDate, etaHhmm);
+    if (ins) diffMin = Math.floor((ins.getTime() - Date.now()) / 60000);
+  }
+
+  const actOff = f.actual_off || f.actual_out;
+  const enRoute = st === "en_route" || st === "active" || Boolean(actOff);
+
+  if (enRoute && diffMin !== null && diffMin <= ARRIVING_ETA_MIN) return "ARRIVING";
+  if (actOff || enRoute) {
+    if (diffMin === null || diffMin > ARRIVING_ETA_MIN) {
+      return st === "delayed" ? "DELAYED" : "SALIÓ";
+    }
+  }
+  if (st === "delayed") return "DELAYED";
+  return "ON-TIME";
+}
+
+/** Estado salida desde POP (pierna de salida local). */
+function deriveBoardEstadoFromAeroDeparture(f) {
+  if (!f || typeof f !== "object") return undefined;
+  const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
+  const actOut = f.actual_out || f.actual_off;
+  if (st === "cancelled") return "CANCELLED";
+  if (st === "diverted") return "DIVERTED";
+  if (actOut || st === "arrived" || st === "landed" || st === "en_route" || st === "active") {
+    return "DEPARTED";
+  }
+  if (st === "delayed") return "DELAYED";
+  return "ON-TIME";
 }
 
 function normalizeEstadoKey(estado) {
@@ -544,7 +610,9 @@ function aeroFlightDateRd(f) {
 }
 
 function aeroFlightIsTerminal(f, kind) {
-  if (kind === "arr") return mapAeroArrivalEstado(f) === "ARRIVED";
+  if (kind === "arr") {
+    return mapAeroArrivalEstado(f, aeroFlightDateRd(f)) === "ARRIVED";
+  }
   return mapAeroDepartureEstado(f) === "DEPARTED";
 }
 
@@ -575,24 +643,12 @@ function ingestAeroList(list, mapFn, bucket, rawBucket, targetDate, kind = "arr"
   }
 }
 
-function mapAeroArrivalEstado(f) {
-  const actIn = f.actual_on || f.actual_in;
-  const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
-  if (actIn || st === "arrived" || st === "landed") return "ARRIVED";
-  if (st === "cancelled") return "CANCELLED";
-  if (st === "diverted") return "DIVERTED";
-  if (st === "delayed") return "DELAYED";
-  if (st === "en_route" || st === "active") return "EN ROUTE";
-  return undefined;
+function mapAeroArrivalEstado(f, dateStr) {
+  return deriveBoardEstadoFromAeroArrival(f, dateStr);
 }
 
 function mapAeroDepartureEstado(f) {
-  const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
-  if (st === "cancelled") return "CANCELLED";
-  if (st === "arrived" || st === "landed") return "DEPARTED";
-  if (st === "en_route" || st === "active") return "EN ROUTE";
-  if (st === "delayed") return "DELAYED";
-  return undefined;
+  return deriveBoardEstadoFromAeroDeparture(f);
 }
 
 async function buildFlightsPayloadFlightAware() {
@@ -635,11 +691,12 @@ async function buildFlightsPayloadFlightAware() {
 
   const mapAeroLlegada = (f) => {
     const schedAnchor = f.scheduled_in || f.scheduled_on;
+    const dateAnchor = dateStrFromAeroIso(schedAnchor || f.scheduled_out);
     const { hora: horaLlegadaPop, fuente: llegadaFuente } = calcularLlegadaAero(f);
     const llegadaProgramada = formatHora(f.scheduled_in || f.scheduled_on);
     const llegadaEstimada = formatHora(f.estimated_in || f.estimated_on);
-    const estadoApi = mapAeroArrivalEstado(f);
-    const dateAnchor = dateStrFromAeroIso(schedAnchor || f.scheduled_out);
+    const estadoApi = mapAeroArrivalEstado(f, dateAnchor);
+    const enRuta = ["SALIÓ", "ARRIVING", "DELAYED", "EN ROUTE"].includes(estadoApi);
     return {
       vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
       origen: airportCode(f.origin),
@@ -656,7 +713,7 @@ async function buildFlightsPayloadFlightAware() {
       salida: "",
       gate: f.gate_destination || "",
       estado: estadoApi,
-      enRuta: estadoApi === "EN ROUTE",
+      enRuta,
       retraso: retrasoMinutosDesdeHHMM(
         horaLlegadaPop,
         llegadaProgramada,
@@ -722,11 +779,8 @@ async function buildFlightsPayload() {
 }
 
 function mapAeroEstadoToFirebase(est) {
-  if (est === "ARRIVED") return "ARRIVED";
-  if (est === "EN ROUTE") return "ON";
-  if (est === "CANCELLED") return "CANCELLED";
-  if (est === "DI" || est === "DIVERTED") return "DIVERTED";
-  return "ON";
+  if (!est) return "ON-TIME";
+  return String(est);
 }
 
 function mapFlightAwareToSuggestRow(f, tipo) {
@@ -1472,6 +1526,7 @@ async function syncPayloadToRtdb(payload) {
         const curEst = (row.estado || "").toString();
         if (apiEstado !== curEst) {
           patch.estado = apiEstado;
+          patch.manual = false;
           changelog.push("estado");
         }
       }

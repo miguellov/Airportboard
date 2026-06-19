@@ -4383,6 +4383,10 @@ window.buscarDatosVueloTarjeta = async (index) => {
                 const so = convertirHora24(arr.salidaOrigen);
                 if (so) rows[index].salidaOrigen = so;
             }
+            if (arr.estado) {
+                rows[index].estado = arr.estado;
+                rows[index].manual = false;
+            }
         }
         if (dep) {
             const hs = convertirHora24(dep.salida || "");
@@ -4517,14 +4521,16 @@ window.buscarVueloLlegada = async (input, index) => {
                           const lr = convertirHora24(f.llegadaReal || "");
                           const so = convertirHora24(f.salidaOrigen || "");
                           const orig = f.origen || f.destino || "";
-                          const ruta = f.enRuta ? " · EN RUTA" : "";
+                          const est = f.estado || "";
+                          const txtEst = est ? ` · ${est}` : "";
+                          const ruta = f.enRuta ? " · en ruta" : "";
                           const txtSo = so ? ` · salió ${so}${ruta}` : "";
                           const ret =
                               f.retraso != null && f.retraso !== ""
                                   ? String(f.retraso)
                                   : "";
-                          const label = `${escapeHtmlPanel(f.vuelo)} · desde ${escapeHtmlPanel(orig)} · POP ${escapeHtmlPanel(hora || "N/A")}${escapeHtmlPanel(txtSo)}`;
-                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${label}</div>`;
+                          const label = `${escapeHtmlPanel(f.vuelo)} · desde ${escapeHtmlPanel(orig)} · POP ${escapeHtmlPanel(hora || "N/A")}${escapeHtmlPanel(txtSo)}${escapeHtmlPanel(txtEst)}`;
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-e="${escapeDataAttr(est)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${label}</div>`;
                       })
                       .join("")
                 : flightsSearchEmptyHtml(qNow, data, "llegada");
@@ -4589,6 +4595,7 @@ window.seleccionarLlegadaApi = (index, el) => {
     const le = el.getAttribute("data-le") || "";
     const lr = el.getAttribute("data-lr") || "";
     const so = el.getAttribute("data-so") || "";
+    const est = el.getAttribute("data-e") || "";
     const dr = el.getAttribute("data-r");
     arr[index].llegada = l;
     arr[index].llegadaProgramada = lp || "";
@@ -4596,6 +4603,12 @@ window.seleccionarLlegadaApi = (index, el) => {
     arr[index].llegadaReal = lr || "";
     arr[index].vueloLlegada = v;
     arr[index].salidaOrigen = so;
+    if (est) {
+        arr[index].estado = est;
+        arr[index].manual = false;
+    } else {
+        arr[index].manual = false;
+    }
     if (dr !== null && dr !== "") {
         const rn = Number(dr);
         arr[index].retraso = Number.isFinite(rn) ? rn : null;
@@ -4606,7 +4619,6 @@ window.seleccionarLlegadaApi = (index, el) => {
             arr[index].retraso = a[0] * 60 + a[1] - (b[0] * 60 + b[1]);
         }
     }
-    arr[index].manual = true;
     saveFlightsForSelectedDate(toObj(arr));
     const box = document.getElementById("resultsLlegada" + index);
     if (box) box.innerHTML = "";

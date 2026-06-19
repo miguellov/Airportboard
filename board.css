@@ -440,8 +440,9 @@ td{
     height:4px;
 }
 .fids-table.fids-ultra-compact .status-pill{
-    font-size:clamp(9px, 1vw, 12px);
-    padding:.4em .75em;
+    font-size:clamp(11px, 1.2vw, 15px);
+    padding:.45em .85em;
+    letter-spacing:.02em;
 }
 .fids-table.fids-ultra-compact th{
     padding:7px 10px 8px;
@@ -560,14 +561,18 @@ td{
 
 .status-pill{
     display:inline-block;
-    font-family:'Orbitron', sans-serif;
-    font-size:clamp(11px, 1.2vw, 15px);
-    font-weight:700;
-    letter-spacing:.12em;
-    padding:.5em 1em;
+    font-family:'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size:clamp(13px, 1.5vw, 19px);
+    font-weight:800;
+    letter-spacing:.03em;
+    line-height:1.2;
+    padding:.52em 1.05em;
     border-radius:999px;
     border:1px solid transparent;
     white-space:nowrap;
+    text-transform:none;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:"kern" 1;
 }
 
 .status-pill--on-time{ color:#4ade80; background:rgba(34,197,94,.15); border-color:rgba(74,222,128,.4); }

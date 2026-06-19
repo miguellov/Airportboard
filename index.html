@@ -965,9 +965,31 @@ function flightProgressPlaneHtml(){
     </span>`;
 }
 
+function statusDisplayLabel(estado) {
+    const raw = String(estado || "").trim();
+    const n = raw.toUpperCase().replace(/\s+/g, "-").replace(/Ó/g, "O").replace(/_/g, "-");
+    const labels = {
+        ATERIZADO: "ATERIZADO",
+        ARRIVED: "ATERIZADO",
+        LANDED: "ATERIZADO",
+        ARRIVING: "LLEGANDO",
+        SALIO: "SALIÓ",
+        "ON-TIME": "A TIEMPO",
+        ON: "A TIEMPO",
+        DELAYED: "RETRASADO",
+        BOARDING: "ABORDAJE",
+        DEPARTED: "DESPEGÓ",
+        CANCELLED: "CANCELADO",
+        DIVERTED: "DESVIADO"
+    };
+    if (labels[n]) return labels[n];
+    if (raw.toUpperCase() === "SALIÓ") return "SALIÓ";
+    return raw || "A TIEMPO";
+}
+
 function statusPillHtml(estado, estadoClase){
     const cls = "status-pill status-pill--" + (estadoClase || "on-time");
-    return `<span class="${cls}">${escapeHtmlBoard(estado)}</span>`;
+    return `<span class="${cls}">${escapeHtmlBoard(statusDisplayLabel(estado))}</span>`;
 }
 
 function estadoCssClass(estado) {

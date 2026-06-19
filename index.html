@@ -215,7 +215,7 @@ function isLandingBoardEstado(estado) {
         .replace(/\s+/g, "-")
         .replace(/Ó/g, "O")
         .replace(/_/g, "-");
-    return n === "ARRIVED" || n === "LANDED" || n === "ATERIZADO";
+    return n === "ARRIVED" || n === "LANDED" || n === "ATERRIZADO" || n === "ATERIZADO";
 }
 
 function effectiveArrivalHhmm(r) {
@@ -971,9 +971,10 @@ function statusDisplayLabel(estado) {
     if (n === "ON-TIME" || n === "ON") return "ON-TIME";
     if (n === "DELAYED") return "DELAYED";
     const labels = {
-        ATERIZADO: "ATERIZADO",
-        ARRIVED: "ATERIZADO",
-        LANDED: "ATERIZADO",
+        ATERRIZADO: "ATERRIZADO",
+        ATERIZADO: "ATERRIZADO",
+        ARRIVED: "ATERRIZADO",
+        LANDED: "ATERRIZADO",
         ARRIVING: "LLEGANDO",
         SALIO: "SALIÓ",
         BOARDING: "ABORDAJE",
@@ -1074,7 +1075,7 @@ function computeFlightRowState(r) {
     if (progreso > 100) progreso = 100;
 
     if (flightHasLanded(r, diffMin)) {
-        estadoFinal = "ATERIZADO";
+        estadoFinal = "ATERRIZADO";
         estadoClase = "arrived";
     } else if (!estadoManual) {
         if (isVagueBoardEstado(r.estado)) {
@@ -1089,7 +1090,7 @@ function computeFlightRowState(r) {
             estadoFinal = r.estado || "ON-TIME";
             estadoClase = estadoCssClass(estadoFinal);
         }
-        if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ATERIZADO") extraClass = "blink";
+        if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ATERRIZADO") extraClass = "blink";
         if (estadoFinal === "ARRIVING" || estadoClase === "arriving") extraClass = "blink";
     } else if (diffMin <= 30 && diffMin > 0) {
         extraClass = "blink";

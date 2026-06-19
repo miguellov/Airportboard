@@ -330,11 +330,11 @@ function resolveApiFlight(lookup, rawIdent) {
 /** Estados que indican que el vuelo ya aterrizó en POP. */
 function isLandingBoardEstado(estado) {
   const n = normalizeEstadoKey(estado);
-  return n === "ARRIVED" || n === "LANDED" || n === "ATERIZADO";
+  return n === "ARRIVED" || n === "LANDED" || n === "ATERRIZADO" || n === "ATERIZADO";
 }
 
 function boardEstadoFromApi(estado) {
-  if (isLandingBoardEstado(estado)) return "ATERIZADO";
+  if (isLandingBoardEstado(estado)) return "ATERRIZADO";
   return estado || null;
 }
 
@@ -376,7 +376,7 @@ function deriveBoardEstadoFromAeroArrival(f, dateStr) {
   if (!f || typeof f !== "object") return undefined;
   const st = (f.status || "").toString().toLowerCase().replace(/\s+/g, "_");
   const actIn = f.actual_in || f.actual_on;
-  if (actIn || st === "arrived" || st === "landed") return "ATERIZADO";
+  if (actIn || st === "arrived" || st === "landed") return "ATERRIZADO";
   if (st === "cancelled") return "CANCELLED";
   if (st === "diverted") return "DIVERTED";
 
@@ -1470,9 +1470,11 @@ async function syncPayloadToRtdb(payload) {
         rowHasArrivalLeg(row) &&
         isLandingBoardEstado(stStored)
       ) {
+        const pausePatch = applyAutoPausePatch({});
+        if (stStored === "ATERIZADO") pausePatch.estado = "ATERRIZADO";
         rowPatches.push({
           key,
-          patch: applyAutoPausePatch({})
+          patch: pausePatch
         });
         updatedRows++;
         changeLines.push(`${identLabel}: sync API pausado (ya aterrizado)`);
@@ -1551,7 +1553,7 @@ async function syncPayloadToRtdb(payload) {
         rowHasArrivalLeg(row) &&
         !isLandingBoardEstado(row.estado)
       ) {
-        patch.estado = "ATERIZADO";
+        patch.estado = "ATERRIZADO";
         patch.manual = false;
         changelog.push("estado");
       }

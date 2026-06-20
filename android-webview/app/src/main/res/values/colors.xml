@@ -2,5 +2,5 @@
 <resources>
     <color name="splash_bg">#050508</color>
     <color name="accent_cyan">#1FF3FF</color>
-    <color name="iconBackground">#FFFFFF</color>
+    <color name="icon_background">#050508</color>
 </resources>

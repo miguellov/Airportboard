@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">POP FIDS</string>
+    <string name="offline_title">Sin conexión</string>
+    <string name="offline_message">No se puede cargar el panel de vuelos. Por favor, revisa tu conexión a internet.</string>
+    <string name="retry_button">Reintentar</string>
 </resources>

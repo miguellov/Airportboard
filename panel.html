@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#050508">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>POP FIDS — Panel de Control</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +28,10 @@
         <input id="panelLoginUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="tu usuario">
         <label for="panelLoginPass">Clave</label>
         <input id="panelLoginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <label class="panel-login-remember" for="panelLoginRemember">
+            <input type="checkbox" id="panelLoginRemember" checked>
+            <span>Mantener sesión iniciada en este dispositivo</span>
+        </label>
         <p id="panelLoginError" class="panel-login-error" hidden></p>
         <button type="button" id="panelLoginBtn" class="panel-login-btn">Entrar</button>
     </div>
@@ -31,7 +39,12 @@
 
 <div class="panel-app panel-app--locked" id="panelApp">
 
-<header class="panel-header">
+<header class="panel-header panel-header--with-menu">
+    <button type="button" id="configMenuBtn" class="config-menu-btn config-menu-btn--global" aria-label="Abrir configuración" aria-expanded="false" aria-controls="configMenuDrawer" onclick="toggleConfigMenu()">
+        <span class="config-menu-btn__bar"></span>
+        <span class="config-menu-btn__bar"></span>
+        <span class="config-menu-btn__bar"></span>
+    </button>
     <div class="panel-header__brand">
         <div class="panel-header__icon" aria-hidden="true">✈</div>
         <div>
@@ -39,17 +52,65 @@
             <p class="panel-header__sub">Gregorio Luperón · MDPP / POP</p>
         </div>
     </div>
-    <div class="panel-header__user" id="panelUserBar" hidden>
-        <span id="panelUserLabel"></span>
-        <button type="button" class="panel-header__logout" onclick="panelLogout()">Salir</button>
+    <div class="panel-header__actions">
+        <div class="panel-header__tools" aria-label="Tema y pantalla">
+            <button type="button" class="panel-header__tool-btn" onclick="setTheme('dark')" title="Tema oscuro">🌙</button>
+            <button type="button" class="panel-header__tool-btn" onclick="setTheme('light')" title="Tema claro">🌞</button>
+            <button type="button" class="panel-header__tool-btn" onclick="setTheme('airport')" title="Tema aeropuerto">✈️</button>
+            <button type="button" class="panel-header__tool-btn" onclick="toggleFullScreen()" title="Pantalla completa">🖥️</button>
+        </div>
+        <div class="panel-header__user" id="panelUserBar" hidden>
+            <span id="panelUserLabel"></span>
+            <button type="button" class="panel-header__logout" onclick="panelLogout()">Salir</button>
+        </div>
     </div>
 </header>
+
+<div id="configMenuOverlay" class="config-menu-overlay" onclick="closeConfigMenu()" hidden></div>
+<nav id="configMenuDrawer" class="config-menu-drawer" aria-label="Configuración" hidden>
+    <div class="config-menu-drawer__head">
+        <div>
+            <strong class="config-menu-drawer__brand">⚙️ Configuración</strong>
+            <p class="config-menu-drawer__hint">POP FIDS · Panel</p>
+        </div>
+        <button type="button" class="config-menu-drawer__close" onclick="closeConfigMenu()" aria-label="Cerrar menú">✕</button>
+    </div>
+    <div class="config-menu-drawer__nav">
+        <button type="button" class="config-menu-item is-active" data-config-section="tv" onclick="showConfigSection('tv')">
+            <span class="config-menu-item__icon" aria-hidden="true">📺</span>
+            <span class="config-menu-item__copy">
+                <strong>Programación TV</strong>
+                <small>Rotación y tiempos en pantalla</small>
+            </span>
+        </button>
+        <button type="button" class="config-menu-item" data-config-section="general" onclick="showConfigSection('general')">
+            <span class="config-menu-item__icon" aria-hidden="true">⚙️</span>
+            <span class="config-menu-item__copy">
+                <strong>General</strong>
+                <small>Duración, voz en TV y auto-cambio</small>
+            </span>
+        </button>
+        <button type="button" class="config-menu-item" data-config-section="empleados" onclick="showConfigSection('empleados')">
+            <span class="config-menu-item__icon" aria-hidden="true">👥</span>
+            <span class="config-menu-item__copy">
+                <strong>Empleados</strong>
+                <small>Directorio único para todos los vuelos</small>
+            </span>
+        </button>
+        <button type="button" class="config-menu-item" data-config-section="users" id="configMenuUsers" hidden onclick="showConfigSection('users')">
+            <span class="config-menu-item__icon" aria-hidden="true">👤</span>
+            <span class="config-menu-item__copy">
+                <strong>Usuarios</strong>
+                <small>Accesos y roles admin</small>
+            </span>
+        </button>
+    </div>
+</nav>
 
 <div class="tabs" role="tablist" aria-label="Secciones del panel">
     <button type="button" class="tab-active" data-tab="flightsTab" onclick="showTab('flightsTab')">🛫 Vuelos</button>
     <button type="button" data-tab="positionsTab" onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
     <button type="button" data-tab="anunciosTab" onclick="showTab('anunciosTab')">📢 Anuncios</button>
-    <button type="button" data-tab="configTab" onclick="showTab('configTab')">⚙️ Config</button>
 </div>
 
 <div class="board-preview-card" id="boardPreviewCard">
@@ -162,33 +223,6 @@ document.addEventListener("DOMContentLoaded", function () {
 <!-- ========================= -->
 <div id="flightsTab">
 
-    <!-- MENSAJE -->
-    <div class="ticker-box">
-        <div id="panelApiSetup">
-        <div id="panelApiBanner" class="panel-api-banner" hidden>
-            <strong>⚠️ Falta el servidor online</strong>
-            <p>Despliega <code>server.js</code> en <a href="https://render.com" target="_blank" rel="noopener">Render</a> (gratis), pega la URL en <code>api-config.js</code> del repo y vuelve a abrir. O entra directo a <code>https://tu-app.onrender.com/panel.html</code>.</p>
-        </div>
-        <label>🖥️ URL del servidor API (solo si no usas api-config.js):</label>
-        <input id="panelApiUrlInput" type="url" placeholder="https://airportboard-xxxx.onrender.com">
-        <button type="button" onclick="savePanelApiUrl()">💾 Guardar URL API</button>
-        <p class="ticker-box-hint">Recomendado: servidor en Render + URL en <code>api-config.js</code> → funciona en PC, celular y GitHub Pages sin configurar cada dispositivo.</p>
-        <hr style="margin: 12px 0; border: 1px solid #334155;">
-        </div>
-        <label>📢 Mensaje del Aeropuerto:</label>
-        <input id="tickerInput" placeholder="Escribe mensaje...">
-        <label>Duración (segundos):</label>
-        <input id="tickerDuration" type="number" value="25" min="1" max="120">
-        <button onclick="saveTicker()">💾 Guardar Mensaje</button>
-        <hr style="margin: 12px 0; border: 1px solid #334155;">
-        <label>🔊 Avisos de voz antes de llegada (minutos, separados por coma):</label>
-        <input id="arrivalSpeechMinutes" placeholder="30, 15, 1" value="30, 15, 1">
-        <label>Tolerancia sync API (± minutos, cubre actualizaciones cada 10 min):</label>
-        <input id="arrivalSpeechTolerance" type="number" value="7" min="3" max="15">
-        <button type="button" onclick="saveArrivalSpeechConfig()">🔊 Guardar Avisos de Voz</button>
-        <p class="ticker-box-hint">La TV debe tocarse una vez para activar la voz. Si la API cambia la hora, los avisos se recalculan solos.</p>
-    </div>
-
     <div class="toolbar-pro top-buttons" id="flightsToolbar">
         <div class="toolbar-pro__row">
             <div class="toolbar-pro__group toolbar-pro__group--primary">
@@ -207,10 +241,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="toolbar-btn__icon" aria-hidden="true">↪</span>
                     <span class="toolbar-btn__label">Redo</span>
                 </button>
-                <button type="button" class="toolbar-btn toolbar-btn--ghost" onclick="changeDateFlights()">
-                    <span class="toolbar-btn__icon" aria-hidden="true">📅</span>
-                    <span class="toolbar-btn__label">Cambiar Fecha</span>
-                </button>
+                <label class="toolbar-date-picker" for="flightsDatePicker">
+                    <span class="toolbar-date-picker__label">📅 Fecha</span>
+                    <input type="date" id="flightsDatePicker" aria-label="Seleccionar fecha de vuelos" onchange="changeDateFlights(this.value)">
+                </label>
+                <button type="button" class="toolbar-btn toolbar-btn--ghost toolbar-btn--compact" onclick="goToTodayFlights()" title="Ir al día de hoy">Hoy</button>
                 <button type="button" class="toolbar-btn toolbar-btn--ghost" id="btnManualFlightRefresh" onclick="manualFlightRefresh()">
                     <span class="toolbar-btn__icon" aria-hidden="true">↻</span>
                     <span class="toolbar-btn__label">Refresh Manual</span>
@@ -227,22 +262,124 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="toolbar-btn__label">Play sync</span>
                 </button>
             </div>
-            <span class="toolbar-pro__sep" aria-hidden="true"></span>
-            <div class="toolbar-pro__group toolbar-pro__group--icon">
-                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('dark')" title="Tema oscuro">🌙</button>
-                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('light')" title="Tema claro">🌞</button>
-                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="setTheme('airport')" title="Tema aeropuerto">✈️</button>
-                <button type="button" class="toolbar-btn toolbar-btn--icon" onclick="toggleFullScreen()" title="Pantalla completa">🖥️</button>
-            </div>
         </div>
         <div class="toolbar-pro__status-wrap">
             <span id="flightRefreshStatus" class="flight-refresh-status toolbar-pro__status" aria-live="polite"></span>
         </div>
     </div>
 
-    <br>
+    <div id="panel" class="flights-panel"></div>
 
-    <div id="panel"></div>
+    <!-- TICKER (colapsado por defecto — prioridad a vuelos) -->
+    <div class="ticker-box ticker-studio ticker-studio--collapsed" id="tickerStudio">
+        <button type="button" class="ticker-studio__bar" id="tickerStudioToggle" onclick="toggleTickerStudio()" aria-expanded="false" aria-controls="tickerStudioBody">
+            <span class="ticker-studio__bar-icon" aria-hidden="true">📢</span>
+            <span class="ticker-studio__bar-text">
+                <strong class="ticker-studio__bar-title">Ticker TV</strong>
+                <span id="tickerBarSnippet" class="ticker-studio__bar-snippet">Toca para editar el mensaje</span>
+            </span>
+            <span class="ticker-studio__bar-chev" aria-hidden="true">▼</span>
+        </button>
+        <div class="ticker-studio__body" id="tickerStudioBody" hidden>
+            <details class="ticker-api-details" id="panelApiSetup">
+                <summary class="ticker-api-details__summary">🖥️ Servidor API <span class="ticker-api-details__hint">(opcional)</span></summary>
+                <div class="ticker-api-details__body">
+                    <div id="panelApiBanner" class="panel-api-banner" hidden>
+                        <strong>⚠️ Falta el servidor online</strong>
+                        <p>Despliega <code>server.js</code> en <a href="https://render.com" target="_blank" rel="noopener">Render</a> (gratis), pega la URL en <code>api-config.js</code> del repo y vuelve a abrir. O entra directo a <code>https://tu-app.onrender.com/panel.html</code>.</p>
+                    </div>
+                    <label for="panelApiUrlInput">URL del servidor API</label>
+                    <input id="panelApiUrlInput" type="url" placeholder="https://airportboard-xxxx.onrender.com">
+                    <button type="button" class="btn-ghost" onclick="savePanelApiUrl()">💾 Guardar URL API</button>
+                    <p class="ticker-box-hint">Recomendado: servidor en Render + URL en <code>api-config.js</code> → funciona en PC, celular y GitHub Pages sin configurar cada dispositivo.</p>
+                </div>
+            </details>
+
+            <header class="ticker-studio__head">
+                <div class="ticker-studio__head-copy">
+                    <h3 class="ticker-studio__title">Ticker del aeropuerto</h3>
+                    <p class="ticker-studio__sub">Franja inferior de la TV · vista previa en vivo</p>
+                </div>
+                <span id="tickerSaveStatus" class="ticker-studio__status" aria-live="polite"></span>
+            </header>
+
+            <div class="ticker-studio__preview" aria-label="Vista previa ticker TV">
+                <div class="ticker-studio__preview-badge">INFO</div>
+                <div class="ticker-studio__preview-viewport">
+                    <div id="tickerPreviewText" class="ticker-studio__preview-text">Bienvenidos a Puerto Plata</div>
+                </div>
+            </div>
+
+            <div class="ticker-studio__templates" aria-label="Plantillas rápidas">
+                <div class="ticker-studio__templates-head">
+                    <span class="ticker-studio__templates-label">Plantillas</span>
+                    <button type="button" class="ticker-templates-manage-btn" id="tickerTemplatesManageBtn" onclick="toggleTickerTemplatesEditor()">⚙️ Gestionar</button>
+                </div>
+                <div id="tickerTemplatePills" class="ticker-template-pills"></div>
+                <div id="tickerTemplatesEditor" class="ticker-templates-editor" hidden>
+                    <p class="ticker-templates-editor__hint">Toca una plantilla para usarla, edita el texto o agrega nuevas. Pulsa <strong>Guardar plantillas</strong> para conservar los cambios.</p>
+                    <div id="tickerTemplatesList" class="ticker-templates-list"></div>
+                    <div class="ticker-templates-add">
+                        <label class="field-label" for="tickerTemplateNewLabel">Nueva plantilla</label>
+                        <input id="tickerTemplateNewLabel" type="text" maxlength="40" placeholder="Nombre corto (ej. Bienvenida)">
+                        <textarea id="tickerTemplateNewText" rows="2" maxlength="280" placeholder="Texto que aparecerá en la TV…"></textarea>
+                        <button type="button" class="btn-ghost" onclick="addTickerTemplate()">➕ Agregar plantilla</button>
+                    </div>
+                    <div class="ticker-templates-editor__actions">
+                        <button type="button" class="btn-primary" onclick="saveTickerTemplates()">💾 Guardar plantillas</button>
+                        <button type="button" class="btn-ghost" onclick="toggleTickerTemplatesEditor(false)">Cerrar</button>
+                    </div>
+                    <p id="tickerTemplatesSaveStatus" class="ticker-templates-save-status" aria-live="polite"></p>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="tickerInput">Mensaje en pantalla</label>
+                <textarea id="tickerInput" class="ticker-studio__textarea" rows="3" maxlength="280" placeholder="Escribe el mensaje que rotará en la franja inferior de la TV…" oninput="updateTickerPreview()"></textarea>
+                <div class="ticker-studio__meta">
+                    <span id="tickerCharCount" class="ticker-studio__chars">0 / 280</span>
+                    <span class="ticker-studio__meta-hint">Mensajes largos: sube la duración para leerlos con calma</span>
+                </div>
+            </div>
+
+            <div class="ticker-studio__speed">
+                <label class="field-label">Velocidad de rotación</label>
+                <div class="ticker-speed-pills" role="group" aria-label="Velocidad del ticker">
+                    <button type="button" class="ticker-speed-pill" data-sec="45" onclick="setTickerSpeed(45)">Lento</button>
+                    <button type="button" class="ticker-speed-pill is-active" data-sec="25" onclick="setTickerSpeed(25)">Normal</button>
+                    <button type="button" class="ticker-speed-pill" data-sec="15" onclick="setTickerSpeed(15)">Rápido</button>
+                </div>
+                <div class="ticker-studio__duration-row">
+                    <input id="tickerDurationRange" type="range" min="10" max="90" step="1" value="25" aria-label="Duración del ciclo en segundos" oninput="syncTickerDurationFromRange(this.value)">
+                    <span class="ticker-studio__duration-label"><strong id="tickerDurationLabel">25</strong> seg por ciclo</span>
+                </div>
+                <input id="tickerDuration" type="number" value="25" min="10" max="120" hidden tabindex="-1" aria-hidden="true">
+            </div>
+
+            <div class="ticker-studio__actions">
+                <button type="button" class="btn-primary ticker-studio__save" onclick="saveTicker()">💾 Publicar en TV</button>
+                <button type="button" class="btn-ghost" onclick="openTickerPreviewModal()">⛶ Vista TV</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tickerPreviewModal" class="ticker-preview-modal" hidden aria-hidden="true">
+        <div class="ticker-preview-modal__backdrop" onclick="closeTickerPreviewModal()"></div>
+        <div class="ticker-preview-modal__panel" role="dialog" aria-labelledby="tickerPreviewModalTitle">
+            <header class="ticker-preview-modal__head">
+                <h4 id="tickerPreviewModalTitle">Vista previa — franja TV</h4>
+                <button type="button" class="ticker-preview-modal__close" onclick="closeTickerPreviewModal()" aria-label="Cerrar">✕</button>
+            </header>
+            <div class="ticker-preview-modal__screen">
+                <div class="ticker-studio__preview ticker-studio__preview--modal">
+                    <div class="ticker-studio__preview-badge">INFO</div>
+                    <div class="ticker-studio__preview-viewport">
+                        <div id="tickerPreviewModalText" class="ticker-studio__preview-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -352,15 +489,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div id="positionsExtraList" class="positions-cards-list"></div>
                 <div id="positionsExtraAdmin" class="positions-extra-admin"></div>
             </div>
-
-            <div class="positions-global-settings">
-                <label class="field-label" for="positionsGapSeconds">Intervalo entre rotaciones (segundos)</label>
-                <div class="pos-title-row">
-                    <input id="positionsGapSeconds" type="number" value="45" min="20" max="300">
-                    <button type="button" onclick="savePositionsGap()">💾 Guardar</button>
-                </div>
-                <p class="positions-hint">Cada intervalo, la TV muestra las asignaciones a pantalla completa y rota entre aerolíneas visibles.</p>
-            </div>
         </section>
 
         <section class="card-positions positions-preview-section">
@@ -373,24 +501,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     </div>
 
-    <section class="card-positions empleados-section">
-        <div class="empleados-head">
-            <div>
-                <h3>Directorio de empleados</h3>
-                <p class="positions-hint">Guarda los nombres del equipo para asignarlos rápido en cada posición.</p>
-            </div>
-            <span id="empleadosCountBadge" class="positions-count-badge">0 empleados</span>
+    <section class="card-positions positions-global-settings">
+        <label class="field-label" for="positionsGapSeconds">Intervalo entre rotaciones (segundos)</label>
+        <div class="pos-title-row positions-gap-row">
+            <input id="positionsGapSeconds" type="number" value="45" min="20" max="300">
+            <button type="button" onclick="savePositionsGap()">💾 Guardar</button>
         </div>
-        <div class="empleados-airline-pills" role="tablist" aria-label="Aerolínea del empleado">
-            <button type="button" class="empleados-airline-pill active" data-pool="jetblue" onclick="setEmpleadosPool('jetblue')">🔵 JetBlue</button>
-            <button type="button" class="empleados-airline-pill" data-pool="westjet" onclick="setEmpleadosPool('westjet')">🟢 WestJet</button>
-            <button type="button" class="empleados-airline-pill" data-pool="both" onclick="setEmpleadosPool('both')">👥 Ambas</button>
-        </div>
-        <div class="empleados-add-row">
-            <input id="newEmpleadoName" placeholder="Nombre completo del empleado">
-            <button type="button" onclick="addEmpleado()">➕ Agregar empleado</button>
-        </div>
-        <div id="empleadosList" class="empleados-chips"></div>
+        <p class="positions-hint">Cada intervalo, la TV muestra las asignaciones a pantalla completa y rota entre aerolíneas visibles.</p>
     </section>
 
     <div class="asignaciones-container">
@@ -455,10 +572,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         <span class="anuncio-file-zone-hint">JPG, PNG, MP4, WebM</span>
                         <input type="file" id="fileAnuncio" accept="image/*,video/*">
                     </label>
-                </div>
-                <div class="field-group anuncio-preview-block">
-                    <label class="field-label">Vista previa</label>
-                    <div id="previewMsg" class="anuncio-live-preview">Aquí aparecerá la vista previa</div>
                 </div>
             </div>
 
@@ -657,14 +770,42 @@ document.addEventListener("DOMContentLoaded", function () {
                             <span class="field-suffix">seg</span>
                         </div>
                     </div>
-                    <div class="field-group">
-                        <label class="field-label">Tamaño imagen <span id="anuncioSizeValue">60</span>%</label>
-                        <input id="anuncioImageScale" type="range" min="30" max="100" step="5" value="60" oninput="updateAnuncioScaleLabel(this.value)">
+                </div>
+                <div id="anuncioMediaTvBlock" class="anuncio-media-tv-settings" style="display:none;">
+                    <div class="anuncio-media-tv-live">
+                        <label class="field-label">Vista previa TV (16:9) <span class="anuncio-live-badge">en vivo</span></label>
+                        <div id="previewMsg" class="anuncio-live-preview">
+                            <div class="anuncio-tv-preview" id="previewMsgTv">
+                                <div class="anuncio-tv-preview-screen" id="previewMsgTvScreen">Sube una imagen para ver el ajuste</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="anuncio-media-tv-hint">Si la imagen no es 16:9 (póster, vertical): prueba <strong>Ver completa</strong> con fondo blanco, o <strong>Llenar TV</strong> si aceptas recorte. Sube el % si se ve pequeña.</p>
+                    <div class="field-row field-row--tight anuncio-media-tv-row">
+                        <div class="field-group">
+                            <label class="field-label">Ajuste en TV</label>
+                            <div class="anuncio-fit-pills">
+                                <label class="anuncio-fit-pill"><input type="radio" name="anuncioImageFit" value="contain" checked onchange="updateAnuncioMediaPreview()"> Ver completa</label>
+                                <label class="anuncio-fit-pill"><input type="radio" name="anuncioImageFit" value="cover" onchange="updateAnuncioMediaPreview()"> Llenar TV</label>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="anuncioImageBg">Fondo (bandas)</label>
+                            <select id="anuncioImageBg" onchange="updateAnuncioMediaPreview()">
+                                <option value="#000000">Negro</option>
+                                <option value="#ffffff">Blanco</option>
+                                <option value="#0f172a">Gris oscuro</option>
+                            </select>
+                        </div>
+                        <div class="field-group anuncio-media-scale-group">
+                            <label class="field-label">Tamaño <span id="anuncioSizeValue">100</span>%</label>
+                            <input id="anuncioImageScale" type="range" min="30" max="150" step="5" value="100" oninput="updateAnuncioMediaPreview()">
+                        </div>
                     </div>
                 </div>
                 <div class="anuncios-editor-actions">
                     <button type="button" class="btn-primary" onclick="guardarAnuncio()">💾 <span id="guardarAnuncioLabel">Guardar anuncio</span></button>
-                    <button type="button" class="btn-ghost" onclick="saveAnuncioImageScale()">🖼️ Guardar tamaño global</button>
+                    <button type="button" class="btn-ghost" onclick="saveAnuncioMediaSettings()">🖼️ Guardar ajuste TV global</button>
                 </div>
             </footer>
         </section>
@@ -686,51 +827,10 @@ document.addEventListener("DOMContentLoaded", function () {
 <!-- ========================= -->
 <div id="configTab" class="config-shell" style="display:none;">
 
-    <div class="config-topbar">
-        <button type="button" id="configMenuBtn" class="config-menu-btn" aria-label="Abrir menú de configuración" aria-expanded="false" aria-controls="configMenuDrawer" onclick="toggleConfigMenu()">
-            <span class="config-menu-btn__bar"></span>
-            <span class="config-menu-btn__bar"></span>
-            <span class="config-menu-btn__bar"></span>
-        </button>
-        <div class="config-topbar__text">
-            <h2 id="configSectionTitle" class="config-topbar__title">Programación TV</h2>
-            <p id="configSectionSub" class="config-topbar__sub">Orden y duración de secciones en rotación</p>
-        </div>
-    </div>
-
-    <div id="configMenuOverlay" class="config-menu-overlay" onclick="closeConfigMenu()" hidden></div>
-    <nav id="configMenuDrawer" class="config-menu-drawer" aria-label="Menú de configuración" hidden>
-        <div class="config-menu-drawer__head">
-            <div>
-                <strong class="config-menu-drawer__brand">⚙️ Configuración</strong>
-                <p class="config-menu-drawer__hint">POP FIDS · Panel</p>
-            </div>
-            <button type="button" class="config-menu-drawer__close" onclick="closeConfigMenu()" aria-label="Cerrar menú">✕</button>
-        </div>
-        <div class="config-menu-drawer__nav">
-            <button type="button" class="config-menu-item is-active" data-config-section="tv" onclick="showConfigSection('tv')">
-                <span class="config-menu-item__icon" aria-hidden="true">📺</span>
-                <span class="config-menu-item__copy">
-                    <strong>Programación TV</strong>
-                    <small>Rotación y tiempos en pantalla</small>
-                </span>
-            </button>
-            <button type="button" class="config-menu-item" data-config-section="general" onclick="showConfigSection('general')">
-                <span class="config-menu-item__icon" aria-hidden="true">⚙️</span>
-                <span class="config-menu-item__copy">
-                    <strong>General</strong>
-                    <small>Duración y auto-cambio de vuelos</small>
-                </span>
-            </button>
-            <button type="button" class="config-menu-item" data-config-section="users" id="configMenuUsers" hidden onclick="showConfigSection('users')">
-                <span class="config-menu-item__icon" aria-hidden="true">👤</span>
-                <span class="config-menu-item__copy">
-                    <strong>Usuarios</strong>
-                    <small>Accesos y roles admin</small>
-                </span>
-            </button>
-        </div>
-    </nav>
+    <header class="config-page-head">
+        <h2 id="configSectionTitle" class="config-page-head__title">Programación TV</h2>
+        <p id="configSectionSub" class="config-page-head__sub">Orden y duración de secciones en rotación</p>
+    </header>
 
     <div class="config-content">
 
@@ -792,6 +892,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
                     </div>
                 </div>
+                <div id="boardProgramDetailPanel" class="board-program-detail-panel" aria-live="polite"></div>
             </div>
 
             <div id="boardProgramPreviewLive" class="board-program-preview-mode" role="tabpanel" hidden>
@@ -826,7 +927,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="config-section-card">
                 <header class="config-section-card__head">
                     <h3>Configuración general</h3>
-                    <p>Valores por defecto y automatización del panel.</p>
+                    <p>Valores por defecto, automatización y avisos de voz en TV.</p>
                 </header>
                 <div class="config-form-grid">
                     <label class="config-field">
@@ -841,6 +942,68 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="config-section-card__actions">
                     <button type="button" class="config-save-btn" onclick="saveConfig()">💾 Guardar cambios</button>
                 </div>
+
+                <hr class="config-section-divider">
+
+                <header class="config-section-card__head config-section-card__head--sub">
+                    <h3>🔊 Avisos de voz (TV)</h3>
+                    <p>Minutos antes de la llegada en los que la TV anuncia el vuelo por voz.</p>
+                </header>
+                <div class="config-form-grid">
+                    <label class="config-field config-field--wide">
+                        <span class="config-field__label">Minutos antes de llegada (separados por coma)</span>
+                        <input id="arrivalSpeechMinutes" type="text" placeholder="30, 15, 1" value="30, 15, 1">
+                    </label>
+                    <label class="config-field">
+                        <span class="config-field__label">Tolerancia sync API (± minutos)</span>
+                        <input id="arrivalSpeechTolerance" type="number" value="7" min="3" max="15">
+                    </label>
+                </div>
+                <p class="config-field-hint">Cubre actualizaciones de la API cada ~10 min. La TV debe tocarse una vez para activar la voz; si la API cambia la hora, los avisos se recalculan solos.</p>
+
+                <div class="arrival-speech-preview">
+                    <header class="arrival-speech-preview__head">
+                        <strong>Vista previa de audio</strong>
+                        <span class="arrival-speech-preview__badge">Mismo TTS que la TV</span>
+                    </header>
+                    <div class="arrival-speech-preview__grid">
+                        <label class="config-field config-field--wide">
+                            <span class="config-field__label">Vuelo de ejemplo</span>
+                            <input id="arrivalSpeechPreviewFlight" type="text" value="B6 627/1528" placeholder="Ej. B6 627/1528" oninput="updateArrivalSpeechPreviewPhrase()">
+                        </label>
+                        <label class="config-field">
+                            <span class="config-field__label">Escenario (minutos antes)</span>
+                            <select id="arrivalSpeechPreviewMinute" onchange="updateArrivalSpeechPreviewPhrase()"></select>
+                        </label>
+                    </div>
+                    <div class="arrival-speech-preview__phrase" id="arrivalSpeechPreviewPhrase" aria-live="polite">—</div>
+                    <div class="arrival-speech-preview__actions">
+                        <button type="button" class="config-save-btn config-save-btn--secondary" onclick="previewArrivalSpeech()">▶ Escuchar aviso</button>
+                        <button type="button" class="config-save-btn config-save-btn--ghost" onclick="stopArrivalSpeechPreview()">⏹ Detener</button>
+                    </div>
+                    <p id="arrivalSpeechPreviewStatus" class="config-field-hint arrival-speech-preview__status"></p>
+                </div>
+
+                <div class="config-section-card__actions">
+                    <button type="button" class="config-save-btn" onclick="saveArrivalSpeechConfig()">🔊 Guardar avisos de voz</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="configSectionEmpleados" class="config-section" data-config-section="empleados">
+            <div class="config-section-card empleados-section">
+                <header class="config-section-card__head empleados-head">
+                    <div>
+                        <h3>Directorio de empleados</h3>
+                        <p class="positions-hint">Un solo listado para JetBlue, WestJet y todos los vuelos. Úsalo al asignar posiciones.</p>
+                    </div>
+                    <span id="empleadosCountBadge" class="positions-count-badge">0 empleados</span>
+                </header>
+                <div class="empleados-add-row">
+                    <input id="newEmpleadoName" placeholder="Nombre completo del empleado">
+                    <button type="button" onclick="addEmpleado()">➕ Agregar empleado</button>
+                </div>
+                <div id="empleadosList" class="empleados-chips"></div>
             </div>
         </section>
 
@@ -1131,20 +1294,47 @@ function updateAnunciosStats(data) {
     if(totalBadge) totalBadge.textContent = `${total} guardado${total === 1 ? "" : "s"}`;
 }
 
-function updatePreviewMsg() {
-    const el = document.getElementById("previewMsg");
+function getAnuncioMediaDisplaySettings() {
+    const scaleRaw = parseInt(document.getElementById("anuncioImageScale")?.value, 10);
+    const scale = Number.isNaN(scaleRaw) ? 100 : Math.min(150, Math.max(30, scaleRaw));
+    const fit = document.querySelector('input[name="anuncioImageFit"]:checked')?.value === "cover" ? "cover" : "contain";
+    const bg = document.getElementById("anuncioImageBg")?.value || "#000000";
+    return { scale, fit, bg };
+}
+
+function applyAnuncioMediaVars(el) {
     if(!el) return;
+    const { scale, fit, bg } = getAnuncioMediaDisplaySettings();
+    el.style.setProperty("--anuncio-media-scale", scale);
+    el.style.setProperty("--anuncio-media-fit", fit);
+    el.style.setProperty("--anuncio-media-bg", bg);
+}
+
+function updatePreviewMsg() {
+    const screen = document.getElementById("previewMsgTvScreen");
+    if(!screen) return;
     const texto = document.getElementById("textoAnuncio")?.value || "";
-    let html = texto ? `<div>${escapeHtmlPanel(texto)}</div>` : "";
+    let html = "";
     if(msgMediaPreviewData) {
         if(String(msgMediaPreviewData).startsWith("data:video")) {
-            html += `<video src="${msgMediaPreviewData}" controls muted playsinline style="max-width:100%;margin-top:8px;border-radius:6px;"></video>`;
+            html = `<div class="anuncio-msg-media-shell"><video class="anuncio-msg-media-fit" src="${msgMediaPreviewData}" muted playsinline autoplay loop></video></div>`;
         } else {
-            html += `<img src="${msgMediaPreviewData}" alt="" style="max-width:100%;margin-top:8px;border-radius:6px;">`;
+            html = `<div class="anuncio-msg-media-shell"><img class="anuncio-msg-media-fit" src="${msgMediaPreviewData}" alt=""></div>`;
         }
+    } else if(texto) {
+        html = `<div class="anuncio-tv-preview-text">${escapeHtmlPanel(texto)}</div>`;
     }
-    el.innerHTML = html || "Aquí aparecerá la vista previa";
+    screen.innerHTML = html || "Sube una imagen para ver el ajuste";
+    updateAnuncioMediaPreview();
 }
+
+window.updateAnuncioMediaPreview = () => {
+    const screen = document.getElementById("previewMsgTvScreen");
+    if(!screen) return;
+    const { scale } = getAnuncioMediaDisplaySettings();
+    updateAnuncioScaleLabel(scale);
+    applyAnuncioMediaVars(screen);
+};
 
 window.limpiarEdicionAnuncio = () => {
     editingAnuncioKey = null;
@@ -1296,7 +1486,8 @@ document.getElementById("fileAnuncio")?.addEventListener("change", (e) => {
 /* 🔥 TABS */
 const CONFIG_SECTION_META = {
     tv: { title: "Programación TV", sub: "Orden y duración de secciones en rotación" },
-    general: { title: "General", sub: "Duración por defecto y auto-cambio de vuelos" },
+    general: { title: "General", sub: "Duración, auto-cambio de vuelos y avisos de voz" },
+    empleados: { title: "Empleados", sub: "Directorio único para todos los vuelos" },
     users: { title: "Usuarios", sub: "Accesos y roles del panel" }
 };
 let configMenuOpen = false;
@@ -1331,9 +1522,8 @@ window.closeConfigMenu = () => {
     document.body.classList.remove("config-menu-open");
 };
 
-window.showConfigSection = (sectionId) => {
+function applyConfigSectionUI(sectionId){
     const meta = CONFIG_SECTION_META[sectionId] || CONFIG_SECTION_META.tv;
-    activeConfigSection = sectionId;
     document.querySelectorAll(".config-section").forEach((el) => {
         el.classList.toggle("is-active", el.dataset.configSection === sectionId);
     });
@@ -1344,6 +1534,13 @@ window.showConfigSection = (sectionId) => {
     const sub = document.getElementById("configSectionSub");
     if(title) title.textContent = meta.title;
     if(sub) sub.textContent = meta.sub;
+    if(sectionId === "empleados") renderEmpleadosList();
+}
+
+window.showConfigSection = (sectionId) => {
+    activeConfigSection = sectionId;
+    applyConfigSectionUI(sectionId);
+    showTab("configTab");
     closeConfigMenu();
 };
 
@@ -1356,7 +1553,8 @@ window.showTab = (tab)=>{
     document.querySelectorAll(".tabs button[data-tab]").forEach((btn) => {
         btn.classList.toggle("tab-active", btn.getAttribute("data-tab") === tab);
     });
-    if(tab === "configTab") showConfigSection(activeConfigSection || "tv");
+    if(document.body) document.body.dataset.activeTab = tab;
+    if(tab === "configTab") applyConfigSectionUI(activeConfigSection || "tv");
     else closeConfigMenu();
 };
 
@@ -1370,9 +1568,12 @@ window.cambiarTipoAnuncio = () => {
     document.getElementById("msgFields").style.display = tipo === "mensaje" ? "block" : "none";
     document.getElementById("cumpleFields").style.display = tipo === "cumple" ? "block" : "none";
     document.getElementById("canvasFields").style.display = tipo === "canvas" ? "block" : "none";
+    const mediaTvBlock = document.getElementById("anuncioMediaTvBlock");
+    if(mediaTvBlock) mediaTvBlock.style.display = tipo === "mensaje" ? "block" : "none";
     document.querySelector(".anuncios-layout")?.classList.toggle("anuncios-layout--canvas", tipo === "canvas");
     document.querySelector(".anuncios-editor")?.classList.toggle("anuncios-editor--canvas", tipo === "canvas");
     syncAnuncioTipoPills();
+    if(tipo === "mensaje") updateAnuncioMediaPreview();
     if(tipo === "canvas") {
         ensureCanvasLayout();
         renderCanvasPreview();
@@ -2179,9 +2380,12 @@ function renderCumpleBoardPreview(data) {
     el.innerHTML = `<div class="cumple-board-preview-stage"><div class="cumple-grid">${cards}</div></div>`;
 }
 
+let panelAnunciosCache = {};
+
 function cargarAnunciosActivos() {
     onValue(anunciosRef, (snap) => {
         const data = snap.val() || {};
+        panelAnunciosCache = data;
         const contenedor = document.getElementById("anunciosActivos");
         updateAnunciosStats(data);
         let html = "";
@@ -2241,6 +2445,7 @@ function cargarAnunciosActivos() {
         }
 
         contenedor.innerHTML = html;
+        renderBoardProgramDetailPanel();
     });
 }
 
@@ -2538,13 +2743,332 @@ window.guardarAnuncio = async () => {
     }
 };
 
-/* MENSAJE */
+/* MENSAJE TICKER */
+const TICKER_COLLAPSE_KEY = "popTickerCollapsed";
+
+const TICKER_TEMPLATES_DEFAULTS = [
+    { id: "tpl_bienvenida", label: "Bienvenida", text: "Bienvenidos a Puerto Plata — Gregorio Luperón (POP)" },
+    { id: "tpl_seguridad", label: "Seguridad", text: "Mantenga sus pertenencias cerca. Reporte actividad sospechosa al personal." },
+    { id: "tpl_despedida", label: "Despedida", text: "Gracias por volar con nosotros. ¡Buen viaje!" }
+];
+
+let tickerTemplates = TICKER_TEMPLATES_DEFAULTS.map((t) => ({ ...t }));
+let tickerTemplatesDraft = null;
+let tickerTemplatesEditorOpen = false;
+
+function normalizeTickerTemplates(raw) {
+    if (!Array.isArray(raw) || !raw.length) {
+        return TICKER_TEMPLATES_DEFAULTS.map((t) => ({ ...t }));
+    }
+    const out = raw
+        .filter((t) => t && String(t.label || "").trim() && String(t.text || "").trim())
+        .map((t, i) => ({
+            id: String(t.id || "tpl_" + i + "_" + Date.now()).slice(0, 48),
+            label: String(t.label).trim().slice(0, 40),
+            text: String(t.text).trim().slice(0, 280)
+        }));
+    return out.length ? out : TICKER_TEMPLATES_DEFAULTS.map((t) => ({ ...t }));
+}
+
+function getActiveTickerTemplates() {
+    return tickerTemplatesDraft || tickerTemplates;
+}
+
+function renderTickerTemplatePills() {
+    const el = document.getElementById("tickerTemplatePills");
+    if (!el) return;
+    const list = getActiveTickerTemplates();
+    const pills = list.map((t) => {
+        const id = escapeHtmlPanel(t.id);
+        const label = escapeHtmlPanel(t.label);
+        const tip = escapeHtmlPanel(t.text.length > 60 ? t.text.slice(0, 60) + "…" : t.text);
+        return `<button type="button" class="ticker-template-pill" data-tpl-id="${id}" title="${tip}">${label}</button>`;
+    }).join("");
+    el.innerHTML =
+        pills +
+        `<button type="button" class="ticker-template-pill ticker-template-pill--add" title="Gestionar plantillas" onclick="toggleTickerTemplatesEditor(true)">＋</button>`;
+}
+
+function renderTickerTemplatesEditor() {
+    const el = document.getElementById("tickerTemplatesList");
+    if (!el) return;
+    const list = tickerTemplatesDraft || tickerTemplates;
+    if (!list.length) {
+        el.innerHTML = `<p class="ticker-templates-list__empty">Sin plantillas. Agrega una abajo.</p>`;
+        return;
+    }
+    el.innerHTML = list
+        .map((t, idx) => {
+            const id = escapeHtmlPanel(t.id);
+            const label = escapeHtmlPanel(t.label);
+            const text = escapeHtmlPanel(t.text);
+            return `
+            <article class="ticker-template-row" data-tpl-index="${idx}">
+                <div class="ticker-template-row__head">
+                    <input type="text" class="ticker-template-row__label" data-field="label" data-tpl-index="${idx}" value="${label}" maxlength="40" placeholder="Nombre" aria-label="Nombre plantilla ${idx + 1}">
+                    <div class="ticker-template-row__actions">
+                        <button type="button" class="ticker-template-row__use" data-tpl-id="${id}">Usar</button>
+                        <button type="button" class="ticker-template-row__del" data-tpl-index="${idx}" title="Eliminar">🗑</button>
+                    </div>
+                </div>
+                <textarea class="ticker-template-row__text" data-field="text" data-tpl-index="${idx}" rows="2" maxlength="280" placeholder="Texto del mensaje" aria-label="Texto plantilla ${idx + 1}">${text}</textarea>
+            </article>`;
+        })
+        .join("");
+}
+
+function bindTickerTemplatesEditorEvents() {
+    const list = document.getElementById("tickerTemplatesList");
+    const pills = document.getElementById("tickerTemplatePills");
+    if (list && !list.dataset.bound) {
+        list.dataset.bound = "1";
+        list.addEventListener("input", (e) => {
+            const field = e.target.getAttribute("data-field");
+            const idx = parseInt(e.target.getAttribute("data-tpl-index"), 10);
+            if (!field || Number.isNaN(idx) || !tickerTemplatesDraft) return;
+            if (!tickerTemplatesDraft[idx]) return;
+            tickerTemplatesDraft[idx][field] = e.target.value;
+            renderTickerTemplatePills();
+        });
+        list.addEventListener("click", (e) => {
+            const useBtn = e.target.closest("[data-tpl-id].ticker-template-row__use");
+            if (useBtn) {
+                applyTickerTemplateById(useBtn.getAttribute("data-tpl-id"));
+                return;
+            }
+            const delBtn = e.target.closest(".ticker-template-row__del");
+            if (delBtn) {
+                const idx = parseInt(delBtn.getAttribute("data-tpl-index"), 10);
+                removeTickerTemplateAt(idx);
+            }
+        });
+    }
+    if (pills && !pills.dataset.bound) {
+        pills.dataset.bound = "1";
+        pills.addEventListener("click", (e) => {
+            const btn = e.target.closest(".ticker-template-pill[data-tpl-id]");
+            if (btn) applyTickerTemplateById(btn.getAttribute("data-tpl-id"));
+        });
+    }
+}
+
+window.toggleTickerTemplatesEditor = (forceOpen) => {
+    const ed = document.getElementById("tickerTemplatesEditor");
+    const manageBtn = document.getElementById("tickerTemplatesManageBtn");
+    if (!ed) return;
+    const open = forceOpen === true ? true : forceOpen === false ? false : ed.hidden;
+    tickerTemplatesEditorOpen = open;
+    ed.hidden = !open;
+    if (manageBtn) {
+        manageBtn.textContent = open ? "✕ Cerrar" : "⚙️ Gestionar";
+        manageBtn.classList.toggle("is-active", open);
+    }
+    if (open) {
+        tickerTemplatesDraft = tickerTemplates.map((t) => ({ ...t }));
+        renderTickerTemplatesEditor();
+        bindTickerTemplatesEditorEvents();
+    } else {
+        tickerTemplatesDraft = null;
+        renderTickerTemplatePills();
+    }
+};
+
+window.addTickerTemplate = () => {
+    const labelEl = document.getElementById("tickerTemplateNewLabel");
+    const textEl = document.getElementById("tickerTemplateNewText");
+    const label = labelEl?.value.trim() || "";
+    const text = textEl?.value.trim() || "";
+    if (!label || !text) {
+        alert("Escribe un nombre y el texto de la plantilla.");
+        return;
+    }
+    if (!tickerTemplatesDraft) tickerTemplatesDraft = tickerTemplates.map((t) => ({ ...t }));
+    tickerTemplatesDraft.push({
+        id: "tpl_" + Date.now(),
+        label: label.slice(0, 40),
+        text: text.slice(0, 280)
+    });
+    if (labelEl) labelEl.value = "";
+    if (textEl) textEl.value = "";
+    renderTickerTemplatesEditor();
+    renderTickerTemplatePills();
+    if (!tickerTemplatesEditorOpen) toggleTickerTemplatesEditor(true);
+};
+
+window.removeTickerTemplateAt = (idx) => {
+    if (!tickerTemplatesDraft || Number.isNaN(idx)) return;
+    if (tickerTemplatesDraft.length <= 1) {
+        alert("Debe quedar al menos una plantilla.");
+        return;
+    }
+    const t = tickerTemplatesDraft[idx];
+    if (!t || !confirm(`¿Eliminar plantilla «${t.label}»?`)) return;
+    tickerTemplatesDraft.splice(idx, 1);
+    renderTickerTemplatesEditor();
+    renderTickerTemplatePills();
+};
+
+window.saveTickerTemplates = () => {
+    const list = (tickerTemplatesDraft || tickerTemplates).map((t) => ({
+        id: t.id,
+        label: String(t.label || "").trim().slice(0, 40),
+        text: String(t.text || "").trim().slice(0, 280)
+    })).filter((t) => t.label && t.text);
+    if (!list.length) {
+        alert("Agrega al menos una plantilla con nombre y texto.");
+        return;
+    }
+    set(ref(db, "config/tickerTemplates"), list);
+    tickerTemplates = list.map((t) => ({ ...t }));
+    tickerTemplatesDraft = null;
+    renderTickerTemplatePills();
+    const status = document.getElementById("tickerTemplatesSaveStatus");
+    if (status) {
+        status.textContent = "✓ Plantillas guardadas";
+        setTimeout(() => { status.textContent = ""; }, 2500);
+    }
+};
+
+window.applyTickerTemplateById = (id) => {
+    const t = getActiveTickerTemplates().find((x) => x.id === id);
+    if (t) applyTickerTemplate(t.text);
+};
+
+function setTickerStudioCollapsed(collapsed) {
+    const box = document.getElementById("tickerStudio");
+    const body = document.getElementById("tickerStudioBody");
+    const btn = document.getElementById("tickerStudioToggle");
+    if (!box || !body) return;
+    box.classList.toggle("ticker-studio--collapsed", collapsed);
+    body.hidden = collapsed;
+    if (btn) btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    try {
+        localStorage.setItem(TICKER_COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch (_) {}
+    if (!collapsed) updateTickerPreview();
+}
+
+window.toggleTickerStudio = () => {
+    const box = document.getElementById("tickerStudio");
+    if (!box) return;
+    setTickerStudioCollapsed(!box.classList.contains("ticker-studio--collapsed"));
+};
+
+window.initTickerStudioCollapse = initTickerStudioCollapse;
+
+function initTickerStudioCollapse() {
+    let collapsed = true;
+    try {
+        if (localStorage.getItem(TICKER_COLLAPSE_KEY) === "0") collapsed = false;
+    } catch (_) {}
+    setTickerStudioCollapsed(collapsed);
+}
+
+function updateTickerBarSnippet() {
+    const el = document.getElementById("tickerBarSnippet");
+    const raw = (document.getElementById("tickerInput")?.value || "").trim();
+    if (!el) return;
+    if (!raw) {
+        el.textContent = "Toca para editar el mensaje";
+        return;
+    }
+    el.textContent = raw.length > 48 ? raw.slice(0, 48) + "…" : raw;
+}
+
+function clampTickerDuration(sec) {
+    const n = parseInt(sec, 10);
+    if (Number.isNaN(n)) return 25;
+    return Math.max(10, Math.min(120, n));
+}
+
+function syncTickerDurationUI(sec) {
+    const val = clampTickerDuration(sec);
+    const dur = document.getElementById("tickerDuration");
+    const range = document.getElementById("tickerDurationRange");
+    const label = document.getElementById("tickerDurationLabel");
+    if (dur) dur.value = val;
+    if (range) range.value = Math.min(90, val);
+    if (label) label.textContent = String(val);
+    document.querySelectorAll(".ticker-speed-pill").forEach((btn) => {
+        const pillSec = parseInt(btn.getAttribute("data-sec"), 10);
+        btn.classList.toggle("is-active", pillSec === val);
+    });
+    updateTickerPreview();
+}
+
+window.syncTickerDurationFromRange = (val) => {
+    syncTickerDurationUI(val);
+};
+
+window.setTickerSpeed = (sec) => {
+    syncTickerDurationUI(sec);
+};
+
+window.applyTickerTemplate = (text) => {
+    const input = document.getElementById("tickerInput");
+    if (!input) return;
+    input.value = text;
+    updateTickerPreview();
+    input.focus();
+};
+
+function updateTickerPreview() {
+    const input = document.getElementById("tickerInput");
+    const preview = document.getElementById("tickerPreviewText");
+    const modalPreview = document.getElementById("tickerPreviewModalText");
+    const charEl = document.getElementById("tickerCharCount");
+    const dur = clampTickerDuration(document.getElementById("tickerDuration")?.value || 25);
+    const text = (input?.value || "").trim() || "Bienvenidos a Puerto Plata";
+    const len = (input?.value || "").length;
+    const max = parseInt(input?.maxLength, 10) || 280;
+
+    if (preview) {
+        preview.textContent = text;
+        preview.style.setProperty("--ticker-preview-duration", dur + "s");
+    }
+    if (modalPreview) {
+        modalPreview.textContent = text;
+        modalPreview.style.setProperty("--ticker-preview-duration", dur + "s");
+    }
+    if (charEl) {
+        charEl.textContent = len + " / " + max;
+        charEl.classList.toggle("is-warn", len > max * 0.85);
+    }
+    updateTickerBarSnippet();
+}
+
+window.openTickerPreviewModal = () => {
+    updateTickerPreview();
+    const modal = document.getElementById("tickerPreviewModal");
+    if (!modal) return;
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+};
+
+window.closeTickerPreviewModal = () => {
+    const modal = document.getElementById("tickerPreviewModal");
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+};
+
 window.saveTicker = () => {
-    const msg = document.getElementById("tickerInput").value;
-    const duration = document.getElementById("tickerDuration").value;
+    const msg = document.getElementById("tickerInput").value.trim();
+    const duration = clampTickerDuration(document.getElementById("tickerDuration").value);
+    if (!msg) {
+        alert("Escribe un mensaje para el ticker.");
+        return;
+    }
     set(tickerRef, msg);
-    set(ref(db, "ticker/duration"), parseInt(duration));
-    alert("✅ Mensaje guardado");
+    set(ref(db, "ticker/duration"), duration);
+    const status = document.getElementById("tickerSaveStatus");
+    if (status) {
+        status.textContent = "✓ En TV";
+        status.classList.add("is-visible");
+        setTimeout(() => status.classList.remove("is-visible"), 2500);
+    }
 };
 
 function parseArrivalSpeechMinutesInput(raw){
@@ -2553,6 +3077,184 @@ function parseArrivalSpeechMinutesInput(raw){
         .map((s) => parseInt(s.trim(), 10))
         .filter((n) => !Number.isNaN(n) && n >= 1 && n <= 180);
     return [...new Set(mins)].sort((a, b) => b - a);
+}
+
+function chunkDigitRunForSpeech(run){
+    const d = String(run).replace(/\D/g, "");
+    if(d.length <= 2) return d;
+    const parts = [];
+    let i = 0;
+    if(d.length % 2 === 1){
+        parts.push(d.slice(0, 1));
+        i = 1;
+    }
+    while(i < d.length){
+        parts.push(d.slice(i, i + 2));
+        i += 2;
+    }
+    return parts.join(", ");
+}
+
+function formatVueloForSpeechPanel(vuelo){
+    const s = (vuelo || "").replace(/\s+/g, " ").trim();
+    if(!s) return "desconocido";
+    const legs = s.split("/").map((x) => x.trim()).filter(Boolean);
+    function formatOneLeg(leg){
+        const t = leg.trim();
+        const m = t.match(/^(.+?)\s+(\d{2,})$/);
+        if(m) return `${m[1].trim()}, ${chunkDigitRunForSpeech(m[2])}`;
+        if(/^\d+$/.test(t)) return chunkDigitRunForSpeech(t);
+        return t.replace(/\d{3,}/g, (r) => chunkDigitRunForSpeech(r));
+    }
+    return legs.map(formatOneLeg).join(". ");
+}
+
+function buildArrivalPhrasePanel(vuelo, minutes){
+    const v = formatVueloForSpeechPanel(vuelo);
+    if(minutes === 1) return `Vuelo ${v}. Aterrizando en 1 minuto.`;
+    if(minutes <= 5) return `Vuelo ${v}. Aterrizando en ${minutes} minutos.`;
+    return `Vuelo ${v}. Llegada en ${minutes} minutos.`;
+}
+
+function preparePanelSpeechSynth(){
+    if(!window.speechSynthesis) return;
+    try {
+        if(speechSynthesis.paused) speechSynthesis.resume();
+    } catch (e) { /* noop */ }
+}
+
+function pickLatinoSpanishVoicePanel(){
+    if(!window.speechSynthesis) return null;
+    const voices = speechSynthesis.getVoices();
+    if(!voices.length) return null;
+    const pick = (re) => voices.find((v) => re.test(v.lang));
+    return pick(/^es-MX/i)
+        || pick(/^es-419/i)
+        || pick(/^es-US/i)
+        || pick(/^es-AR/i)
+        || pick(/^es-CO/i)
+        || pick(/^es-CL/i)
+        || pick(/^es-PE/i)
+        || voices.find((v) => v.lang.startsWith("es") && !/^es-ES/i.test(v.lang))
+        || voices.find((v) => v.lang.startsWith("es"));
+}
+
+function speakTwiceLatinoPanel(text){
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return false;
+    try { speechSynthesis.cancel(); } catch (e) { /* noop */ }
+    preparePanelSpeechSynth();
+    const voice = pickLatinoSpanishVoicePanel();
+    const lang = voice?.lang?.startsWith("es") ? voice.lang : "es-MX";
+    const mk = () => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        u.rate = 0.88;
+        u.pitch = 1;
+        if(voice) u.voice = voice;
+        return u;
+    };
+    const u1 = mk();
+    u1.onend = () => {
+        preparePanelSpeechSynth();
+        try { speechSynthesis.speak(mk()); } catch (e) { /* noop */ }
+    };
+    try {
+        speechSynthesis.speak(u1);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function playArrivalBeepPanel(){
+    try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if(!Ctx) return;
+        let ctx = window.__panelAudioCtx;
+        if(!ctx){
+            ctx = new Ctx();
+            window.__panelAudioCtx = ctx;
+        }
+        if(ctx.state === "suspended") ctx.resume().catch(() => {});
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(720, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.08);
+        g.gain.setValueAtTime(0.0001, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.11, ctx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t0 = ctx.currentTime;
+        o.start(t0);
+        o.stop(t0 + 0.2);
+    } catch (e) { /* noop */ }
+}
+
+function refreshArrivalSpeechPreviewMinuteSelect(){
+    const sel = document.getElementById("arrivalSpeechPreviewMinute");
+    if(!sel) return;
+    const mins = parseArrivalSpeechMinutesInput(document.getElementById("arrivalSpeechMinutes")?.value);
+    const list = mins.length ? mins : [30, 15, 1];
+    const prev = parseInt(sel.value, 10);
+    sel.innerHTML = list.map((m) =>
+        `<option value="${m}">${m} min antes</option>`
+    ).join("");
+    if(list.includes(prev)) sel.value = String(prev);
+    updateArrivalSpeechPreviewPhrase();
+}
+
+window.updateArrivalSpeechPreviewPhrase = () => {
+    const flight = (document.getElementById("arrivalSpeechPreviewFlight")?.value || "").trim() || "B6 627/1528";
+    const minute = parseInt(document.getElementById("arrivalSpeechPreviewMinute")?.value, 10) || 15;
+    const phrase = buildArrivalPhrasePanel(flight, minute);
+    const el = document.getElementById("arrivalSpeechPreviewPhrase");
+    if(el) el.textContent = `"${phrase}"`;
+};
+
+window.stopArrivalSpeechPreview = () => {
+    if(window.speechSynthesis){
+        try { speechSynthesis.cancel(); } catch (e) { /* noop */ }
+    }
+    const status = document.getElementById("arrivalSpeechPreviewStatus");
+    if(status) status.textContent = "Reproducción detenida.";
+};
+
+window.previewArrivalSpeech = () => {
+    const status = document.getElementById("arrivalSpeechPreviewStatus");
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined"){
+        if(status) status.textContent = "Tu navegador no soporta síntesis de voz.";
+        return;
+    }
+    preparePanelSpeechSynth();
+    if(window.speechSynthesis.getVoices().length === 0){
+        speechSynthesis.getVoices();
+        window.addEventListener("voiceschanged", () => previewArrivalSpeech(), { once: true });
+        if(status) status.textContent = "Cargando voces… vuelve a pulsar Escuchar.";
+        return;
+    }
+    const flight = (document.getElementById("arrivalSpeechPreviewFlight")?.value || "").trim();
+    if(!flight){
+        if(status) status.textContent = "Escribe un vuelo de ejemplo.";
+        return;
+    }
+    const minute = parseInt(document.getElementById("arrivalSpeechPreviewMinute")?.value, 10) || 15;
+    const phrase = buildArrivalPhrasePanel(flight, minute);
+    updateArrivalSpeechPreviewPhrase();
+    playArrivalBeepPanel();
+    const ok = speakTwiceLatinoPanel(phrase);
+    if(status){
+        status.textContent = ok
+            ? `Reproduciendo aviso (${minute} min) — se repite 2 veces como en TV.`
+            : "No se pudo iniciar la voz. Prueba otro navegador.";
+    }
+};
+
+document.getElementById("arrivalSpeechMinutes")?.addEventListener("input", refreshArrivalSpeechPreviewMinuteSelect);
+if(window.speechSynthesis){
+    speechSynthesis.getVoices();
+    window.addEventListener("voiceschanged", () => speechSynthesis.getVoices());
 }
 
 window.saveArrivalSpeechConfig = () => {
@@ -2567,21 +3269,50 @@ window.saveArrivalSpeechConfig = () => {
     set(ref(db, "config/arrivalSpeechTolerance"), tolerance);
     document.getElementById("arrivalSpeechMinutes").value = mins.join(", ");
     document.getElementById("arrivalSpeechTolerance").value = tolerance;
+    refreshArrivalSpeechPreviewMinuteSelect();
     alert("✅ Avisos de voz guardados");
 };
 
-window.saveAnuncioImageScale = () => {
-    const scale = parseInt(document.getElementById("anuncioImageScale").value) || 60;
+window.saveAnuncioMediaSettings = () => {
+    const { scale, fit, bg } = getAnuncioMediaDisplaySettings();
     set(ref(db, "config/anuncioImageScale"), scale);
+    set(ref(db, "config/anuncioImageFit"), fit);
+    set(ref(db, "config/anuncioImageBg"), bg);
     updateAnuncioScaleLabel(scale);
-    alert("✅ Tamaño de imagen guardado");
+    alert("✅ Ajuste de imagen en TV guardado");
 };
 
 onValue(tickerRef, (snap) => {
     document.getElementById("tickerInput").value = snap.val() || "";
+    updateTickerPreview();
 });
 
-/* —— POSICIONES (catálogos por aerolínea + directorio empleados) —— */
+onValue(ref(db, "ticker/duration"), (snap) => {
+    const v = parseInt(snap.val(), 10);
+    if (!Number.isNaN(v) && v >= 10 && v <= 120) syncTickerDurationUI(v);
+});
+
+onValue(ref(db, "config/tickerTemplates"), (snap) => {
+    tickerTemplates = normalizeTickerTemplates(snap.val());
+    if (!tickerTemplatesEditorOpen) tickerTemplatesDraft = null;
+    renderTickerTemplatePills();
+    if (tickerTemplatesEditorOpen) renderTickerTemplatesEditor();
+});
+
+function initTickerStudioUi() {
+    initTickerStudioCollapse();
+    updateTickerPreview();
+    renderTickerTemplatePills();
+    bindTickerTemplatesEditorEvents();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTickerStudioUi);
+} else {
+    initTickerStudioUi();
+}
+
+/* —— POSICIONES (catálogos por aerolínea; empleados en Config → Empleados) —— */
 const JETBLUE_ROLES = [
     { key: "supervisor", label: "Supervisor", order: 1 },
     { key: "documento", label: "Documento", order: 2 },
@@ -2917,9 +3648,8 @@ function renderOrphansPanel(){
 let positionsPanelData = {};
 let titlesPanelData = {};
 let positionsDurationsPanel = {};
-let empleadosData = { jetblue: {}, westjet: {} };
+let empleadosData = { all: {} };
 let activePositionsAirline = "jetblue";
-let activeEmpleadosPool = "jetblue";
 let positionsBoardEnabled = true;
 
 function panelNormalizeRoleKey(rawKey, airlineKind){
@@ -2959,16 +3689,34 @@ function empleadoSlug(name){
         .slice(0, 48) || "empleado";
 }
 
-function getEmpleadosList(airlineKind){
-    const pool = empleadosData[airlineKind] || {};
-    return Object.values(pool)
+function mergeEmpleadosFromFirebase(raw){
+    const merged = {};
+    const addPool = (pool) => {
+        Object.entries(pool || {}).forEach(([slug, name]) => {
+            const n = String(name || "").trim();
+            if(!n) return;
+            const s = slug || empleadoSlug(n);
+            const dup = Object.values(merged).some((v) =>
+                v.localeCompare(n, "es", { sensitivity: "base" }) === 0
+            );
+            if(!dup) merged[s] = n;
+        });
+    };
+    addPool(raw.all);
+    addPool(raw.jetblue);
+    addPool(raw.westjet);
+    return merged;
+}
+
+function getEmpleadosList(){
+    return Object.values(empleadosData.all || {})
         .map((n) => String(n || "").trim())
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 }
 
-function employeeSelectOptions(airlineKind, selectedName){
-    const names = getEmpleadosList(airlineKind);
+function employeeSelectOptions(selectedName){
+    const names = getEmpleadosList();
     const sel = String(selectedName || "").trim();
     const opts = [`<option value="">— Sin asignar —</option>`];
     names.forEach((n) => {
@@ -3006,7 +3754,7 @@ function renderPositionsMatrix(airlineKind){
             const assigned = panelParseName(positionsPanelData[fbKey]);
             const sel = document.getElementById(`matrix_${airlineKind}_${role.key}`);
             if(!sel) return;
-            const opts = employeeSelectOptions(airlineKind, assigned);
+            const opts = employeeSelectOptions(assigned);
             if(sel.innerHTML !== opts) sel.innerHTML = opts;
             const want = assigned || "";
             if(sel.value !== want) sel.value = want;
@@ -3029,7 +3777,7 @@ function renderPositionsMatrix(airlineKind){
                 <label class="positions-matrix-role" for="matrix_${airlineKind}_${role.key}">${escapeHtmlPanel(role.label)}</label>
                 <select id="matrix_${airlineKind}_${role.key}" class="positions-matrix-select"
                     onchange="assignPositionFromMatrix('${airlineKind}', '${role.key}', this)">
-                    ${employeeSelectOptions(airlineKind, assigned)}
+                    ${employeeSelectOptions(assigned)}
                 </select>
             </div>`;
     }).join("");
@@ -3039,9 +3787,7 @@ function renderPositionsMatrix(airlineKind){
 function renderExtraEmployeeSelect(){
     const sel = document.getElementById("posNameExtraSelect");
     if(!sel) return;
-    const names = getEmpleadosList("jetblue").concat(getEmpleadosList("westjet"))
-        .filter((n, i, a) => a.indexOf(n) === i)
-        .sort((a, b) => a.localeCompare(b, "es"));
+    const names = getEmpleadosList();
     sel.innerHTML = `<option value="">Elegir empleado…</option>${names.map((n) => `<option value="${escapeHtmlPanel(n)}">${escapeHtmlPanel(n)}</option>`).join("")}`;
     sel.onchange = () => {
         const inp = document.getElementById("posNameExtra");
@@ -3056,66 +3802,54 @@ window.assignPositionFromMatrix = (airlineKind, roleKey, selectEl) => {
     else set(positionRefByKey(fbKey), null);
 };
 
-window.setEmpleadosPool = (pool) => {
-    activeEmpleadosPool = pool;
-    document.querySelectorAll(".empleados-airline-pill").forEach((btn) => {
-        btn.classList.toggle("active", btn.getAttribute("data-pool") === pool);
-    });
-    renderEmpleadosList();
-};
-
 window.addEmpleado = () => {
     const name = (document.getElementById("newEmpleadoName")?.value || "").trim();
     if(!name){
         alert("Escribe el nombre del empleado.");
         return;
     }
+    const exists = getEmpleadosList().some((n) =>
+        n.localeCompare(name, "es", { sensitivity: "base" }) === 0
+    );
+    if(exists){
+        alert("Ese empleado ya está en el directorio.");
+        return;
+    }
     const slug = empleadoSlug(name);
-    const pools = activeEmpleadosPool === "both" ? ["jetblue", "westjet"] : [activeEmpleadosPool];
-    pools.forEach((pool) => set(ref(db, "empleados/" + pool + "/" + slug), name));
+    set(ref(db, "empleados/all/" + slug), name);
     document.getElementById("newEmpleadoName").value = "";
 };
 
-window.deleteEmpleado = (pool, slug) => {
+window.deleteEmpleado = (slug) => {
     if(!confirm("¿Eliminar este empleado del directorio?")) return;
-    set(ref(db, "empleados/" + pool + "/" + slug), null);
+    const s = String(slug || "").trim();
+    if(!s) return;
+    set(ref(db, "empleados/all/" + s), null);
+    set(ref(db, "empleados/jetblue/" + s), null);
+    set(ref(db, "empleados/westjet/" + s), null);
 };
 
 function renderEmpleadosList(){
     const cont = document.getElementById("empleadosList");
     if(!cont) return;
-    const pool = activeEmpleadosPool;
-    let entries = [];
-    if(pool === "both"){
-        [["jetblue", empleadosData.jetblue || {}], ["westjet", empleadosData.westjet || {}]].forEach(([p, data]) => {
-            Object.entries(data).forEach(([slug, name]) => entries.push({ pool: p, slug, name }));
-        });
-        entries.sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
-    } else {
-        entries = Object.entries(empleadosData[pool] || {})
-            .map(([slug, name]) => ({ pool, slug, name }))
-            .sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
-    }
+    const entries = Object.entries(empleadosData.all || {})
+        .map(([slug, name]) => ({ slug, name }))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), "es"));
 
     const badge = document.getElementById("empleadosCountBadge");
-    const totalJet = Object.keys(empleadosData.jetblue || {}).length;
-    const totalWest = Object.keys(empleadosData.westjet || {}).length;
-    if(badge) badge.textContent = (totalJet + totalWest) + " empleado" + (totalJet + totalWest === 1 ? "" : "s");
+    const total = entries.length;
+    if(badge) badge.textContent = total + " empleado" + (total === 1 ? "" : "s");
 
     if(!entries.length){
-        cont.innerHTML = `<p class="positions-hint">No hay empleados en este listado. Agrégalos arriba.</p>`;
+        cont.innerHTML = `<p class="positions-hint">No hay empleados en el directorio. Agrégalos arriba.</p>`;
         return;
     }
 
-    cont.innerHTML = entries.map((e) => {
-        const poolLabel = e.pool === "jetblue" ? "🔵" : "🟢";
-        const poolTag = pool === "both" ? `<span class="empleado-chip-pool">${poolLabel}</span>` : "";
-        return `
+    cont.innerHTML = entries.map((e) => `
             <span class="empleado-chip">
-                ${poolTag}${escapeHtmlPanel(e.name)}
-                <button type="button" class="empleado-chip-del" onclick="deleteEmpleado('${e.pool}', '${e.slug}')" title="Eliminar">×</button>
-            </span>`;
-    }).join("");
+                ${escapeHtmlPanel(e.name)}
+                <button type="button" class="empleado-chip-del" onclick="deleteEmpleado(${JSON.stringify(e.slug)})" title="Eliminar">×</button>
+            </span>`).join("");
 }
 
 window.setPositionsAirline = (airline) => {
@@ -3350,6 +4084,7 @@ onValue(ref(db, "config/positionsEnabled"), (snap) => {
         btn.textContent = positionsBoardEnabled ? "🟢 En pantalla" : "🔴 Apagado";
     }
     renderPositionsBoardPreview();
+    renderBoardProgramDetailPanel();
 });
 
 onValue(ref(db, "config/positionsGapSeconds"), (snap) => {
@@ -3365,6 +4100,7 @@ onValue(ref(db, "config/positionsDuration"), (snap) => {
     if(j) j.value = positionsDurationsPanel.jetblue || 12;
     if(w) w.value = positionsDurationsPanel.westjet || 12;
     onExtraAirlineSelected();
+    renderBoardProgramDetailPanel();
 });
 
 onValue(ref(db, "titles"), (snap) => {
@@ -3374,6 +4110,7 @@ onValue(ref(db, "titles"), (snap) => {
     if(jt) jt.value = titlesPanelData.jetblue || "";
     if(wt) wt.value = titlesPanelData.westjet || "";
     renderPositionsBoardPreview();
+    renderBoardProgramDetailPanel();
 });
 
 /* CAMBIAR VISIBILIDAD */
@@ -3507,14 +4244,12 @@ onValue(visibilityRef, (snap) => {
     visibilityData = snap.val() || {};
     renderExtraAirlinesAdmin();
     renderPositionsBoardPreview();
+    renderBoardProgramDetailPanel();
 });
 
 onValue(ref(db, "empleados"), (snap) => {
     const raw = snap.val() || {};
-    empleadosData = {
-        jetblue: raw.jetblue || {},
-        westjet: raw.westjet || {}
-    };
+    empleadosData = { all: mergeEmpleadosFromFirebase(raw) };
     renderEmpleadosList();
     renderPositionsMatrix("jetblue");
     renderPositionsMatrix("westjet");
@@ -3524,16 +4259,19 @@ onValue(ref(db, "empleados"), (snap) => {
 onValue(ref(db, "jetblueFlights"), (snap) => {
     jetblueFlightsData = snap.val() || {};
     renderAllPositionsLists();
+    renderBoardProgramDetailPanel();
 });
 
 onValue(ref(db, "westjetFlights"), (snap) => {
     westjetFlightsData = snap.val() || {};
     renderAllPositionsLists();
+    renderBoardProgramDetailPanel();
 });
 
 onValue(positionsRef, (snap) => {
     positionsPanelData = snap.val() || {};
     renderAllPositionsLists();
+    renderBoardProgramDetailPanel();
 });
 
 window.deletePosition = (role) => {
@@ -3662,6 +4400,7 @@ function renderFlightsPanel(data){
 
     currentData=data;
     saveState(data);
+    renderBoardProgramDetailPanel();
     ensurePresetDatalist();
 
     const optsPreset = PRESET_RUTAS.map(
@@ -3754,6 +4493,7 @@ function watchFlightsForSelectedDate(){
 onValue(ref(db, "config/selectedDate"), (snap) => {
     const cfgDate = snap.val();
     if(cfgDate) selectedDate = cfgDate;
+    syncFlightsDatePickerUI();
     watchFlightsForSelectedDate();
 });
 
@@ -3823,16 +4563,47 @@ window.redo = () => {
     saveFlightsForSelectedDate(n);
 };
 
-window.changeDateFlights = () => {
-    const dateStr = prompt("Ingresa la fecha (YYYY-MM-DD):", selectedDate);
-    if(!dateStr) return;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
-        alert("Formato invalido. Usa YYYY-MM-DD");
+function syncFlightsDatePickerUI(){
+    const el = document.getElementById("flightsDatePicker");
+    if(el && el.value !== selectedDate) el.value = selectedDate;
+}
+
+function formatFlightsDateLabel(dateStr){
+    if(!dateStr) return "";
+    try {
+        return new Date(dateStr + "T12:00:00").toLocaleDateString("es-DO", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+        });
+    } catch {
+        return dateStr;
+    }
+}
+
+window.changeDateFlights = (dateStr) => {
+    const raw = (dateStr || document.getElementById("flightsDatePicker")?.value || "").trim();
+    if(!raw) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)){
+        alert("Fecha inválida.");
+        syncFlightsDatePickerUI();
         return;
     }
-    selectedDate = dateStr;
-    set(ref(db, "config/selectedDate"), dateStr);
-    alert("📅 Fecha cambiada a: " + dateStr + " (cargando vuelos de esa fecha)");
+    if(raw === selectedDate){
+        syncFlightsDatePickerUI();
+        return;
+    }
+    selectedDate = raw;
+    set(ref(db, "config/selectedDate"), raw);
+    syncFlightsDatePickerUI();
+    const statusEl = document.getElementById("flightRefreshStatus");
+    if(statusEl) statusEl.textContent = "📅 " + formatFlightsDateLabel(raw);
+};
+
+window.goToTodayFlights = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    changeDateFlights(today);
 };
 
 let flightRefreshToastTimer = null;
@@ -5066,16 +5837,28 @@ window.selectBoardProgramPreviewItem = (id) => {
     const item = boardProgramItems.find((i) => i.id === id);
     if(!item || !item.enabled) return;
     selectedBoardProgramId = id;
+    boardProgramPreviewSubStep = 0;
     if(!boardProgramPreviewPlaying){
         const active = getBoardProgramActiveItems();
         const stepIdx = active.findIndex((i) => i.id === id);
-        boardProgramPreviewSectionTotal = item.seconds;
-        boardProgramPreviewRemaining = item.seconds;
-        renderBoardProgramTvScreen(item, stepIdx, active.length);
+        const subItems = getBoardProgramSubItems(id);
+        if((id === "anuncios" || id === "posiciones") && subItems.length){
+            const dur = getBoardProgramSubItemDuration(id, subItems[0]);
+            boardProgramPreviewSectionTotal = dur;
+            boardProgramPreviewRemaining = dur;
+        } else {
+            boardProgramPreviewSectionTotal = item.seconds;
+            boardProgramPreviewRemaining = item.seconds;
+        }
+        renderBoardProgramTvScreen(item, stepIdx, active.length, 0);
         const bar = document.getElementById("boardProgramTvProgressBar");
         const countdown = document.getElementById("boardProgramTvCountdown");
         if(bar) bar.style.width = "0%";
-        if(countdown) countdown.textContent = `${item.seconds}s por sección`;
+        if(countdown){
+            countdown.textContent = (id === "anuncios" || id === "posiciones") && subItems.length
+                ? `${boardProgramPreviewRemaining}s por ítem`
+                : `${item.seconds}s por sección`;
+        }
         highlightBoardProgramPreviewRow(id);
     }
     renderBoardProgramActiveChips();
@@ -5101,46 +5884,457 @@ function refreshBoardProgramPreviewUI(){
     syncBoardProgramPreviewSimulator();
 }
 
-function boardProgramTvMockHtml(id){
-    if(id === "vuelos"){
+let boardProgramPreviewSubStep = 0;
+
+function getActiveAnunciosForBoardProgram(){
+    return Object.entries(panelAnunciosCache)
+        .filter(([, a]) => a && a.enPantalla !== false && a.tipo !== "asignacion")
+        .map(([id, a]) => {
+            const tipo = a.tipo || "mensaje";
+            const meta = ANUNCIO_TIPO_META[tipo] || { icon: "📢", label: tipo };
+            const textoRaw = (a.texto || "").trim();
+            return {
+                id,
+                tipo,
+                meta,
+                texto: textoRaw,
+                textoShort: textoRaw.length > 80 ? textoRaw.slice(0, 80) + "…" : textoRaw,
+                duracion: Math.max(5, Math.min(120, parseInt(a.duracion, 10) || 10)),
+                media: a.media || ""
+            };
+        })
+        .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function getBoardProgramFlightsRows(){
+    return getArray(currentData).filter((r) => r && (r.vuelo || r.llegada || r.destino));
+}
+
+const BP_POS_ROWS_PER_SLIDE = 10;
+
+function clampPositionSlideDuration(val){
+    const n = parseInt(val, 10);
+    if(Number.isNaN(n)) return 12;
+    return Math.max(5, Math.min(90, n));
+}
+
+function collectPanelSlideItems(airlineKind, flightSlug){
+    return Object.keys(positionsPanelData)
+        .map((k) => ({ k, c: classifyPositionKey(k) }))
+        .filter(({ c }) => {
+            if(c.kind !== airlineKind) return false;
+            if(flightSlug) return c.flightSlug === flightSlug;
+            return !!c.legacy;
+        })
+        .map(({ c }) => ({ role: c.roleLabel, name: c.name, order: c.order }))
+        .sort((a, b) => a.order - b.order);
+}
+
+function pushPanelPositionSlideChunks(slides, base){
+    const items = base.items || [];
+    if(!items.length) return;
+    const dur = base.duration || 12;
+    const chunks = [];
+    for(let i = 0; i < items.length; i += BP_POS_ROWS_PER_SLIDE){
+        chunks.push(items.slice(i, i + BP_POS_ROWS_PER_SLIDE));
+    }
+    const total = chunks.length;
+    chunks.forEach((chunk, idx) => {
+        slides.push({
+            ...base,
+            slideKey: total > 1 ? `${base.durKey}__p${idx + 1}` : base.durKey,
+            durKey: base.durKey,
+            title: total > 1 ? `${base.title} (${idx + 1}/${total})` : base.title,
+            duration: dur,
+            items: chunk
+        });
+    });
+}
+
+function buildPanelPositionSlides(){
+    if(!positionsBoardEnabled) return [];
+    const slides = [];
+    const dur = positionsDurationsPanel || {};
+
+    if(visibilityData.jetblue !== false){
+        const jbFlights = Object.entries(jetblueFlightsData || {});
+        if(jbFlights.length){
+            jbFlights.forEach(([slug, item]) => {
+                if(visibilityData[flightMetaKey("jetblue", slug)] === false) return;
+                const items = collectPanelSlideItems("jetblue", slug);
+                if(!items.length) return;
+                const durKey = "jetblue_" + slug;
+                pushPanelPositionSlideChunks(slides, {
+                    durKey,
+                    themeClass: "bp-mock--jetblue",
+                    badge: "🔵 JETBLUE",
+                    title: titlesPanelData[durKey] || titlesPanelData.jetblue || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+                    duration: clampPositionSlideDuration(dur[durKey] || dur.jetblue),
+                    items
+                });
+            });
+        } else {
+            const items = collectPanelSlideItems("jetblue", "");
+            if(items.length){
+                pushPanelPositionSlideChunks(slides, {
+                    durKey: "jetblue",
+                    themeClass: "bp-mock--jetblue",
+                    badge: "🔵 JETBLUE",
+                    title: titlesPanelData.jetblue || "ASIGNACIONES JETBLUE",
+                    duration: clampPositionSlideDuration(dur.jetblue),
+                    items
+                });
+            }
+        }
+    }
+
+    if(visibilityData.westjet !== false){
+        const wjFlights = Object.entries(westjetFlightsData || {});
+        if(wjFlights.length){
+            wjFlights.forEach(([slug, item]) => {
+                if(visibilityData[flightMetaKey("westjet", slug)] === false) return;
+                const items = collectPanelSlideItems("westjet", slug);
+                if(!items.length) return;
+                const durKey = "westjet_" + slug;
+                pushPanelPositionSlideChunks(slides, {
+                    durKey,
+                    themeClass: "bp-mock--westjet",
+                    badge: "🟢 WESTJET",
+                    title: titlesPanelData[durKey] || titlesPanelData.westjet || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+                    duration: clampPositionSlideDuration(dur[durKey] || dur.westjet),
+                    items
+                });
+            });
+        } else {
+            const items = collectPanelSlideItems("westjet", "");
+            if(items.length){
+                pushPanelPositionSlideChunks(slides, {
+                    durKey: "westjet",
+                    themeClass: "bp-mock--westjet",
+                    badge: "🟢 WESTJET",
+                    title: titlesPanelData.westjet || "ASIGNACIONES WESTJET",
+                    duration: clampPositionSlideDuration(dur.westjet),
+                    items
+                });
+            }
+        }
+    }
+
+    Object.entries(airlinesExtraData || {}).forEach(([slug, item]) => {
+        if(visibilityData[slug] === false) return;
+        const items = Object.keys(positionsPanelData)
+            .map((k) => ({ k, c: classifyPositionKey(k) }))
+            .filter(({ c }) => c.kind === "extra" && c.flightSlug === slug)
+            .map(({ c }) => ({ role: c.roleLabel, name: c.name, order: c.order }))
+            .sort((a, b) => a.order - b.order);
+        if(!items.length) return;
+        pushPanelPositionSlideChunks(slides, {
+            durKey: slug,
+            themeClass: "bp-mock--extra",
+            badge: "✈️ " + (item?.name || slug).toUpperCase(),
+            title: titlesPanelData[slug] || `ASIGNACIONES ${(item?.name || slug).toUpperCase()}`,
+            duration: clampPositionSlideDuration(dur[slug]),
+            items
+        });
+    });
+
+    return slides;
+}
+
+function getBoardProgramSubItems(sectionId){
+    if(sectionId === "anuncios") return getActiveAnunciosForBoardProgram();
+    if(sectionId === "posiciones") return buildPanelPositionSlides();
+    return [];
+}
+
+function getBoardProgramSubItemDuration(sectionId, subItem){
+    if(!subItem) return 0;
+    if(sectionId === "anuncios") return subItem.duracion;
+    if(sectionId === "posiciones") return subItem.duration;
+    return 0;
+}
+
+function flightEstadoPillClass(estado){
+    const e = String(estado || "ON-TIME").toUpperCase();
+    if(e.includes("DELAY")) return "bp-mock__pill bp-mock__pill--delay";
+    if(e.includes("BOARD") || e.includes("LLEG") || e.includes("ARRIV")) return "bp-mock__pill";
+    if(e.includes("CANCEL") || e.includes("DIVERT")) return "bp-mock__pill bp-mock__pill--delay";
+    return "bp-mock__pill bp-mock__pill--ok";
+}
+
+function boardProgramTvRealHtml(sectionId, subIndex){
+    if(sectionId === "vuelos"){
+        const rows = getBoardProgramFlightsRows();
+        if(!rows.length){
+            return `<div class="bp-mock bp-mock--empty">Sin vuelos cargados para la fecha seleccionada</div>`;
+        }
+        const body = rows.slice(0, 10).map((r) => {
+            const eta = (r.llegada || r.llegadaEstimada || r.llegadaProgramada || "—").slice(0, 5);
+            const estado = r.estado || "ON-TIME";
+            return `<div class="bp-mock__row">
+                <span>${escapeHtmlPanel(r.vuelo || "—")}</span>
+                <span>${escapeHtmlPanel((r.destino || "").split("-")[0].trim() || "—")}</span>
+                <span>${escapeHtmlPanel(eta)}</span>
+                <span class="${flightEstadoPillClass(estado)}">${escapeHtmlPanel(estado)}</span>
+            </div>`;
+        }).join("");
         return `
             <div class="bp-mock bp-mock--vuelos">
                 <div class="bp-mock__head">LLEGADAS · MDPP</div>
-                <div class="bp-mock__cols"><span>VUELO</span><span>ORIGEN</span><span>ETA</span><span>ESTADO</span></div>
-                <div class="bp-mock__row"><span>B6 1234</span><span>JFK</span><span>14:25</span><span class="bp-mock__pill bp-mock__pill--ok">ON-TIME</span></div>
-                <div class="bp-mock__row"><span>WS 892</span><span>YYZ</span><span>15:10</span><span class="bp-mock__pill">LLEGANDO</span></div>
-                <div class="bp-mock__row"><span>B6 567</span><span>BOS</span><span>16:40</span><span class="bp-mock__pill bp-mock__pill--delay">DELAYED</span></div>
+                <div class="bp-mock__cols"><span>VUELO</span><span>DESTINO</span><span>ETA</span><span>ESTADO</span></div>
+                ${body}
+                ${rows.length > 10 ? `<div class="bp-mock__more">+${rows.length - 10} vuelos más</div>` : ""}
             </div>`;
     }
-    if(id === "anuncios"){
+    if(sectionId === "anuncios"){
+        const list = getActiveAnunciosForBoardProgram();
+        if(!list.length){
+            return `<div class="bp-mock bp-mock--empty">Sin anuncios activos en rotación</div>`;
+        }
+        const idx = Math.max(0, Math.min(subIndex || 0, list.length - 1));
+        const a = list[idx];
+        const texto = escapeHtmlPanel(a.textoShort || "(sin texto)");
+        const hasImage = a.media && String(a.media).startsWith("data:image");
+        const hasVideo = a.media && String(a.media).startsWith("data:video");
+        let mediaHtml = "";
+        if(hasImage){
+            mediaHtml = `<img class="bp-mock__anuncio-img" src="${a.media}" alt="">`;
+        } else if(hasVideo){
+            mediaHtml = `<div class="bp-mock__anuncio-vid">▶ Video</div>`;
+        }
+        const mediaClass = hasImage || hasVideo ? " bp-mock--has-media" : "";
         return `
-            <div class="bp-mock bp-mock--anuncios">
+            <div class="bp-mock bp-mock--anuncios${mediaClass}">
                 <div class="bp-mock__anuncio-glow"></div>
-                <div class="bp-mock__anuncio-icon">📢</div>
-                <div class="bp-mock__anuncio-title">Anuncio en pantalla</div>
-                <div class="bp-mock__anuncio-sub">Mensajes · canvas · cumpleaños</div>
+                <div class="bp-mock__anuncio-stage">
+                    <div class="bp-mock__anuncio-icon">${a.meta.icon}</div>
+                    <div class="bp-mock__anuncio-title">${escapeHtmlPanel(a.meta.label)}</div>
+                    ${mediaHtml}
+                    <div class="bp-mock__anuncio-sub">${texto}</div>
+                </div>
+                <div class="bp-mock__anuncio-counter">${idx + 1} / ${list.length}</div>
             </div>`;
     }
+    const slides = buildPanelPositionSlides();
+    if(!slides.length){
+        const off = !positionsBoardEnabled;
+        return `<div class="bp-mock bp-mock--empty">${off ? "Rotación de posiciones apagada" : "Sin asignaciones activas"}</div>`;
+    }
+    const idx = Math.max(0, Math.min(subIndex || 0, slides.length - 1));
+    const slide = slides[idx];
+    const rows = slide.items.slice(0, 8).map((item) => `
+        <div class="bp-mock__pos-row"><span>${escapeHtmlPanel(item.role)}</span><span>${escapeHtmlPanel(item.name)}</span></div>
+    `).join("");
+    const more = slide.items.length > 8 ? `<div class="bp-mock__more">+${slide.items.length - 8} posiciones</div>` : "";
     return `
-        <div class="bp-mock bp-mock--posiciones">
-            <div class="bp-mock__pos-badge">🔵 JETBLUE</div>
-            <div class="bp-mock__pos-title">ASIGNACIONES</div>
-            <div class="bp-mock__pos-row"><span>Piloto</span><span>García M.</span></div>
-            <div class="bp-mock__pos-row"><span>FA 1</span><span>López R.</span></div>
-            <div class="bp-mock__pos-row"><span>FA 2</span><span>Martínez S.</span></div>
+        <div class="bp-mock bp-mock--posiciones ${slide.themeClass || ""}">
+            <div class="bp-mock__pos-badge">${escapeHtmlPanel(slide.badge)}</div>
+            <div class="bp-mock__pos-title">${escapeHtmlPanel(slide.title)}</div>
+            ${rows}
+            ${more}
+            <div class="bp-mock__anuncio-counter">${idx + 1} / ${slides.length}</div>
         </div>`;
 }
 
-function renderBoardProgramTvScreen(item, stepIndex, totalSteps){
+function renderBoardProgramDetailDurationControl(sectionId, itemKey, seconds, min, max, step){
+    const keyJson = JSON.stringify(String(itemKey));
+    const fnSet = sectionId === "anuncios" ? "setAnuncioProgramDuration" : "setPositionSlideProgramDuration";
+    const fnAdj = sectionId === "anuncios" ? "adjustAnuncioProgramDuration" : "adjustPositionSlideProgramDuration";
+    return `
+        <div class="board-program-duration board-program-duration--detail">
+            <button type="button" class="board-program-duration__btn" onclick="${fnAdj}(${keyJson}, -${step})" title="Menos ${step}s">−</button>
+            <label class="board-program-duration__field">
+                <input type="number" min="${min}" max="${max}" value="${seconds}" onchange="${fnSet}(${keyJson}, this.value)" aria-label="Segundos">
+                <span>seg</span>
+            </label>
+            <button type="button" class="board-program-duration__btn" onclick="${fnAdj}(${keyJson}, ${step})" title="Más ${step}s">+</button>
+        </div>`;
+}
+
+function renderBoardProgramDetailPanel(){
+    const el = document.getElementById("boardProgramDetailPanel");
+    if(!el) return;
+    const sectionId = selectedBoardProgramId;
+    if(!sectionId){
+        el.innerHTML = "";
+        el.hidden = true;
+        return;
+    }
+    const meta = BOARD_SECTION_META[sectionId] || { label: sectionId, icon: "•" };
+    el.hidden = false;
+
+    if(sectionId === "vuelos"){
+        const rows = getBoardProgramFlightsRows();
+        const sectionItem = boardProgramItems.find((i) => i.id === "vuelos");
+        const sectionSec = sectionItem?.seconds || 90;
+        if(!rows.length){
+            el.innerHTML = `
+                <div class="board-program-detail-panel__head">
+                    <h4>${meta.icon} Vuelos del día</h4>
+                    <span class="board-program-detail-panel__hint">Agrega vuelos en la pestaña Vuelos</span>
+                </div>
+                <p class="board-program-detail-panel__empty">Sin vuelos para la fecha seleccionada.</p>`;
+            return;
+        }
+        const list = rows.map((r, idx) => {
+            const eta = (r.llegada || r.llegadaEstimada || "—").slice(0, 5);
+            return `
+                <article class="board-program-detail-row board-program-detail-row--vuelos">
+                    <div class="board-program-detail-row__main">
+                        <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
+                        <div class="board-program-detail-row__copy">
+                            <strong>${escapeHtmlPanel(r.vuelo || "—")}</strong>
+                            <span>${escapeHtmlPanel(r.destino || "—")} · ETA ${escapeHtmlPanel(eta)} · ${escapeHtmlPanel(r.estado || "ON-TIME")}</span>
+                        </div>
+                    </div>
+                </article>`;
+        }).join("");
+        el.innerHTML = `
+            <div class="board-program-detail-panel__head">
+                <h4>${meta.icon} Vuelos activos (${rows.length})</h4>
+                <span class="board-program-detail-panel__hint">La sección completa dura <strong>${sectionSec}s</strong> en TV</span>
+            </div>
+            <div class="board-program-detail-list">${list}</div>`;
+        return;
+    }
+
+    if(sectionId === "anuncios"){
+        const list = getActiveAnunciosForBoardProgram();
+        if(!list.length){
+            el.innerHTML = `
+                <div class="board-program-detail-panel__head">
+                    <h4>${meta.icon} Anuncios en rotación</h4>
+                    <span class="board-program-detail-panel__hint">Activa anuncios en la pestaña Anuncios</span>
+                </div>
+                <p class="board-program-detail-panel__empty">Ningún anuncio activo (enPantalla).</p>`;
+            return;
+        }
+        const items = list.map((a, idx) => {
+            const selected = boardProgramPreviewSubStep === idx && selectedBoardProgramId === "anuncios";
+            return `
+                <article class="board-program-detail-row board-program-detail-row--anuncios${selected ? " is-active" : ""}" data-sub-idx="${idx}">
+                    <button type="button" class="board-program-detail-row__main" onclick="selectBoardProgramSubItem('anuncios', ${idx})" title="Ver en pantalla">
+                        <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
+                        <span class="board-program-detail-row__icon">${a.meta.icon}</span>
+                        <div class="board-program-detail-row__copy">
+                            <strong>${escapeHtmlPanel(a.meta.label)}</strong>
+                            <span>${escapeHtmlPanel(a.textoShort || "(sin texto)")}</span>
+                        </div>
+                    </button>
+                    ${renderBoardProgramDetailDurationControl("anuncios", a.id, a.duracion, 5, 120, 5)}
+                </article>`;
+        }).join("");
+        el.innerHTML = `
+            <div class="board-program-detail-panel__head">
+                <h4>${meta.icon} Anuncios activos (${list.length})</h4>
+                <span class="board-program-detail-panel__hint">Tiempo que se muestra cada anuncio en TV</span>
+            </div>
+            <div class="board-program-detail-table-head board-program-detail-table-head--items">
+                <span>Anuncio</span>
+                <span>Duración</span>
+            </div>
+            <div class="board-program-detail-list">${items}</div>`;
+        return;
+    }
+
+    const slides = buildPanelPositionSlides();
+    if(!slides.length){
+        el.innerHTML = `
+            <div class="board-program-detail-panel__head">
+                <h4>${meta.icon} Slides de posiciones</h4>
+                <span class="board-program-detail-panel__hint">${positionsBoardEnabled ? "Asigna posiciones en la pestaña Posiciones" : "Activa posiciones en TV"}</span>
+            </div>
+            <p class="board-program-detail-panel__empty">${positionsBoardEnabled ? "Sin slides con asignaciones." : "Rotación de posiciones apagada."}</p>`;
+        return;
+    }
+    const items = slides.map((slide, idx) => {
+        const selected = boardProgramPreviewSubStep === idx && selectedBoardProgramId === "posiciones";
+        return `
+            <article class="board-program-detail-row board-program-detail-row--posiciones${selected ? " is-active" : ""}">
+                <button type="button" class="board-program-detail-row__main" onclick="selectBoardProgramSubItem('posiciones', ${idx})" title="Ver en pantalla">
+                    <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
+                    <span class="board-program-detail-row__icon">${slide.badge.split(" ")[0]}</span>
+                    <div class="board-program-detail-row__copy">
+                        <strong>${escapeHtmlPanel(slide.title)}</strong>
+                        <span>${slide.items.length} asignación${slide.items.length === 1 ? "" : "es"}</span>
+                    </div>
+                </button>
+                ${renderBoardProgramDetailDurationControl("posiciones", slide.durKey, slide.duration, 5, 90, 1)}
+            </article>`;
+    }).join("");
+    el.innerHTML = `
+        <div class="board-program-detail-panel__head">
+            <h4>${meta.icon} Slides activos (${slides.length})</h4>
+            <span class="board-program-detail-panel__hint">Tiempo por bloque en rotación TV</span>
+        </div>
+        <div class="board-program-detail-table-head board-program-detail-table-head--items">
+            <span>Slide</span>
+            <span>Duración</span>
+        </div>
+        <div class="board-program-detail-list">${items}</div>`;
+}
+
+window.setAnuncioProgramDuration = (id, val) => {
+    const n = Math.max(5, Math.min(120, parseInt(val, 10) || 10));
+    set(ref(db, "anuncios/" + id + "/duracion"), n);
+};
+
+window.adjustAnuncioProgramDuration = (id, delta) => {
+    const a = panelAnunciosCache[id];
+    const cur = Math.max(5, Math.min(120, parseInt(a?.duracion, 10) || 10));
+    setAnuncioProgramDuration(id, cur + delta);
+};
+
+window.setPositionSlideProgramDuration = (durKey, val) => {
+    const n = Math.max(5, Math.min(90, parseInt(val, 10) || 12));
+    set(ref(db, "config/positionsDuration/" + durKey), n);
+};
+
+window.adjustPositionSlideProgramDuration = (durKey, delta) => {
+    const cur = clampPositionSlideDuration(positionsDurationsPanel[durKey] ?? 12);
+    setPositionSlideProgramDuration(durKey, cur + delta);
+};
+
+window.selectBoardProgramSubItem = (sectionId, subIdx) => {
+    const item = boardProgramItems.find((i) => i.id === sectionId);
+    if(!item || !item.enabled) return;
+    selectedBoardProgramId = sectionId;
+    boardProgramPreviewSubStep = subIdx;
+    const active = getBoardProgramActiveItems();
+    const stepIdx = active.findIndex((i) => i.id === sectionId);
+    const subItems = getBoardProgramSubItems(sectionId);
+    const sub = subItems[subIdx];
+    if(sub){
+        const dur = getBoardProgramSubItemDuration(sectionId, sub);
+        if(!boardProgramPreviewPlaying){
+            boardProgramPreviewSectionTotal = dur;
+            boardProgramPreviewRemaining = dur;
+        }
+        renderBoardProgramTvScreen(item, stepIdx >= 0 ? stepIdx : 0, active.length, subIdx);
+        const countdown = document.getElementById("boardProgramTvCountdown");
+        if(countdown && !boardProgramPreviewPlaying){
+            countdown.textContent = sectionId === "vuelos"
+                ? `${item.seconds}s por sección`
+                : `${dur}s por ítem`;
+        }
+    }
+    highlightBoardProgramPreviewRow(sectionId);
+    renderBoardProgramDetailPanel();
+    renderBoardProgramActiveChips();
+};
+
+function renderBoardProgramTvScreen(item, stepIndex, totalSteps, subIndex){
     const screen = document.getElementById("boardProgramTvScreen");
     const stepEl = document.getElementById("boardProgramTvStep");
     const sectionEl = document.getElementById("boardProgramTvSection");
     if(!screen || !item) return;
     const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•" };
+    const subIdx = subIndex ?? boardProgramPreviewSubStep ?? 0;
     screen.className = `board-program-tv__screen board-program-tv__screen--${item.id}`;
-    screen.innerHTML = boardProgramTvMockHtml(item.id);
+    screen.innerHTML = boardProgramTvRealHtml(item.id, subIdx);
     if(stepEl) stepEl.textContent = `${stepIndex + 1} / ${totalSteps}`;
     if(sectionEl) sectionEl.textContent = `${meta.icon} ${meta.label}`;
+    renderBoardProgramDetailPanel();
 }
 
 function updateBoardProgramPreviewProgress(){
@@ -5149,7 +6343,26 @@ function updateBoardProgramPreviewProgress(){
     if(!bar || boardProgramPreviewSectionTotal <= 0) return;
     const pct = Math.max(0, Math.min(100, (1 - boardProgramPreviewRemaining / boardProgramPreviewSectionTotal) * 100));
     bar.style.width = `${pct}%`;
-    if(countdown) countdown.textContent = `${boardProgramPreviewRemaining}s restantes`;
+    if(!countdown) return;
+    const active = getBoardProgramActiveItems();
+    const item = active[boardProgramPreviewStep];
+    if(boardProgramPreviewPlaying && item){
+        const subItems = getBoardProgramSubItems(item.id);
+        if((item.id === "anuncios" || item.id === "posiciones") && subItems.length){
+            countdown.textContent = `${boardProgramPreviewRemaining}s · ${item.id === "anuncios" ? "anuncio" : "slide"} ${boardProgramPreviewSubStep + 1}/${subItems.length}`;
+            return;
+        }
+        countdown.textContent = `${boardProgramPreviewRemaining}s restantes`;
+        return;
+    }
+    if(item && (item.id === "anuncios" || item.id === "posiciones")){
+        const subItems = getBoardProgramSubItems(item.id);
+        if(subItems.length){
+            countdown.textContent = `${boardProgramPreviewRemaining}s por ítem`;
+            return;
+        }
+    }
+    if(item) countdown.textContent = `${item.seconds}s por sección`;
 }
 
 function stopBoardProgramPreview(){
@@ -5173,13 +6386,21 @@ function boardProgramPreviewAdvance(){
             screen.className = "board-program-tv__screen";
             screen.innerHTML = `<div class="bp-mock bp-mock--empty">Sin secciones activas</div>`;
         }
+        renderBoardProgramDetailPanel();
         return;
     }
     boardProgramPreviewStep = boardProgramPreviewStep % active.length;
     const item = active[boardProgramPreviewStep];
-    boardProgramPreviewSectionTotal = item.seconds;
-    boardProgramPreviewRemaining = item.seconds;
-    renderBoardProgramTvScreen(item, boardProgramPreviewStep, active.length);
+    boardProgramPreviewSubStep = 0;
+    const subItems = getBoardProgramSubItems(item.id);
+    if((item.id === "anuncios" || item.id === "posiciones") && subItems.length){
+        boardProgramPreviewSectionTotal = getBoardProgramSubItemDuration(item.id, subItems[0]);
+        boardProgramPreviewRemaining = boardProgramPreviewSectionTotal;
+    } else {
+        boardProgramPreviewSectionTotal = item.seconds;
+        boardProgramPreviewRemaining = item.seconds;
+    }
+    renderBoardProgramTvScreen(item, boardProgramPreviewStep, active.length, boardProgramPreviewSubStep);
     updateBoardProgramPreviewProgress();
     highlightBoardProgramPreviewRow(item.id);
 }
@@ -5200,6 +6421,20 @@ function boardProgramPreviewTick(){
     }
     const active = getBoardProgramActiveItems();
     if(!active.length) return stopBoardProgramPreview();
+    const currentSection = active[boardProgramPreviewStep];
+    const subItems = getBoardProgramSubItems(currentSection.id);
+    if((currentSection.id === "anuncios" || currentSection.id === "posiciones") && subItems.length){
+        if(boardProgramPreviewSubStep < subItems.length - 1){
+            boardProgramPreviewSubStep++;
+            const sub = subItems[boardProgramPreviewSubStep];
+            boardProgramPreviewSectionTotal = getBoardProgramSubItemDuration(currentSection.id, sub);
+            boardProgramPreviewRemaining = boardProgramPreviewSectionTotal;
+            renderBoardProgramTvScreen(currentSection, boardProgramPreviewStep, active.length, boardProgramPreviewSubStep);
+            updateBoardProgramPreviewProgress();
+            return;
+        }
+        boardProgramPreviewSubStep = 0;
+    }
     boardProgramPreviewStep = (boardProgramPreviewStep + 1) % active.length;
     boardProgramPreviewAdvance();
 }
@@ -5224,6 +6459,7 @@ function startBoardProgramPreview(){
 function resetBoardProgramPreview(){
     stopBoardProgramPreview();
     boardProgramPreviewStep = 0;
+    boardProgramPreviewSubStep = 0;
     syncBoardProgramPreviewSimulator();
     document.querySelectorAll(".board-program-row.is-preview-active").forEach((row) => {
         row.classList.remove("is-preview-active");
@@ -5252,11 +6488,22 @@ function syncBoardProgramPreviewSimulator(){
         : active[0];
     if(pick) selectedBoardProgramId = pick.id;
     const stepIdx = active.findIndex((i) => i.id === pick.id);
-    boardProgramPreviewSectionTotal = pick.seconds;
-    boardProgramPreviewRemaining = pick.seconds;
-    renderBoardProgramTvScreen(pick, stepIdx, active.length);
+    boardProgramPreviewSubStep = 0;
+    const subItems = getBoardProgramSubItems(pick.id);
+    if((pick.id === "anuncios" || pick.id === "posiciones") && subItems.length){
+        boardProgramPreviewSectionTotal = getBoardProgramSubItemDuration(pick.id, subItems[0]);
+        boardProgramPreviewRemaining = boardProgramPreviewSectionTotal;
+    } else {
+        boardProgramPreviewSectionTotal = pick.seconds;
+        boardProgramPreviewRemaining = pick.seconds;
+    }
+    renderBoardProgramTvScreen(pick, stepIdx, active.length, boardProgramPreviewSubStep);
     if(bar) bar.style.width = "0%";
-    if(countdown) countdown.textContent = `${pick.seconds}s por sección`;
+    if(countdown){
+        countdown.textContent = (pick.id === "anuncios" || pick.id === "posiciones") && subItems.length
+            ? `${boardProgramPreviewRemaining}s por ítem`
+            : `${pick.seconds}s por sección`;
+    }
     highlightBoardProgramPreviewRow(pick.id);
     renderBoardProgramActiveChips();
 }
@@ -5398,11 +6645,19 @@ onValue(configRef, (snap) => {
     if(typeof conf.autoChangeFlights === "boolean"){
         document.getElementById("autoChangeFlights").checked = conf.autoChangeFlights;
     }
-    const scale = parseInt(conf.anuncioImageScale);
-    if(!Number.isNaN(scale) && scale >= 30 && scale <= 100){
+    const scale = parseInt(conf.anuncioImageScale, 10);
+    if(!Number.isNaN(scale) && scale >= 30 && scale <= 150){
         document.getElementById("anuncioImageScale").value = scale;
         updateAnuncioScaleLabel(scale);
     }
+    const fit = conf.anuncioImageFit === "cover" ? "cover" : "contain";
+    const fitInput = document.querySelector(`input[name="anuncioImageFit"][value="${fit}"]`);
+    if(fitInput) fitInput.checked = true;
+    const bgSelect = document.getElementById("anuncioImageBg");
+    if(bgSelect && typeof conf.anuncioImageBg === "string" && conf.anuncioImageBg){
+        bgSelect.value = conf.anuncioImageBg;
+    }
+    updateAnuncioMediaPreview();
     const flightSectionSeconds = parseInt(conf.flightSectionSeconds);
     if(!Number.isNaN(flightSectionSeconds) && flightSectionSeconds >= 5 && flightSectionSeconds <= 180){
         const anunciosItem = boardProgramItems.find((i) => i.id === "anuncios");
@@ -5423,16 +6678,96 @@ onValue(configRef, (snap) => {
     if(!Number.isNaN(arrivalTol) && arrivalTol >= 3 && arrivalTol <= 15){
         document.getElementById("arrivalSpeechTolerance").value = arrivalTol;
     }
+    refreshArrivalSpeechPreviewMinuteSelect();
 });
 
 cargarCumpleañeros();
 cargarAnunciosActivos();
 
-/** Temporal: false = panel sin login. Volver a true cuando offline esté listo. */
-const PANEL_AUTH_ENABLED = false;
+/** Login del panel activo. */
+const PANEL_AUTH_ENABLED = true;
 
 const PANEL_AUTH_KEY = "panelAuthToken";
+const PANEL_AUTH_KEY_PERSIST = "panelAuthTokenPersist";
+const PANEL_REMEMBER_KEY = "panelRememberSession";
+const PANEL_SAVED_USER_KEY = "panelSavedUsername";
 let panelCurrentUser = null;
+
+function getPanelAuthToken() {
+    try {
+        return (
+            sessionStorage.getItem(PANEL_AUTH_KEY) ||
+            localStorage.getItem(PANEL_AUTH_KEY_PERSIST) ||
+            ""
+        );
+    } catch (_) {
+        return "";
+    }
+}
+
+function setPanelAuthToken(token, remember) {
+    try {
+        sessionStorage.removeItem(PANEL_AUTH_KEY);
+        localStorage.removeItem(PANEL_AUTH_KEY_PERSIST);
+        if (remember) {
+            localStorage.setItem(PANEL_AUTH_KEY_PERSIST, token);
+            localStorage.setItem(PANEL_REMEMBER_KEY, "1");
+        } else {
+            sessionStorage.setItem(PANEL_AUTH_KEY, token);
+            localStorage.removeItem(PANEL_REMEMBER_KEY);
+        }
+    } catch (_) {}
+}
+
+function clearPanelAuthToken() {
+    try {
+        sessionStorage.removeItem(PANEL_AUTH_KEY);
+        localStorage.removeItem(PANEL_AUTH_KEY_PERSIST);
+        localStorage.removeItem(PANEL_REMEMBER_KEY);
+    } catch (_) {}
+}
+
+function decodePanelTokenPayload(token) {
+    try {
+        const body = token.split(".")[1];
+        if (!body) return null;
+        const padLen = (4 - (body.length % 4)) % 4;
+        const b64 = body.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(padLen);
+        const data = JSON.parse(atob(b64));
+        if (!data?.sub || !data?.exp || Date.now() > data.exp) return null;
+        return { sub: data.sub, role: data.role || "editor" };
+    } catch (_) {
+        return null;
+    }
+}
+
+function syncPanelRememberUi() {
+    const rememberEl = document.getElementById("panelLoginRemember");
+    const userEl = document.getElementById("panelLoginUser");
+    let remember = true;
+    try {
+        remember = localStorage.getItem(PANEL_REMEMBER_KEY) !== "0";
+    } catch (_) {}
+    if (rememberEl) rememberEl.checked = remember;
+    if (userEl && remember) {
+        try {
+            const saved = localStorage.getItem(PANEL_SAVED_USER_KEY);
+            if (saved && !userEl.value) userEl.value = saved;
+        } catch (_) {}
+    }
+}
+
+function savePanelRememberPrefs(username, remember) {
+    try {
+        if (remember) {
+            localStorage.setItem(PANEL_REMEMBER_KEY, "1");
+            if (username) localStorage.setItem(PANEL_SAVED_USER_KEY, username);
+        } else {
+            localStorage.setItem(PANEL_REMEMBER_KEY, "0");
+            localStorage.removeItem(PANEL_SAVED_USER_KEY);
+        }
+    } catch (_) {}
+}
 
 function panelAuthApiUrl(path) {
     const base = typeof getPanelApiBase === "function" ? getPanelApiBase() : "";
@@ -5441,7 +6776,7 @@ function panelAuthApiUrl(path) {
 
 function panelAuthHeaders() {
     try {
-        const t = sessionStorage.getItem(PANEL_AUTH_KEY);
+        const t = getPanelAuthToken();
         return t ? { Authorization: "Bearer " + t, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
     } catch (_) {
         return { "Content-Type": "application/json" };
@@ -5482,9 +6817,9 @@ function unlockPanelApp(user) {
     if (user && user.role === "admin") void panelLoadUsers();
 }
 
-function lockPanelApp() {
+function lockPanelApp(clearTokens = true) {
     panelCurrentUser = null;
-    try { sessionStorage.removeItem(PANEL_AUTH_KEY); } catch (_) {}
+    if (clearTokens) clearPanelAuthToken();
     const gate = document.getElementById("panelLoginGate");
     const app = document.getElementById("panelApp");
     const bar = document.getElementById("panelUserBar");
@@ -5496,31 +6831,53 @@ function lockPanelApp() {
     if (menuUsers) menuUsers.hidden = true;
     if (usersCard) usersCard.hidden = true;
     setPanelLoginError("");
+    syncPanelRememberUi();
+}
+
+function showPanelLoginOnly() {
+    lockPanelApp(false);
 }
 
 async function panelValidateSession() {
+    const token = getPanelAuthToken();
+    if (!token) return false;
+
+    const cached = decodePanelTokenPayload(token);
     const url = panelAuthApiUrl("/api/panel/me");
-    if (!url) return false;
-    try {
-        const t = sessionStorage.getItem(PANEL_AUTH_KEY);
-        if (!t) return false;
-        const res = await fetch(url, { headers: panelAuthHeaders() });
-        if (!res.ok) return false;
-        const data = await res.json();
-        if (!data?.user?.username) return false;
-        unlockPanelApp(data.user);
-        return true;
-    } catch (_) {
-        return false;
+    if (url) {
+        try {
+            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.user?.username) {
+                    unlockPanelApp(data.user);
+                    return true;
+                }
+            }
+            if (res.status === 401 || res.status === 403) return false;
+        } catch (_) {
+            if (cached) {
+                unlockPanelApp({ username: cached.sub, role: cached.role });
+                return true;
+            }
+            return false;
+        }
     }
+    if (cached) {
+        unlockPanelApp({ username: cached.sub, role: cached.role });
+        return true;
+    }
+    return false;
 }
 
 async function panelLogin() {
     const userEl = document.getElementById("panelLoginUser");
     const passEl = document.getElementById("panelLoginPass");
+    const rememberEl = document.getElementById("panelLoginRemember");
     const btn = document.getElementById("panelLoginBtn");
     const username = (userEl?.value || "").trim();
     const password = passEl?.value || "";
+    const remember = rememberEl ? rememberEl.checked : true;
     if (!username || !password) {
         setPanelLoginError("Escribe usuario y clave.");
         return;
@@ -5536,7 +6893,7 @@ async function panelLogin() {
         const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, rememberMe: remember })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -5549,7 +6906,8 @@ async function panelLogin() {
             setPanelLoginError(msg);
             return;
         }
-        sessionStorage.setItem(PANEL_AUTH_KEY, data.token);
+        setPanelAuthToken(data.token, remember);
+        savePanelRememberPrefs(username, remember);
         if (passEl) passEl.value = "";
         unlockPanelApp(data.user);
         showTab("flightsTab");
@@ -5562,7 +6920,7 @@ async function panelLogin() {
 
 window.panelLogout = () => {
     if (!PANEL_AUTH_ENABLED) return;
-    lockPanelApp();
+    lockPanelApp(true);
     const userEl = document.getElementById("panelLoginUser");
     if (userEl) userEl.focus();
 };
@@ -5667,30 +7025,51 @@ window.panelResetUserPassword = async (username) => {
 async function initPanelAuth() {
     const loginBtn = document.getElementById("panelLoginBtn");
     const passEl = document.getElementById("panelLoginPass");
+    const rememberEl = document.getElementById("panelLoginRemember");
     if (loginBtn) loginBtn.addEventListener("click", panelLogin);
     if (passEl) {
         passEl.addEventListener("keydown", (e) => {
             if (e.key === "Enter") panelLogin();
         });
     }
+    if (rememberEl) {
+        rememberEl.addEventListener("change", () => {
+            savePanelRememberPrefs(
+                (document.getElementById("panelLoginUser")?.value || "").trim(),
+                rememberEl.checked
+            );
+        });
+    }
+    syncPanelRememberUi();
+
     if (!PANEL_AUTH_ENABLED) {
         unlockPanelApp({ username: "panel", role: "admin" });
-        const label = document.getElementById("panelUserLabel");
-        if (label) label.textContent = "sin login (temporal)";
         showTab("flightsTab");
         return;
     }
-    lockPanelApp();
+
+    const token = getPanelAuthToken();
+    const cached = token ? decodePanelTokenPayload(token) : null;
+    if (cached) {
+        unlockPanelApp({ username: cached.sub, role: cached.role });
+    } else {
+        showPanelLoginOnly();
+    }
+
     const ok = await panelValidateSession();
     if (ok) {
         showTab("flightsTab");
-    } else {
-        const userEl = document.getElementById("panelLoginUser");
-        if (userEl) userEl.focus();
+        return;
     }
+
+    lockPanelApp(true);
+    const userEl = document.getElementById("panelLoginUser");
+    if (userEl) userEl.focus();
 }
 
 void initPanelAuth();
+syncFlightsDatePickerUI();
+refreshArrivalSpeechPreviewMinuteSelect();
 
 window.onload = () => {
     if (document.getElementById("panelApp")?.classList.contains("panel-app--locked")) return;

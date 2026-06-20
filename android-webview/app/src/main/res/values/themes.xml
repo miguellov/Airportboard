@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.POPFIDSPanel" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:statusBarColor">#050508</item>
-        <item name="android:navigationBarColor">#050508</item>
         <item name="android:windowBackground">@color/splash_bg</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <!-- Edge-to-edge transparent bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
     <style name="Theme.POPFIDSPanel.Splash" parent="Theme.SplashScreen">

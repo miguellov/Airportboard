@@ -188,7 +188,9 @@ let indexAnuncio = 0;
 let anuncioLoopInterval = null;
 let anuncioHideTimeout = null;
 let cumpleanosData = {};
-let anuncioImageScale = 60;
+let anuncioImageScale = 100;
+let anuncioImageFit = "contain";
+let anuncioImageBg = "#000000";
 let flightSectionSeconds = 15;
 let suppressAnuncioAutoLoop = true;
 let anuncioSlideLooper = null;
@@ -529,7 +531,7 @@ onValue(ref(db,"anuncios"), snap => {
         return a.tipo === "mensaje" || a.tipo === "cumple" || a.tipo === "canvas";
     });
     indexAnuncio = 0;
-    requestBoardRotationRestart();
+    if(currentBoardSectionId === "anuncios") requestBoardRotationRestart();
     if(!anunciosActivos) return;
 });
 
@@ -539,7 +541,7 @@ onValue(ref(db,"cumpleanos"), snap => {
 
 onValue(ref(db, "visibility/anuncios"), snap => {
     anunciosActivos = snap.val() !== false;
-    requestBoardRotationRestart();
+    if(currentBoardSectionId === "anuncios" || !anunciosActivos) requestBoardRotationRestart();
 });
 
 onValue(ref(db,"ticker/duration"), snap => {
@@ -548,13 +550,33 @@ onValue(ref(db,"ticker/duration"), snap => {
     document.documentElement.style.setProperty('--scroll-duration', timerDuracion + 's');
 });
 
+function applyAnuncioMediaVars(el) {
+    const root = el || document.documentElement;
+    root.style.setProperty("--anuncio-media-scale", anuncioImageScale);
+    root.style.setProperty("--anuncio-media-fit", anuncioImageFit);
+    root.style.setProperty("--anuncio-media-bg", anuncioImageBg);
+}
+
 onValue(ref(db,"config/anuncioImageScale"), snap => {
-    const value = parseInt(snap.val());
-    if(!Number.isNaN(value) && value >= 30 && value <= 100){
+    const value = parseInt(snap.val(), 10);
+    if(!Number.isNaN(value) && value >= 30 && value <= 150){
         anuncioImageScale = value;
     }else{
-        anuncioImageScale = 60;
+        anuncioImageScale = 100;
     }
+    applyAnuncioMediaVars();
+});
+
+onValue(ref(db,"config/anuncioImageFit"), snap => {
+    const value = snap.val();
+    anuncioImageFit = value === "cover" ? "cover" : "contain";
+    applyAnuncioMediaVars();
+});
+
+onValue(ref(db,"config/anuncioImageBg"), snap => {
+    const value = snap.val();
+    anuncioImageBg = typeof value === "string" && value ? value : "#000000";
+    applyAnuncioMediaVars();
 });
 
 onValue(ref(db,"config/flightSectionSeconds"), snap => {
@@ -564,7 +586,6 @@ onValue(ref(db,"config/flightSectionSeconds"), snap => {
     }else{
         flightSectionSeconds = 15;
     }
-    requestBoardRotationRestart();
 });
 
 onValue(ref(db, "config/arrivalSpeechMinutes"), snap => {
@@ -902,6 +923,7 @@ function mostrarAnuncios(){
             if(media) {
                 contenedor.classList.add("anuncio-full--msg-media-full");
                 document.body.classList.add("board--msg-media-full");
+                applyAnuncioMediaVars(contenedor);
                 contenedor.innerHTML = hasVideo
                     ? `<div class="anuncio-msg-media-shell"><video class="anuncio-msg-media-fit" src="${media}" autoplay muted loop playsinline></video></div>`
                     : `<div class="anuncio-msg-media-shell"><img class="anuncio-msg-media-fit" src="${media}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>`;
@@ -1576,12 +1598,13 @@ const BOARD_PROGRAM_DEFAULTS = [
 ];
 
 let boardProgram = { items: BOARD_PROGRAM_DEFAULTS.map((x) => ({ ...x })) };
-let boardRotationStep = 0;
+let currentBoardSectionId = "vuelos";
 let boardSectionTimer = null;
 let boardAnuncioCadenceTimer = null;
 let boardPositionsSlideTimer = null;
 let boardPositionsActive = false;
 let boardRotationRestartTimer = null;
+let boardRotationPendingHard = false;
 
 function clampBoardSectionSeconds(id, val){
     const limits = { vuelos: [15, 600], anuncios: [10, 300], posiciones: [15, 300] };
@@ -1623,6 +1646,21 @@ function getActiveBoardSections(){
         .map((i) => ({ ...i, seconds: clampBoardSectionSeconds(i.id, i.seconds) }));
     if(active.length) return active;
     return [{ id: "vuelos", enabled: true, seconds: 90 }];
+}
+
+function resolveBoardSectionId(preferredId){
+    const sections = getActiveBoardSections();
+    if(!sections.length) return "vuelos";
+    if(preferredId && sections.some((s) => s.id === preferredId)) return preferredId;
+    return sections[0].id;
+}
+
+function advanceBoardSectionId(){
+    const sections = getActiveBoardSections();
+    if(!sections.length) return "vuelos";
+    const idx = sections.findIndex((s) => s.id === currentBoardSectionId);
+    const nextIdx = idx >= 0 ? (idx + 1) % sections.length : 0;
+    return sections[nextIdx].id;
 }
 
 function hideAnuncioOverlayForRotation(){
@@ -1688,8 +1726,9 @@ function runBoardRotationStep(){
     clearBoardRotationTimers();
     const sections = getActiveBoardSections();
     if(!sections.length) return;
-    boardRotationStep = boardRotationStep % sections.length;
-    const sec = sections[boardRotationStep];
+    currentBoardSectionId = resolveBoardSectionId(currentBoardSectionId);
+    const sec = sections.find((s) => s.id === currentBoardSectionId) || sections[0];
+    currentBoardSectionId = sec.id;
 
     if(sec.id === "vuelos"){
         /* Tablero FIDS visible por defecto; overlays ocultos */
@@ -1704,23 +1743,38 @@ function runBoardRotationStep(){
         runPosicionesSection(sec.seconds);
     }
 
+    const sectionSeconds = sec.seconds;
     boardSectionTimer = setTimeout(() => {
-        boardRotationStep = (boardRotationStep + 1) % sections.length;
+        currentBoardSectionId = advanceBoardSectionId();
         runBoardRotationStep();
-    }, sec.seconds * 1000);
+    }, sectionSeconds * 1000);
 }
 
 function restartBoardRotation(){
-    boardRotationStep = 0;
+    currentBoardSectionId = getActiveBoardSections()[0]?.id || "vuelos";
     runBoardRotationStep();
 }
 
-function requestBoardRotationRestart(){
+function softRefreshBoardRotation(){
+    const sections = getActiveBoardSections();
+    if(!sections.length){
+        clearBoardRotationTimers();
+        return;
+    }
+    currentBoardSectionId = resolveBoardSectionId(currentBoardSectionId);
+    runBoardRotationStep();
+}
+
+function requestBoardRotationRestart(opts = {}){
+    if(opts.hard) boardRotationPendingHard = true;
     if(boardRotationRestartTimer) clearTimeout(boardRotationRestartTimer);
     boardRotationRestartTimer = setTimeout(() => {
         boardRotationRestartTimer = null;
-        restartBoardRotation();
-    }, 120);
+        const hard = boardRotationPendingHard;
+        boardRotationPendingHard = false;
+        if(hard) restartBoardRotation();
+        else softRefreshBoardRotation();
+    }, 280);
 }
 
 let positionsSlides = [];
@@ -1777,40 +1831,39 @@ function schedulePositionsCycle(){
 }
 
 function restartPositionsRotation(){
-    requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 }
 
 onValue(ref(db,"config/boardProgram"), snap => {
     boardProgram = normalizeBoardProgram(snap.val());
-    requestBoardRotationRestart();
+    requestBoardRotationRestart({ hard: true });
 });
 
 onValue(ref(db,"config/positionsEnabled"), snap => {
     positionsEnabled = snap.val() !== false;
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones" || !positionsEnabled) requestBoardRotationRestart();
 });
 
 onValue(ref(db,"config/positionsGapSeconds"), snap => {
     const v = parseInt(snap.val());
     positionsGapSeconds = !Number.isNaN(v) && v >= 20 && v <= 300 ? v : 45;
-    restartPositionsRotation();
 });
 
 onValue(ref(db,"config/positionsDuration"), snap => {
     positionsDurationsData = snap.val() || {};
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"positions"), snap => {
     positionsData = snap.val() || {};
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"titles"), snap => {
     titlesData = snap.val() || {};
     document.querySelector(".westjet .panel-title").innerText = titlesData.westjet || "ASIGNACIONES WESTJET";
     document.querySelector(".jetblue .panel-title").innerText = titlesData.jetblue || "ASIGNACIONES JETBLUE";
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"visibility"), snap => {
@@ -1821,22 +1874,22 @@ onValue(ref(db,"visibility"), snap => {
     const westPanel = document.getElementById("westjetPanel");
     if(jetPanel) jetPanel.style.display = jetVis ? "block" : "none";
     if(westPanel) westPanel.style.display = westVis ? "block" : "none";
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"airlinesExtra"), snap => {
     airlinesExtraData = snap.val() || {};
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"jetblueFlights"), snap => {
     jetblueFlightsData = snap.val() || {};
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"westjetFlights"), snap => {
     westjetFlightsData = snap.val() || {};
-    restartPositionsRotation();
+    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
 restartBoardRotation();

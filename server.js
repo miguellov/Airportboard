@@ -106,6 +106,7 @@ const AERO_API_KEY =
 const PANEL_JWT_SECRET =
   process.env.PANEL_JWT_SECRET || SYNC_SECRET + "_panel_jwt_2026";
 const PANEL_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PANEL_TOKEN_TTL_REMEMBER_MS = 30 * 24 * 60 * 60 * 1000;
 const PANEL_BOOTSTRAP_USER = (process.env.PANEL_BOOTSTRAP_USER || "").trim();
 const PANEL_BOOTSTRAP_PASS = process.env.PANEL_BOOTSTRAP_PASS || "";
 
@@ -1117,11 +1118,12 @@ function panelTokenB64url(obj) {
   return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
 
-function signPanelToken(payload) {
+function signPanelToken(payload, remember = false) {
   const header = panelTokenB64url({ alg: "HS256", typ: "PANEL" });
+  const ttl = remember ? PANEL_TOKEN_TTL_REMEMBER_MS : PANEL_TOKEN_TTL_MS;
   const body = panelTokenB64url({
     ...payload,
-    exp: Date.now() + PANEL_TOKEN_TTL_MS
+    exp: Date.now() + ttl
   });
   const sig = crypto
     .createHmac("sha256", PANEL_JWT_SECRET)
@@ -1264,10 +1266,11 @@ app.post("/api/panel/login", async (req, res) => {
     if (!record || !verifyPanelPassword(password, record)) {
       return res.status(401).json({ error: "Usuario o clave incorrectos" });
     }
+    const remember = Boolean(req.body?.rememberMe);
     const token = signPanelToken({
       sub: record.username || username,
       role: record.role || "editor"
-    });
+    }, remember);
     res.json({
       ok: true,
       token,
@@ -1275,7 +1278,7 @@ app.post("/api/panel/login", async (req, res) => {
         username: record.username || username,
         role: record.role || "editor"
       },
-      expiresInDays: 7
+      expiresInDays: remember ? 30 : 7
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

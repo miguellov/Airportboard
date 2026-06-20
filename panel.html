@@ -721,6 +721,54 @@ document.addEventListener("DOMContentLoaded", function () {
         <div id="boardProgramTimeline" class="board-program-timeline" aria-hidden="true"></div>
         <div id="boardProgramSummary" class="board-program-summary"></div>
 
+        <section class="board-program-preview-panel" aria-label="Vista previa de rotación TV">
+            <div class="board-program-preview-panel__head">
+                <div>
+                    <h4 class="board-program-preview-panel__title">Vista previa TV</h4>
+                    <p class="board-program-preview-panel__sub">Simula el ciclo o mira el tablero real en miniatura</p>
+                </div>
+                <div class="board-program-preview-panel__tabs" role="tablist">
+                    <button type="button" class="board-program-preview-tab is-active" data-preview-mode="sim" role="tab" aria-selected="true">Simulación</button>
+                    <button type="button" class="board-program-preview-tab" data-preview-mode="live" role="tab" aria-selected="false">Tablero real</button>
+                </div>
+            </div>
+
+            <div id="boardProgramPreviewSim" class="board-program-preview-mode is-active" role="tabpanel">
+                <div class="board-program-preview-controls">
+                    <button type="button" id="boardProgramPreviewPlay" class="board-program-preview-btn board-program-preview-btn--primary">▶ Simular rotación</button>
+                    <button type="button" id="boardProgramPreviewPause" class="board-program-preview-btn" hidden>⏸ Pausar</button>
+                    <button type="button" id="boardProgramPreviewReset" class="board-program-preview-btn">↺ Reiniciar</button>
+                </div>
+                <div class="board-program-tv">
+                    <div class="board-program-tv__bezel">
+                        <div class="board-program-tv__top">
+                            <span class="board-program-tv__brand">POP FIDS</span>
+                            <span id="boardProgramTvStep" class="board-program-tv__step">—</span>
+                        </div>
+                        <div class="board-program-tv__screen" id="boardProgramTvScreen" aria-live="polite"></div>
+                        <div class="board-program-tv__footer">
+                            <span id="boardProgramTvSection" class="board-program-tv__section">—</span>
+                            <span id="boardProgramTvCountdown" class="board-program-tv__countdown">—</span>
+                        </div>
+                        <div class="board-program-tv__progress" aria-hidden="true">
+                            <div id="boardProgramTvProgressBar" class="board-program-tv__progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="boardProgramPreviewLive" class="board-program-preview-mode" role="tabpanel" hidden>
+                <div class="board-program-iframe-wrap" id="boardProgramIframeWrap">
+                    <iframe id="boardProgramPreviewFrame" title="Vista previa tablero TV" loading="lazy"></iframe>
+                </div>
+                <div class="board-program-preview-live-actions">
+                    <button type="button" class="board-program-preview-btn" onclick="reloadBoardProgramPreviewFrame()">↻ Recargar</button>
+                    <button type="button" class="board-program-preview-btn board-program-preview-btn--primary" onclick="openFullBoardPreviewFromProgram()">⬆ Ampliar vista previa</button>
+                    <a id="boardProgramPreviewOpen" href="index.html" target="_blank" rel="noopener" class="board-program-preview-link">Abrir en pestaña ↗</a>
+                </div>
+            </div>
+        </section>
+
         <div class="board-program-table-head" aria-hidden="true">
             <span>Sección</span>
             <span>Estado</span>
@@ -4829,7 +4877,245 @@ function renderBoardProgramList(){
     }).join("");
     renderBoardProgramTimeline();
     renderBoardProgramSummary();
+    syncBoardProgramPreviewSimulator();
 }
+
+const BOARD_PROGRAM_PREVIEW_IFRAME_W = 1920;
+const BOARD_PROGRAM_PREVIEW_IFRAME_H = 1080;
+let boardProgramPreviewTimer = null;
+let boardProgramPreviewStep = 0;
+let boardProgramPreviewRemaining = 0;
+let boardProgramPreviewPlaying = false;
+let boardProgramPreviewSectionTotal = 0;
+
+function getBoardProgramActiveItems(){
+    return boardProgramItems.filter((i) => i.enabled);
+}
+
+function boardProgramTvMockHtml(id){
+    if(id === "vuelos"){
+        return `
+            <div class="bp-mock bp-mock--vuelos">
+                <div class="bp-mock__head">LLEGADAS · MDPP</div>
+                <div class="bp-mock__cols"><span>VUELO</span><span>ORIGEN</span><span>ETA</span><span>ESTADO</span></div>
+                <div class="bp-mock__row"><span>B6 1234</span><span>JFK</span><span>14:25</span><span class="bp-mock__pill bp-mock__pill--ok">ON-TIME</span></div>
+                <div class="bp-mock__row"><span>WS 892</span><span>YYZ</span><span>15:10</span><span class="bp-mock__pill">LLEGANDO</span></div>
+                <div class="bp-mock__row"><span>B6 567</span><span>BOS</span><span>16:40</span><span class="bp-mock__pill bp-mock__pill--delay">DELAYED</span></div>
+            </div>`;
+    }
+    if(id === "anuncios"){
+        return `
+            <div class="bp-mock bp-mock--anuncios">
+                <div class="bp-mock__anuncio-glow"></div>
+                <div class="bp-mock__anuncio-icon">📢</div>
+                <div class="bp-mock__anuncio-title">Anuncio en pantalla</div>
+                <div class="bp-mock__anuncio-sub">Mensajes · canvas · cumpleaños</div>
+            </div>`;
+    }
+    return `
+        <div class="bp-mock bp-mock--posiciones">
+            <div class="bp-mock__pos-badge">🔵 JETBLUE</div>
+            <div class="bp-mock__pos-title">ASIGNACIONES</div>
+            <div class="bp-mock__pos-row"><span>Piloto</span><span>García M.</span></div>
+            <div class="bp-mock__pos-row"><span>FA 1</span><span>López R.</span></div>
+            <div class="bp-mock__pos-row"><span>FA 2</span><span>Martínez S.</span></div>
+        </div>`;
+}
+
+function renderBoardProgramTvScreen(item, stepIndex, totalSteps){
+    const screen = document.getElementById("boardProgramTvScreen");
+    const stepEl = document.getElementById("boardProgramTvStep");
+    const sectionEl = document.getElementById("boardProgramTvSection");
+    if(!screen || !item) return;
+    const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•" };
+    screen.className = `board-program-tv__screen board-program-tv__screen--${item.id}`;
+    screen.innerHTML = boardProgramTvMockHtml(item.id);
+    if(stepEl) stepEl.textContent = `${stepIndex + 1} / ${totalSteps}`;
+    if(sectionEl) sectionEl.textContent = `${meta.icon} ${meta.label}`;
+}
+
+function updateBoardProgramPreviewProgress(){
+    const bar = document.getElementById("boardProgramTvProgressBar");
+    const countdown = document.getElementById("boardProgramTvCountdown");
+    if(!bar || boardProgramPreviewSectionTotal <= 0) return;
+    const pct = Math.max(0, Math.min(100, (1 - boardProgramPreviewRemaining / boardProgramPreviewSectionTotal) * 100));
+    bar.style.width = `${pct}%`;
+    if(countdown) countdown.textContent = `${boardProgramPreviewRemaining}s restantes`;
+}
+
+function stopBoardProgramPreview(){
+    boardProgramPreviewPlaying = false;
+    if(boardProgramPreviewTimer){
+        clearInterval(boardProgramPreviewTimer);
+        boardProgramPreviewTimer = null;
+    }
+    const playBtn = document.getElementById("boardProgramPreviewPlay");
+    const pauseBtn = document.getElementById("boardProgramPreviewPause");
+    if(playBtn) playBtn.hidden = false;
+    if(pauseBtn) pauseBtn.hidden = true;
+}
+
+function boardProgramPreviewAdvance(){
+    const active = getBoardProgramActiveItems();
+    if(!active.length){
+        stopBoardProgramPreview();
+        const screen = document.getElementById("boardProgramTvScreen");
+        if(screen){
+            screen.className = "board-program-tv__screen";
+            screen.innerHTML = `<div class="bp-mock bp-mock--empty">Sin secciones activas</div>`;
+        }
+        return;
+    }
+    boardProgramPreviewStep = boardProgramPreviewStep % active.length;
+    const item = active[boardProgramPreviewStep];
+    boardProgramPreviewSectionTotal = item.seconds;
+    boardProgramPreviewRemaining = item.seconds;
+    renderBoardProgramTvScreen(item, boardProgramPreviewStep, active.length);
+    updateBoardProgramPreviewProgress();
+    highlightBoardProgramPreviewRow(item.id);
+}
+
+function highlightBoardProgramPreviewRow(id){
+    document.querySelectorAll(".board-program-row").forEach((row) => {
+        row.classList.toggle("is-preview-active", row.dataset.id === id);
+    });
+}
+
+function boardProgramPreviewTick(){
+    if(boardProgramPreviewRemaining > 1){
+        boardProgramPreviewRemaining--;
+        updateBoardProgramPreviewProgress();
+        return;
+    }
+    const active = getBoardProgramActiveItems();
+    if(!active.length) return stopBoardProgramPreview();
+    boardProgramPreviewStep = (boardProgramPreviewStep + 1) % active.length;
+    boardProgramPreviewAdvance();
+}
+
+function startBoardProgramPreview(){
+    const active = getBoardProgramActiveItems();
+    if(!active.length){
+        alert("Activa al menos una sección para simular.");
+        return;
+    }
+    stopBoardProgramPreview();
+    boardProgramPreviewPlaying = true;
+    boardProgramPreviewStep = 0;
+    boardProgramPreviewAdvance();
+    boardProgramPreviewTimer = setInterval(boardProgramPreviewTick, 1000);
+    const playBtn = document.getElementById("boardProgramPreviewPlay");
+    const pauseBtn = document.getElementById("boardProgramPreviewPause");
+    if(playBtn) playBtn.hidden = true;
+    if(pauseBtn) pauseBtn.hidden = false;
+}
+
+function resetBoardProgramPreview(){
+    stopBoardProgramPreview();
+    boardProgramPreviewStep = 0;
+    syncBoardProgramPreviewSimulator();
+    document.querySelectorAll(".board-program-row.is-preview-active").forEach((row) => {
+        row.classList.remove("is-preview-active");
+    });
+}
+
+function syncBoardProgramPreviewSimulator(){
+    if(boardProgramPreviewPlaying) return;
+    const active = getBoardProgramActiveItems();
+    const screen = document.getElementById("boardProgramTvScreen");
+    const bar = document.getElementById("boardProgramTvProgressBar");
+    const countdown = document.getElementById("boardProgramTvCountdown");
+    const stepEl = document.getElementById("boardProgramTvStep");
+    if(!screen) return;
+    if(!active.length){
+        screen.className = "board-program-tv__screen";
+        screen.innerHTML = `<div class="bp-mock bp-mock--empty">Activa secciones para ver la simulación</div>`;
+        if(stepEl) stepEl.textContent = "—";
+        if(countdown) countdown.textContent = "—";
+        if(bar) bar.style.width = "0%";
+        return;
+    }
+    const item = active[0];
+    boardProgramPreviewSectionTotal = item.seconds;
+    boardProgramPreviewRemaining = item.seconds;
+    renderBoardProgramTvScreen(item, 0, active.length);
+    if(bar) bar.style.width = "0%";
+    if(countdown) countdown.textContent = `${item.seconds}s por sección`;
+}
+
+function fitBoardProgramPreviewIframe(){
+    const wrap = document.getElementById("boardProgramIframeWrap");
+    const iframe = document.getElementById("boardProgramPreviewFrame");
+    if(!wrap || !iframe) return;
+    const w = wrap.clientWidth;
+    if(w <= 0) return;
+    const scale = w / BOARD_PROGRAM_PREVIEW_IFRAME_W;
+    iframe.style.width = BOARD_PROGRAM_PREVIEW_IFRAME_W + "px";
+    iframe.style.height = BOARD_PROGRAM_PREVIEW_IFRAME_H + "px";
+    iframe.style.transform = "scale(" + scale + ")";
+}
+
+function boardProgramPreviewFrameUrl(){
+    if(typeof boardPreviewUrl === "function") return boardPreviewUrl();
+    return "index.html";
+}
+
+function reloadBoardProgramPreviewFrame(){
+    const iframe = document.getElementById("boardProgramPreviewFrame");
+    const link = document.getElementById("boardProgramPreviewOpen");
+    const url = boardProgramPreviewFrameUrl();
+    if(link) link.href = url;
+    if(iframe){
+        iframe.onload = function(){ fitBoardProgramPreviewIframe(); };
+        iframe.src = url;
+    }
+    requestAnimationFrame(fitBoardProgramPreviewIframe);
+}
+
+function setBoardProgramPreviewMode(mode){
+    const sim = document.getElementById("boardProgramPreviewSim");
+    const live = document.getElementById("boardProgramPreviewLive");
+    document.querySelectorAll(".board-program-preview-tab").forEach((tab) => {
+        const on = tab.dataset.previewMode === mode;
+        tab.classList.toggle("is-active", on);
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    if(sim){
+        sim.classList.toggle("is-active", mode === "sim");
+        sim.hidden = mode !== "sim";
+    }
+    if(live){
+        live.classList.toggle("is-active", mode === "live");
+        live.hidden = mode !== "live";
+    }
+    if(mode === "live") reloadBoardProgramPreviewFrame();
+}
+
+window.openFullBoardPreviewFromProgram = () => {
+    if(typeof setBoardPreviewVisible === "function") setBoardPreviewVisible(true, true);
+    const card = document.getElementById("boardPreviewCard");
+    if(card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+function initBoardProgramPreviewUi(){
+    const playBtn = document.getElementById("boardProgramPreviewPlay");
+    const pauseBtn = document.getElementById("boardProgramPreviewPause");
+    const resetBtn = document.getElementById("boardProgramPreviewReset");
+    if(playBtn) playBtn.addEventListener("click", startBoardProgramPreview);
+    if(pauseBtn) pauseBtn.addEventListener("click", stopBoardProgramPreview);
+    if(resetBtn) resetBtn.addEventListener("click", resetBoardProgramPreview);
+    document.querySelectorAll(".board-program-preview-tab").forEach((tab) => {
+        tab.addEventListener("click", () => setBoardProgramPreviewMode(tab.dataset.previewMode || "sim"));
+    });
+    const wrap = document.getElementById("boardProgramIframeWrap");
+    if(wrap && typeof ResizeObserver !== "undefined"){
+        new ResizeObserver(fitBoardProgramPreviewIframe).observe(wrap);
+    }
+    window.addEventListener("resize", fitBoardProgramPreviewIframe);
+    syncBoardProgramPreviewSimulator();
+}
+
+initBoardProgramPreviewUi();
 
 window.adjustBoardProgramSeconds = (id, delta) => {
     const item = boardProgramItems.find((i) => i.id === id);

@@ -7045,6 +7045,7 @@ async function initPanelAuth() {
     if (!PANEL_AUTH_ENABLED) {
         unlockPanelApp({ username: "panel", role: "admin" });
         showTab("flightsTab");
+        if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
         return;
     }
 
@@ -7059,10 +7060,12 @@ async function initPanelAuth() {
     const ok = await panelValidateSession();
     if (ok) {
         showTab("flightsTab");
+        if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
         return;
     }
 
     lockPanelApp(true);
+    if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
     const userEl = document.getElementById("panelLoginUser");
     if (userEl) userEl.focus();
 }

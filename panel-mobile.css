@@ -199,12 +199,6 @@ body.panel-native-app #boardPreviewCard {
   transform: scale(0.9);
 }
 
-body.panel-native-app[data-active-tab="positionsTab"] .panel-fab,
-body.panel-native-app[data-active-tab="anunciosTab"] .panel-fab,
-body.panel-native-app[data-active-tab="configTab"] .panel-fab {
-  display: none !important;
-}
-
 /* ─── Ticker colapsable (móvil) ─── */
 body.panel-native-app #flightsTab > .toolbar-pro {
   margin-bottom: 0.5rem;
@@ -339,8 +333,24 @@ body.panel-native-app .toolbar-date-picker input {
   min-height: 2.85rem !important;
 }
 
-body.panel-native-app .top-buttons {
-  display: none;
+body.panel-native-app #flightsToolbar {
+  display: flex;
+  flex-direction: column;
+}
+
+body.panel-native-app .toolbar-pro__status-wrap {
+  padding-top: 0.2rem;
+}
+
+body.panel-native-app .toolbar-pro__status {
+  font-size: 0.68rem;
+  text-align: left;
+  line-height: 1.35;
+}
+
+/* Toolbar visible: el FAB duplicaba solo “Agregar” */
+body.panel-native-app .panel-fab {
+  display: none !important;
 }
 
 body.panel-native-app #panel {

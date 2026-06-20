@@ -192,11 +192,8 @@
       var origUnlock = window.unlockPanelApp;
       window.unlockPanelApp = function (user) {
         origUnlock(user);
-        var nav = document.getElementById("panelBottomNav");
-        var fab = document.getElementById("panelFabAdd");
-        if (nav) nav.hidden = false;
-        if (fab) fab.hidden = false;
         buildMobileConfigNav();
+        syncPanelMobileChrome();
       };
       window.__panelNativeUnlock = true;
     }
@@ -205,10 +202,7 @@
       var origLock = window.lockPanelApp;
       window.lockPanelApp = function () {
         origLock();
-        var nav = document.getElementById("panelBottomNav");
-        var fab = document.getElementById("panelFabAdd");
-        if (nav) nav.hidden = true;
-        if (fab) fab.hidden = true;
+        syncPanelMobileChrome();
       };
       window.__panelNativeLock = true;
     }
@@ -236,6 +230,21 @@
     }
   }
 
+  function setupMobileTicker() {
+    if (typeof window.initTickerStudioCollapse === "function") {
+      window.initTickerStudioCollapse();
+    }
+  }
+
+  function syncPanelMobileChrome() {
+    var app = document.getElementById("panelApp");
+    var locked = app && app.classList.contains("panel-app--locked");
+    var nav = document.getElementById("panelBottomNav");
+    if (nav) nav.hidden = !!locked;
+  }
+
+  window.syncPanelMobileChrome = syncPanelMobileChrome;
+
   function observeUsersMenuVisibility() {
     var usersMenu = document.getElementById("configMenuUsers");
     var mobileUsers = document.querySelector(
@@ -256,10 +265,7 @@
     patchPanelHooks();
     observeUsersMenuVisibility();
 
-    var nav = document.getElementById("panelBottomNav");
-    var fab = document.getElementById("panelFabAdd");
-    if (nav) nav.hidden = false;
-    if (fab) fab.hidden = false;
+    syncPanelMobileChrome();
     syncBottomNav(document.body.dataset.activeTab || "flightsTab");
 
     window.addEventListener("orientationchange", function () {

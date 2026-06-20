@@ -708,11 +708,31 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
 
     <div class="card-anuncio board-program-card">
-        <h3>📺 Programación pantalla TV</h3>
-        <p class="board-program-hint">Orden, encendido y segundos de cada sección en rotación. Los interruptores de Anuncios y Posiciones en sus pestañas siguen aplicando (si están apagados, esa sección se omite).</p>
-        <div id="boardProgramList" class="board-program-list"></div>
+        <header class="board-program-header">
+            <div class="board-program-header__badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg>
+            </div>
+            <div class="board-program-header__text">
+                <h3>Programación pantalla TV</h3>
+                <p class="board-program-hint">Define el orden, la visibilidad y la duración de cada bloque en rotación. Los interruptores de Anuncios y Posiciones en sus pestañas siguen aplicando.</p>
+            </div>
+        </header>
+
+        <div id="boardProgramTimeline" class="board-program-timeline" aria-hidden="true"></div>
+        <div id="boardProgramSummary" class="board-program-summary"></div>
+
+        <div class="board-program-table-head" aria-hidden="true">
+            <span>Sección</span>
+            <span>Estado</span>
+            <span>Duración</span>
+            <span>Orden</span>
+        </div>
+        <div id="boardProgramList" class="board-program-list" role="list"></div>
         <div class="board-program-actions">
-            <button type="button" onclick="saveBoardProgram()">💾 Guardar programación</button>
+            <button type="button" class="board-program-save-btn" onclick="saveBoardProgram()">
+                <span class="board-program-save-btn__icon" aria-hidden="true">💾</span>
+                Guardar programación
+            </button>
         </div>
     </div>
 
@@ -4645,9 +4665,30 @@ window.seleccionarSalidaApi = (index, el) => {
 };
 
 const BOARD_SECTION_META = {
-    vuelos: { label: "Tablero vuelos", icon: "✈️", min: 15, max: 600, default: 90 },
-    anuncios: { label: "Anuncios", icon: "📢", min: 10, max: 300, default: 35 },
-    posiciones: { label: "Posiciones", icon: "👥", min: 15, max: 300, default: 50 }
+    vuelos: {
+        label: "Tablero vuelos",
+        desc: "Llegadas FIDS en pantalla completa",
+        icon: "✈",
+        min: 15,
+        max: 600,
+        default: 90
+    },
+    anuncios: {
+        label: "Anuncios",
+        desc: "Rotación de mensajes y canvas",
+        icon: "📢",
+        min: 10,
+        max: 300,
+        default: 35
+    },
+    posiciones: {
+        label: "Posiciones",
+        desc: "Asignaciones de tripulación",
+        icon: "👥",
+        min: 15,
+        max: 300,
+        default: 50
+    }
 };
 
 let boardProgramItems = [
@@ -4685,32 +4726,117 @@ function normalizeBoardProgramItems(raw){
     return items;
 }
 
+function formatBoardProgramDuration(totalSec){
+    if(totalSec < 60) return `${totalSec} s`;
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return s ? `${m} min ${s} s` : `${m} min`;
+}
+
+function renderBoardProgramTimeline(){
+    const el = document.getElementById("boardProgramTimeline");
+    if(!el) return;
+    const active = boardProgramItems.filter((i) => i.enabled);
+    const total = active.reduce((sum, i) => sum + i.seconds, 0);
+    if(!active.length){
+        el.innerHTML = `<p class="board-program-timeline__empty">Sin secciones activas en rotación</p>`;
+        return;
+    }
+    const segs = active.map((item) => {
+        const meta = BOARD_SECTION_META[item.id] || { icon: "•", label: item.id };
+        const pct = Math.max(8, Math.round((item.seconds / total) * 100));
+        return `<div class="board-program-timeline__seg board-program-timeline__seg--${item.id}" style="flex:${item.seconds}" title="${meta.label}: ${item.seconds}s">
+            <span class="board-program-timeline__seg-icon">${meta.icon}</span>
+            <span class="board-program-timeline__seg-time">${item.seconds}s</span>
+        </div>`;
+    }).join("");
+    const legend = active.map((item, idx) => {
+        const meta = BOARD_SECTION_META[item.id] || { label: item.id };
+        return `<span class="board-program-timeline__legend-item"><strong>${idx + 1}.</strong> ${meta.label}</span>`;
+    }).join("");
+    el.innerHTML = `
+        <div class="board-program-timeline__label">Vista previa del ciclo</div>
+        <div class="board-program-timeline__track">${segs}</div>
+        <div class="board-program-timeline__legend">${legend}</div>`;
+}
+
+function renderBoardProgramSummary(){
+    const el = document.getElementById("boardProgramSummary");
+    if(!el) return;
+    const active = boardProgramItems.filter((i) => i.enabled);
+    const total = active.reduce((sum, i) => sum + i.seconds, 0);
+    const enabledCount = active.length;
+    el.innerHTML = `
+        <div class="board-program-stat">
+            <span class="board-program-stat__value">${enabledCount}</span>
+            <span class="board-program-stat__label">activas</span>
+        </div>
+        <div class="board-program-stat">
+            <span class="board-program-stat__value">${formatBoardProgramDuration(total)}</span>
+            <span class="board-program-stat__label">por ciclo</span>
+        </div>
+        <div class="board-program-stat">
+            <span class="board-program-stat__value">${boardProgramItems.length}</span>
+            <span class="board-program-stat__label">en lista</span>
+        </div>`;
+}
+
 function renderBoardProgramList(){
     const el = document.getElementById("boardProgramList");
     if(!el) return;
     el.innerHTML = boardProgramItems.map((item, idx) => {
-        const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•", min: 10, max: 300 };
+        const meta = BOARD_SECTION_META[item.id] || { label: item.id, desc: "", icon: "•", min: 10, max: 300 };
         const upDisabled = idx === 0 ? "disabled" : "";
         const downDisabled = idx === boardProgramItems.length - 1 ? "disabled" : "";
+        const rowClass = item.enabled ? "board-program-row is-on" : "board-program-row is-off";
+        const statusText = item.enabled ? "Activo" : "Apagado";
         return `
-            <div class="board-program-row" data-id="${item.id}">
-                <span class="board-program-order">${idx + 1}</span>
-                <span class="board-program-label">${meta.icon} ${meta.label}</span>
-                <label class="board-program-toggle">
-                    <input type="checkbox" ${item.enabled ? "checked" : ""} onchange="toggleBoardProgramEnabled('${item.id}', this.checked)">
-                    <span class="board-program-toggle-label">${item.enabled ? "ON" : "OFF"}</span>
-                </label>
-                <label class="board-program-seconds">
-                    <input type="number" min="${meta.min}" max="${meta.max}" value="${item.seconds}" onchange="setBoardProgramSeconds('${item.id}', this.value)">
-                    <span>seg</span>
-                </label>
-                <div class="board-program-move">
-                    <button type="button" class="board-program-move-btn" ${upDisabled} onclick="moveBoardProgramItem('${item.id}', -1)" title="Subir">▲</button>
-                    <button type="button" class="board-program-move-btn" ${downDisabled} onclick="moveBoardProgramItem('${item.id}', 1)" title="Bajar">▼</button>
+            <article class="${rowClass} board-program-row--${item.id}" data-id="${item.id}" role="listitem">
+                <div class="board-program-row__main">
+                    <span class="board-program-order" aria-label="Posición ${idx + 1}">${String(idx + 1).padStart(2, "0")}</span>
+                    <div class="board-program-icon" aria-hidden="true">${meta.icon}</div>
+                    <div class="board-program-copy">
+                        <strong class="board-program-label">${meta.label}</strong>
+                        <span class="board-program-desc">${meta.desc || ""}</span>
+                    </div>
                 </div>
-            </div>`;
+                <div class="board-program-row__state">
+                    <label class="board-program-switch" title="${statusText}">
+                        <input type="checkbox" ${item.enabled ? "checked" : ""} onchange="toggleBoardProgramEnabled('${item.id}', this.checked)">
+                        <span class="board-program-switch__track"><span class="board-program-switch__thumb"></span></span>
+                        <span class="board-program-switch__text">${statusText}</span>
+                    </label>
+                </div>
+                <div class="board-program-row__duration">
+                    <div class="board-program-duration">
+                        <button type="button" class="board-program-duration__btn" onclick="adjustBoardProgramSeconds('${item.id}', -5)" title="Menos 5 segundos" ${item.enabled ? "" : "disabled"}>−</button>
+                        <label class="board-program-duration__field">
+                            <input type="number" min="${meta.min}" max="${meta.max}" value="${item.seconds}" ${item.enabled ? "" : "disabled"} onchange="setBoardProgramSeconds('${item.id}', this.value)" aria-label="Segundos ${meta.label}">
+                            <span>seg</span>
+                        </label>
+                        <button type="button" class="board-program-duration__btn" onclick="adjustBoardProgramSeconds('${item.id}', 5)" title="Más 5 segundos" ${item.enabled ? "" : "disabled"}>+</button>
+                    </div>
+                </div>
+                <div class="board-program-row__order">
+                    <button type="button" class="board-program-move-btn" ${upDisabled} onclick="moveBoardProgramItem('${item.id}', -1)" title="Subir" aria-label="Subir ${meta.label}">
+                        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 3l5 6H3z"/></svg>
+                    </button>
+                    <button type="button" class="board-program-move-btn" ${downDisabled} onclick="moveBoardProgramItem('${item.id}', 1)" title="Bajar" aria-label="Bajar ${meta.label}">
+                        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 13L3 7h10z"/></svg>
+                    </button>
+                </div>
+            </article>`;
     }).join("");
+    renderBoardProgramTimeline();
+    renderBoardProgramSummary();
 }
+
+window.adjustBoardProgramSeconds = (id, delta) => {
+    const item = boardProgramItems.find((i) => i.id === id);
+    if(!item) return;
+    item.seconds = clampBoardProgramSeconds(id, item.seconds + delta);
+    renderBoardProgramList();
+};
 
 window.moveBoardProgramItem = (id, dir) => {
     const idx = boardProgramItems.findIndex((i) => i.id === id);

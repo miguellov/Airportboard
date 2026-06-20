@@ -2995,7 +2995,135 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.65rem;
-  padding: 0.85rem 1.35rem 1rem;
+  padding: 0.85rem 1.35rem 0.65rem;
+}
+
+.board-program-active-panel {
+  margin: 0 1.35rem 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--pop-border);
+}
+
+.board-program-active-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.board-program-active-panel__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pop-cyan);
+}
+
+.board-program-active-panel__hint {
+  font-size: 0.68rem;
+  color: var(--pop-muted);
+}
+
+.board-program-active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.board-program-inactive-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.board-program-inactive-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pop-muted);
+  margin-right: 0.15rem;
+}
+
+.board-program-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--pop-border);
+  background: var(--pop-elevated);
+  font-size: 0.74rem;
+  color: var(--pop-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+button.board-program-chip:hover {
+  border-color: rgba(31, 243, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.board-program-chip.is-selected {
+  border-color: rgba(31, 243, 255, 0.55);
+  box-shadow: 0 0 14px rgba(31, 243, 255, 0.15);
+  background: rgba(31, 243, 255, 0.1);
+}
+
+.board-program-chip--vuelos.is-selected { border-color: rgba(31, 243, 255, 0.55); }
+.board-program-chip--anuncios.is-selected { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.1); }
+.board-program-chip--posiciones.is-selected { border-color: rgba(167, 139, 250, 0.55); background: rgba(167, 139, 250, 0.1); }
+
+.board-program-chip__num {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--pop-cyan);
+}
+
+.board-program-chip__time {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--pop-muted);
+}
+
+.board-program-chip--off {
+  cursor: default;
+  opacity: 0.55;
+  text-decoration: line-through;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.board-program-chip--empty {
+  cursor: default;
+  border-style: dashed;
+  color: var(--pop-muted);
+  font-size: 0.75rem;
+}
+
+.board-program-row__main--clickable {
+  cursor: pointer;
+  border-radius: 8px;
+  margin: -0.25rem;
+  padding: 0.25rem;
+  transition: background 0.15s ease;
+}
+
+.board-program-row__main--clickable:hover {
+  background: rgba(31, 243, 255, 0.06);
+}
+
+.board-program-row.is-off .board-program-order {
+  color: var(--pop-muted);
+  opacity: 0.45;
 }
 
 .board-program-stat {

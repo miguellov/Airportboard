@@ -749,6 +749,15 @@ document.addEventListener("DOMContentLoaded", function () {
         <div id="boardProgramTimeline" class="board-program-timeline" aria-hidden="true"></div>
         <div id="boardProgramSummary" class="board-program-summary"></div>
 
+        <div class="board-program-active-panel">
+            <div class="board-program-active-panel__head">
+                <span class="board-program-active-panel__label">En rotación · vista previa</span>
+                <span class="board-program-active-panel__hint">Solo las secciones activas aparecen en TV</span>
+            </div>
+            <div id="boardProgramActiveChips" class="board-program-active-chips"></div>
+            <div id="boardProgramInactiveChips" class="board-program-inactive-chips" hidden></div>
+        </div>
+
         <section class="board-program-preview-panel" aria-label="Vista previa de rotación TV">
             <div class="board-program-preview-panel__head">
                 <div>
@@ -4917,7 +4926,7 @@ function renderBoardProgramTimeline(){
         return `<span class="board-program-timeline__legend-item"><strong>${idx + 1}.</strong> ${meta.label}</span>`;
     }).join("");
     el.innerHTML = `
-        <div class="board-program-timeline__label">Vista previa del ciclo</div>
+        <div class="board-program-timeline__label">Ciclo en TV (solo activas)</div>
         <div class="board-program-timeline__track">${segs}</div>
         <div class="board-program-timeline__legend">${legend}</div>`;
 }
@@ -4950,12 +4959,15 @@ function renderBoardProgramList(){
         const meta = BOARD_SECTION_META[item.id] || { label: item.id, desc: "", icon: "•", min: 10, max: 300 };
         const upDisabled = idx === 0 ? "disabled" : "";
         const downDisabled = idx === boardProgramItems.length - 1 ? "disabled" : "";
+        const rotIdx = getBoardProgramRotationIndex(item.id);
+        const orderLabel = rotIdx ? String(rotIdx).padStart(2, "0") : "—";
         const rowClass = item.enabled ? "board-program-row is-on" : "board-program-row is-off";
         const statusText = item.enabled ? "Activo" : "Apagado";
+        const previewSelected = selectedBoardProgramId === item.id && item.enabled;
         return `
-            <article class="${rowClass} board-program-row--${item.id}" data-id="${item.id}" role="listitem">
-                <div class="board-program-row__main">
-                    <span class="board-program-order" aria-label="Posición ${idx + 1}">${String(idx + 1).padStart(2, "0")}</span>
+            <article class="${rowClass} board-program-row--${item.id}${previewSelected ? " is-preview-active" : ""}" data-id="${item.id}" role="listitem">
+                <div class="board-program-row__main${item.enabled ? " board-program-row__main--clickable" : ""}" ${item.enabled ? `onclick="selectBoardProgramPreviewItem('${item.id}')"` : ""} title="${item.enabled ? "Ver en vista previa" : "Sección apagada"}">
+                    <span class="board-program-order" aria-label="${item.enabled ? `Posición en rotación ${rotIdx}` : "Fuera de rotación"}">${orderLabel}</span>
                     <div class="board-program-icon" aria-hidden="true">${meta.icon}</div>
                     <div class="board-program-copy">
                         <strong class="board-program-label">${meta.label}</strong>
@@ -4989,9 +5001,7 @@ function renderBoardProgramList(){
                 </div>
             </article>`;
     }).join("");
-    renderBoardProgramTimeline();
-    renderBoardProgramSummary();
-    syncBoardProgramPreviewSimulator();
+    refreshBoardProgramPreviewUI();
 }
 
 const BOARD_PROGRAM_PREVIEW_IFRAME_W = 1920;
@@ -5001,9 +5011,94 @@ let boardProgramPreviewStep = 0;
 let boardProgramPreviewRemaining = 0;
 let boardProgramPreviewPlaying = false;
 let boardProgramPreviewSectionTotal = 0;
+let selectedBoardProgramId = null;
 
 function getBoardProgramActiveItems(){
     return boardProgramItems.filter((i) => i.enabled);
+}
+
+function getBoardProgramRotationIndex(id){
+    const active = getBoardProgramActiveItems();
+    const idx = active.findIndex((i) => i.id === id);
+    return idx >= 0 ? idx + 1 : null;
+}
+
+function renderBoardProgramActiveChips(){
+    const el = document.getElementById("boardProgramActiveChips");
+    const inactiveEl = document.getElementById("boardProgramInactiveChips");
+    const active = getBoardProgramActiveItems();
+    const inactive = boardProgramItems.filter((i) => !i.enabled);
+    if(selectedBoardProgramId && !active.some((i) => i.id === selectedBoardProgramId)){
+        selectedBoardProgramId = active[0]?.id || null;
+    }
+    if(!selectedBoardProgramId && active.length) selectedBoardProgramId = active[0].id;
+    if(el){
+        if(!active.length){
+            el.innerHTML = `<span class="board-program-chip board-program-chip--empty">Ninguna sección activa — activa al menos una abajo</span>`;
+        }else{
+            el.innerHTML = active.map((item, idx) => {
+                const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•" };
+                const selected = selectedBoardProgramId === item.id;
+                return `<button type="button" class="board-program-chip board-program-chip--${item.id}${selected ? " is-selected" : ""}" onclick="selectBoardProgramPreviewItem('${item.id}')" title="Ver en vista previa">
+                    <span class="board-program-chip__num">${String(idx + 1).padStart(2, "0")}</span>
+                    <span class="board-program-chip__label">${meta.icon} ${meta.label}</span>
+                    <span class="board-program-chip__time">${item.seconds}s</span>
+                </button>`;
+            }).join("");
+        }
+    }
+    if(inactiveEl){
+        if(inactive.length){
+            inactiveEl.hidden = false;
+            inactiveEl.innerHTML = `<span class="board-program-inactive-label">Apagadas (no van a TV):</span>` +
+                inactive.map((item) => {
+                    const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•" };
+                    return `<span class="board-program-chip board-program-chip--off">${meta.icon} ${meta.label}</span>`;
+                }).join("");
+        }else{
+            inactiveEl.hidden = true;
+            inactiveEl.innerHTML = "";
+        }
+    }
+}
+
+window.selectBoardProgramPreviewItem = (id) => {
+    const item = boardProgramItems.find((i) => i.id === id);
+    if(!item || !item.enabled) return;
+    selectedBoardProgramId = id;
+    if(!boardProgramPreviewPlaying){
+        const active = getBoardProgramActiveItems();
+        const stepIdx = active.findIndex((i) => i.id === id);
+        boardProgramPreviewSectionTotal = item.seconds;
+        boardProgramPreviewRemaining = item.seconds;
+        renderBoardProgramTvScreen(item, stepIdx, active.length);
+        const bar = document.getElementById("boardProgramTvProgressBar");
+        const countdown = document.getElementById("boardProgramTvCountdown");
+        if(bar) bar.style.width = "0%";
+        if(countdown) countdown.textContent = `${item.seconds}s por sección`;
+        highlightBoardProgramPreviewRow(id);
+    }
+    renderBoardProgramActiveChips();
+};
+
+function refreshBoardProgramPreviewUI(){
+    renderBoardProgramTimeline();
+    renderBoardProgramSummary();
+    renderBoardProgramActiveChips();
+    if(boardProgramPreviewPlaying){
+        const active = getBoardProgramActiveItems();
+        if(!active.length){
+            stopBoardProgramPreview();
+            syncBoardProgramPreviewSimulator();
+            return;
+        }
+        const prevId = active[boardProgramPreviewStep % active.length]?.id;
+        const newStep = active.findIndex((i) => i.id === prevId);
+        boardProgramPreviewStep = newStep >= 0 ? newStep : 0;
+        boardProgramPreviewAdvance();
+        return;
+    }
+    syncBoardProgramPreviewSimulator();
 }
 
 function boardProgramTvMockHtml(id){
@@ -5090,9 +5185,11 @@ function boardProgramPreviewAdvance(){
 }
 
 function highlightBoardProgramPreviewRow(id){
+    selectedBoardProgramId = id;
     document.querySelectorAll(".board-program-row").forEach((row) => {
         row.classList.toggle("is-preview-active", row.dataset.id === id);
     });
+    renderBoardProgramActiveChips();
 }
 
 function boardProgramPreviewTick(){
@@ -5147,14 +5244,21 @@ function syncBoardProgramPreviewSimulator(){
         if(stepEl) stepEl.textContent = "—";
         if(countdown) countdown.textContent = "—";
         if(bar) bar.style.width = "0%";
+        document.querySelectorAll(".board-program-row.is-preview-active").forEach((row) => row.classList.remove("is-preview-active"));
         return;
     }
-    const item = active[0];
-    boardProgramPreviewSectionTotal = item.seconds;
-    boardProgramPreviewRemaining = item.seconds;
-    renderBoardProgramTvScreen(item, 0, active.length);
+    const pick = selectedBoardProgramId && active.some((i) => i.id === selectedBoardProgramId)
+        ? active.find((i) => i.id === selectedBoardProgramId)
+        : active[0];
+    if(pick) selectedBoardProgramId = pick.id;
+    const stepIdx = active.findIndex((i) => i.id === pick.id);
+    boardProgramPreviewSectionTotal = pick.seconds;
+    boardProgramPreviewRemaining = pick.seconds;
+    renderBoardProgramTvScreen(pick, stepIdx, active.length);
     if(bar) bar.style.width = "0%";
-    if(countdown) countdown.textContent = `${item.seconds}s por sección`;
+    if(countdown) countdown.textContent = `${pick.seconds}s por sección`;
+    highlightBoardProgramPreviewRow(pick.id);
+    renderBoardProgramActiveChips();
 }
 
 function fitBoardProgramPreviewIframe(){
@@ -5255,6 +5359,7 @@ window.toggleBoardProgramEnabled = (id, on) => {
     const item = boardProgramItems.find((i) => i.id === id);
     if(!item) return;
     item.enabled = Boolean(on);
+    if(!on && selectedBoardProgramId === id) selectedBoardProgramId = null;
     renderBoardProgramList();
 };
 

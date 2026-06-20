@@ -206,6 +206,10 @@ function dateTodayInPop() {
     return new Intl.DateTimeFormat("en-CA", { timeZone: BOARD_TZ_IANA }).format(new Date());
 }
 
+function isBoardDateFuture() {
+    return selectedDate > dateTodayInPop();
+}
+
 let selectedDate = dateTodayInPop();
 let unsubscribeFlightsByDate = null;
 
@@ -224,8 +228,9 @@ function isLandingBoardEstado(estado) {
 
 function effectiveArrivalHhmm(r) {
     const x = r || {};
-    const hasReal = Boolean(String(x.llegadaReal || "").trim());
-    const isArrived = isLandingBoardEstado(x.estado) || hasReal;
+    const ignoreLiveFields = isBoardDateFuture() && !x.manual;
+    const hasReal = !ignoreLiveFields && Boolean(String(x.llegadaReal || "").trim());
+    const isArrived = !ignoreLiveFields && (isLandingBoardEstado(x.estado) || hasReal);
     if (isArrived) {
         return (
             String(x.llegadaReal || "").trim() ||
@@ -1030,9 +1035,11 @@ function isVagueBoardEstado(estado) {
 }
 
 function flightHasLanded(r, diffMin) {
+    if (r.manual && isLandingBoardEstado(r.estado)) return true;
+    if (diffMin > 0) return false;
     if (isLandingBoardEstado(r.estado)) return true;
     if (String(r.llegadaReal || "").trim()) return true;
-    if (diffMin <= 0 && String(r.llegada || "").trim()) return true;
+    if (String(r.llegada || "").trim()) return true;
     return false;
 }
 
@@ -1102,13 +1109,25 @@ function computeFlightRowState(r) {
             if (diffMin <= 10 && diffMin > 0) {
                 estadoFinal = "ARRIVING";
                 estadoClase = "arriving";
-            } else if (String(r.salidaOrigen || "").trim()) {
+            } else if (
+                !isBoardDateFuture() &&
+                String(r.salidaOrigen || "").trim() &&
+                diffMin > 10
+            ) {
                 estadoFinal = "SALIÓ";
                 estadoClase = "salio";
+            } else if (isBoardDateFuture()) {
+                estadoFinal = "ON-TIME";
+                estadoClase = "on-time";
             }
         } else {
-            estadoFinal = r.estado || "ON-TIME";
-            estadoClase = estadoCssClass(estadoFinal);
+            if (isBoardDateFuture() && !r.manual) {
+                estadoFinal = "ON-TIME";
+                estadoClase = "on-time";
+            } else {
+                estadoFinal = r.estado || "ON-TIME";
+                estadoClase = estadoCssClass(estadoFinal);
+            }
         }
         if (diffMin <= 30 && diffMin > 0 && estadoFinal !== "ATERRIZADO") extraClass = "blink";
         if (estadoFinal === "ARRIVING" || estadoClase === "arriving") extraClass = "blink";
@@ -1239,7 +1258,7 @@ function renderVuelos(forceFull) {
                 <div class="flight-row-cell td-llegada">
                     <span class="hora-llegada">${escapeHtmlBoard(st.eff)}</span>
                     ${st.showProg ? `<small class="ruta-origen">Programado ${escapeHtmlBoard(st.prog)}</small>` : ""}
-                    ${r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${escapeHtmlBoard(r.salidaOrigen)}</small>` : ""}
+                    ${!isBoardDateFuture() && st.estadoClase === "salio" && r.salidaOrigen ? `<small class="ruta-origen">Salió origen ${escapeHtmlBoard(r.salidaOrigen)}</small>` : ""}
                     <span class="countdown-line"><span class="countdown-pill ${st.countdownClass}">${st.countdown}</span></span>
                     <div class="flight-progress">
                         <div class="flight-bar" style="width:${st.progreso}%"></div>

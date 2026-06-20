@@ -177,6 +177,25 @@ function dateStrTodayInRD() {
   });
 }
 
+function isFutureBoardDate(dateStr) {
+  const d = String(dateStr || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) && d > dateStrTodayInRD();
+}
+
+function isLiveApiEstado(estado) {
+  const n = normalizeEstadoKey(estado).replace(/Ó/g, "O");
+  return [
+    "SALIO",
+    "ARRIVING",
+    "ARRIVED",
+    "LANDED",
+    "ATERRIZADO",
+    "ATERIZADO",
+    "DEPARTED",
+    "EN_ROUTE"
+  ].includes(n);
+}
+
 /**
  * Instante absoluto del reloj local RD (UTC−4, sin DST) en dateStr.
  * Toda la ventana ±2h se ancla en estos instantes; el "ahora" del servidor es Date.now() (mismo eje temporal).
@@ -1442,6 +1461,7 @@ async function syncPayloadToRtdb(payload) {
   try {
     const selectedDateVal = await rtdbGet("config/selectedDate");
     const dateStr = selectedDateVal || dateStrTodayInRD();
+    const futureBoard = isFutureBoardDate(dateStr);
 
     const flights = await rtdbGet("flightsByDate/" + dateStr);
     if (!flights || typeof flights !== "object") {
@@ -1513,6 +1533,7 @@ async function syncPayloadToRtdb(payload) {
         changelog.push("llegadaEstimada");
       }
       if (
+        !futureBoard &&
         arr?.llegadaReal != null &&
         String(arr.llegadaReal) !== String(row.llegadaReal || "")
       ) {
@@ -1521,6 +1542,7 @@ async function syncPayloadToRtdb(payload) {
       }
 
       if (
+        !futureBoard &&
         arr?.salidaOrigen &&
         arr.salidaOrigen !== (row.salidaOrigen || "")
       ) {
@@ -1539,9 +1561,11 @@ async function syncPayloadToRtdb(payload) {
 
       const apiEstado = boardEstadoFromApi(pickApiEstado(row, arr, dep));
       const apiConfirmsLanding =
-        isLandingBoardEstado(apiEstado) ||
-        Boolean(String(arr?.llegadaReal || "").trim());
+        !futureBoard &&
+        (isLandingBoardEstado(apiEstado) ||
+          Boolean(String(arr?.llegadaReal || "").trim()));
       if (
+        !futureBoard &&
         apiEstado &&
         (!isEstadoStaffLocked(row.estado) || apiConfirmsLanding)
       ) {
@@ -1552,6 +1576,7 @@ async function syncPayloadToRtdb(payload) {
           changelog.push("estado");
         }
       } else if (
+        !futureBoard &&
         apiConfirmsLanding &&
         rowHasArrivalLeg(row) &&
         !isLandingBoardEstado(row.estado)
@@ -1559,6 +1584,17 @@ async function syncPayloadToRtdb(payload) {
         patch.estado = "ATERRIZADO";
         patch.manual = false;
         changelog.push("estado");
+      } else if (
+        futureBoard &&
+        !row.manual &&
+        isLiveApiEstado(row.estado) &&
+        !isEstadoStaffLocked(row.estado)
+      ) {
+        patch.estado = "ON-TIME";
+        patch.manual = false;
+        patch.llegadaReal = "";
+        patch.salidaOrigen = "";
+        changelog.push("estado-reset-futuro");
       }
 
       const mergedLlegada =

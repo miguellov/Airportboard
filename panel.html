@@ -5338,12 +5338,18 @@ window.buscarDatosVueloTarjeta = async (index) => {
             if (hl) rows[index].llegada = hl;
             if (hp) rows[index].llegadaProgramada = hp;
             if (arr.vuelo) rows[index].vueloLlegada = arr.vuelo;
-            if (arr.salidaOrigen) {
-                const so = convertirHora24(arr.salidaOrigen);
-                if (so) rows[index].salidaOrigen = so;
-            }
-            if (arr.estado) {
-                rows[index].estado = arr.estado;
+            const isFutureBoard = selectedDate > new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
+            if (!isFutureBoard) {
+                if (arr.salidaOrigen) {
+                    const so = convertirHora24(arr.salidaOrigen);
+                    if (so) rows[index].salidaOrigen = so;
+                }
+                if (arr.estado) {
+                    rows[index].estado = arr.estado;
+                    rows[index].manual = false;
+                }
+            } else {
+                rows[index].estado = rows[index].estado || "ON-TIME";
                 rows[index].manual = false;
             }
         }

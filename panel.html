@@ -684,29 +684,57 @@ document.addEventListener("DOMContentLoaded", function () {
 <!-- ========================= -->
 <!-- ⚙️ TAB CONFIGURACIÓN -->
 <!-- ========================= -->
-<div id="configTab" style="display:none;">
+<div id="configTab" class="config-shell" style="display:none;">
 
-    <h2>⚙️ Configuración</h2>
-
-    <div class="card-anuncio">
-
-        <h3>Configuración General</h3>
-
-        <label>Duración por defecto (segundos):</label>
-        <input id="defaultDuration" type="number" value="10" min="1" max="120">
-        <button onclick="saveConfig()">💾 Guardar</button>
-
-        <hr style="margin: 15px 0; border: 1px solid #334155;">
-
-        <h3>Auto-cambio de Vuelos</h3>
-        <label>
-            <input type="checkbox" id="autoChangeFlights">
-            Auto-cambiar vuelos a las 12:00 AM
-        </label>
-        <button onclick="saveConfig()">💾 Guardar</button>
-
+    <div class="config-topbar">
+        <button type="button" id="configMenuBtn" class="config-menu-btn" aria-label="Abrir menú de configuración" aria-expanded="false" aria-controls="configMenuDrawer" onclick="toggleConfigMenu()">
+            <span class="config-menu-btn__bar"></span>
+            <span class="config-menu-btn__bar"></span>
+            <span class="config-menu-btn__bar"></span>
+        </button>
+        <div class="config-topbar__text">
+            <h2 id="configSectionTitle" class="config-topbar__title">Programación TV</h2>
+            <p id="configSectionSub" class="config-topbar__sub">Orden y duración de secciones en rotación</p>
+        </div>
     </div>
 
+    <div id="configMenuOverlay" class="config-menu-overlay" onclick="closeConfigMenu()" hidden></div>
+    <nav id="configMenuDrawer" class="config-menu-drawer" aria-label="Menú de configuración" hidden>
+        <div class="config-menu-drawer__head">
+            <div>
+                <strong class="config-menu-drawer__brand">⚙️ Configuración</strong>
+                <p class="config-menu-drawer__hint">POP FIDS · Panel</p>
+            </div>
+            <button type="button" class="config-menu-drawer__close" onclick="closeConfigMenu()" aria-label="Cerrar menú">✕</button>
+        </div>
+        <div class="config-menu-drawer__nav">
+            <button type="button" class="config-menu-item is-active" data-config-section="tv" onclick="showConfigSection('tv')">
+                <span class="config-menu-item__icon" aria-hidden="true">📺</span>
+                <span class="config-menu-item__copy">
+                    <strong>Programación TV</strong>
+                    <small>Rotación y tiempos en pantalla</small>
+                </span>
+            </button>
+            <button type="button" class="config-menu-item" data-config-section="general" onclick="showConfigSection('general')">
+                <span class="config-menu-item__icon" aria-hidden="true">⚙️</span>
+                <span class="config-menu-item__copy">
+                    <strong>General</strong>
+                    <small>Duración y auto-cambio de vuelos</small>
+                </span>
+            </button>
+            <button type="button" class="config-menu-item" data-config-section="users" id="configMenuUsers" hidden onclick="showConfigSection('users')">
+                <span class="config-menu-item__icon" aria-hidden="true">👤</span>
+                <span class="config-menu-item__copy">
+                    <strong>Usuarios</strong>
+                    <small>Accesos y roles admin</small>
+                </span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="config-content">
+
+        <section id="configSectionTv" class="config-section is-active" data-config-section="tv">
     <div class="card-anuncio board-program-card">
         <header class="board-program-header">
             <div class="board-program-header__badge" aria-hidden="true">
@@ -783,8 +811,32 @@ document.addEventListener("DOMContentLoaded", function () {
             </button>
         </div>
     </div>
+        </section>
 
-    <div class="card-anuncio" id="panelUsersCard" hidden>
+        <section id="configSectionGeneral" class="config-section" data-config-section="general">
+            <div class="config-section-card">
+                <header class="config-section-card__head">
+                    <h3>Configuración general</h3>
+                    <p>Valores por defecto y automatización del panel.</p>
+                </header>
+                <div class="config-form-grid">
+                    <label class="config-field">
+                        <span class="config-field__label">Duración por defecto (segundos)</span>
+                        <input id="defaultDuration" type="number" value="10" min="1" max="120">
+                    </label>
+                    <label class="config-field config-field--check">
+                        <input type="checkbox" id="autoChangeFlights">
+                        <span>Auto-cambiar vuelos a las 12:00 AM</span>
+                    </label>
+                </div>
+                <div class="config-section-card__actions">
+                    <button type="button" class="config-save-btn" onclick="saveConfig()">💾 Guardar cambios</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="configSectionUsers" class="config-section" data-config-section="users">
+    <div class="card-anuncio config-section-card" id="panelUsersCard">
         <h3>👤 Usuarios del panel</h3>
         <p class="ticker-box-hint">Solo administradores. Las claves se guardan cifradas en Firebase.</p>
 
@@ -804,6 +856,9 @@ document.addEventListener("DOMContentLoaded", function () {
         <button type="button" onclick="panelCreateUser()">➕ Crear usuario</button>
         <p id="panelUsersMsg" class="panel-users-msg"></p>
     </div>
+        </section>
+
+    </div><!-- .config-content -->
 
 </div>
 
@@ -1230,6 +1285,59 @@ document.getElementById("fileAnuncio")?.addEventListener("change", (e) => {
 });
 
 /* 🔥 TABS */
+const CONFIG_SECTION_META = {
+    tv: { title: "Programación TV", sub: "Orden y duración de secciones en rotación" },
+    general: { title: "General", sub: "Duración por defecto y auto-cambio de vuelos" },
+    users: { title: "Usuarios", sub: "Accesos y roles del panel" }
+};
+let configMenuOpen = false;
+let activeConfigSection = "tv";
+
+window.toggleConfigMenu = () => {
+    configMenuOpen = !configMenuOpen;
+    const drawer = document.getElementById("configMenuDrawer");
+    const overlay = document.getElementById("configMenuOverlay");
+    const btn = document.getElementById("configMenuBtn");
+    if(drawer) drawer.hidden = !configMenuOpen;
+    if(overlay) overlay.hidden = !configMenuOpen;
+    if(btn){
+        btn.classList.toggle("is-open", configMenuOpen);
+        btn.setAttribute("aria-expanded", configMenuOpen ? "true" : "false");
+    }
+    document.body.classList.toggle("config-menu-open", configMenuOpen);
+};
+
+window.closeConfigMenu = () => {
+    if(!configMenuOpen) return;
+    configMenuOpen = false;
+    const drawer = document.getElementById("configMenuDrawer");
+    const overlay = document.getElementById("configMenuOverlay");
+    const btn = document.getElementById("configMenuBtn");
+    if(drawer) drawer.hidden = true;
+    if(overlay) overlay.hidden = true;
+    if(btn){
+        btn.classList.remove("is-open");
+        btn.setAttribute("aria-expanded", "false");
+    }
+    document.body.classList.remove("config-menu-open");
+};
+
+window.showConfigSection = (sectionId) => {
+    const meta = CONFIG_SECTION_META[sectionId] || CONFIG_SECTION_META.tv;
+    activeConfigSection = sectionId;
+    document.querySelectorAll(".config-section").forEach((el) => {
+        el.classList.toggle("is-active", el.dataset.configSection === sectionId);
+    });
+    document.querySelectorAll(".config-menu-item").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.configSection === sectionId);
+    });
+    const title = document.getElementById("configSectionTitle");
+    const sub = document.getElementById("configSectionSub");
+    if(title) title.textContent = meta.title;
+    if(sub) sub.textContent = meta.sub;
+    closeConfigMenu();
+};
+
 window.showTab = (tab)=>{
     document.getElementById("flightsTab").style.display = "none";
     document.getElementById("positionsTab").style.display = "none";
@@ -1239,7 +1347,13 @@ window.showTab = (tab)=>{
     document.querySelectorAll(".tabs button[data-tab]").forEach((btn) => {
         btn.classList.toggle("tab-active", btn.getAttribute("data-tab") === tab);
     });
+    if(tab === "configTab") showConfigSection(activeConfigSection || "tv");
+    else closeConfigMenu();
 };
+
+document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape") closeConfigMenu();
+});
 
 /* CAMBIAR TIPO DE ANUNCIO */
 window.cambiarTipoAnuncio = () => {
@@ -5245,6 +5359,7 @@ function unlockPanelApp(user) {
     const bar = document.getElementById("panelUserBar");
     const label = document.getElementById("panelUserLabel");
     const usersCard = document.getElementById("panelUsersCard");
+    const menuUsers = document.getElementById("configMenuUsers");
     if (gate) gate.hidden = true;
     if (app) app.classList.remove("panel-app--locked");
     if (bar && user) {
@@ -5253,7 +5368,9 @@ function unlockPanelApp(user) {
             label.textContent = user.username + (user.role === "admin" ? " · admin" : "");
         }
     }
-    if (usersCard) usersCard.hidden = !(user && user.role === "admin");
+    const isAdmin = Boolean(user && user.role === "admin");
+    if (menuUsers) menuUsers.hidden = !isAdmin;
+    if (usersCard) usersCard.hidden = false;
     if (user && user.role === "admin") void panelLoadUsers();
 }
 
@@ -5264,9 +5381,11 @@ function lockPanelApp() {
     const app = document.getElementById("panelApp");
     const bar = document.getElementById("panelUserBar");
     const usersCard = document.getElementById("panelUsersCard");
+    const menuUsers = document.getElementById("configMenuUsers");
     if (gate) gate.hidden = false;
     if (app) app.classList.add("panel-app--locked");
     if (bar) bar.hidden = true;
+    if (menuUsers) menuUsers.hidden = true;
     if (usersCard) usersCard.hidden = true;
     setPanelLoginError("");
 }

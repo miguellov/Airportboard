@@ -2,19 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#050508">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>POP FIDS — Panel de Control</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="panel.css">
-<link rel="stylesheet" href="panel-mobile.css">
 <script src="api-config.js"></script>
-<script src="panel-mobile.js"></script>
 </head>
 
 <body>
@@ -7045,7 +7040,6 @@ async function initPanelAuth() {
     if (!PANEL_AUTH_ENABLED) {
         unlockPanelApp({ username: "panel", role: "admin" });
         showTab("flightsTab");
-        if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
         return;
     }
 
@@ -7060,12 +7054,10 @@ async function initPanelAuth() {
     const ok = await panelValidateSession();
     if (ok) {
         showTab("flightsTab");
-        if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
         return;
     }
 
     lockPanelApp(true);
-    if (typeof window.syncPanelMobileChrome === "function") window.syncPanelMobileChrome();
     const userEl = document.getElementById("panelLoginUser");
     if (userEl) userEl.focus();
 }

@@ -5428,6 +5428,9 @@ onValue(configRef, (snap) => {
 cargarCumpleañeros();
 cargarAnunciosActivos();
 
+/** Temporal: false = panel sin login. Volver a true cuando offline esté listo. */
+const PANEL_AUTH_ENABLED = false;
+
 const PANEL_AUTH_KEY = "panelAuthToken";
 let panelCurrentUser = null;
 
@@ -5558,6 +5561,7 @@ async function panelLogin() {
 }
 
 window.panelLogout = () => {
+    if (!PANEL_AUTH_ENABLED) return;
     lockPanelApp();
     const userEl = document.getElementById("panelLoginUser");
     if (userEl) userEl.focus();
@@ -5661,7 +5665,6 @@ window.panelResetUserPassword = async (username) => {
 };
 
 async function initPanelAuth() {
-    lockPanelApp();
     const loginBtn = document.getElementById("panelLoginBtn");
     const passEl = document.getElementById("panelLoginPass");
     if (loginBtn) loginBtn.addEventListener("click", panelLogin);
@@ -5670,6 +5673,14 @@ async function initPanelAuth() {
             if (e.key === "Enter") panelLogin();
         });
     }
+    if (!PANEL_AUTH_ENABLED) {
+        unlockPanelApp({ username: "panel", role: "admin" });
+        const label = document.getElementById("panelUserLabel");
+        if (label) label.textContent = "sin login (temporal)";
+        showTab("flightsTab");
+        return;
+    }
+    lockPanelApp();
     const ok = await panelValidateSession();
     if (ok) {
         showTab("flightsTab");

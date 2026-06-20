@@ -181,10 +181,6 @@ document.addEventListener("DOMContentLoaded", function () {
         <input id="tickerDuration" type="number" value="25" min="1" max="120">
         <button onclick="saveTicker()">💾 Guardar Mensaje</button>
         <hr style="margin: 12px 0; border: 1px solid #334155;">
-        <label>Tiempo que se muestra la sección Vuelos (segundos):</label>
-        <input id="flightSectionSeconds" type="number" value="15" min="5" max="180">
-        <button onclick="saveFlightSectionConfig()">🕒 Guardar Tiempo de Sección</button>
-        <hr style="margin: 12px 0; border: 1px solid #334155;">
         <label>🔊 Avisos de voz antes de llegada (minutos, separados por coma):</label>
         <input id="arrivalSpeechMinutes" placeholder="30, 15, 1" value="30, 15, 1">
         <label>Tolerancia sync API (± minutos, cubre actualizaciones cada 10 min):</label>
@@ -709,6 +705,15 @@ document.addEventListener("DOMContentLoaded", function () {
         </label>
         <button onclick="saveConfig()">💾 Guardar</button>
 
+    </div>
+
+    <div class="card-anuncio board-program-card">
+        <h3>📺 Programación pantalla TV</h3>
+        <p class="board-program-hint">Orden, encendido y segundos de cada sección en rotación. Los interruptores de Anuncios y Posiciones en sus pestañas siguen aplicando (si están apagados, esa sección se omite).</p>
+        <div id="boardProgramList" class="board-program-list"></div>
+        <div class="board-program-actions">
+            <button type="button" onclick="saveBoardProgram()">💾 Guardar programación</button>
+        </div>
     </div>
 
     <div class="card-anuncio" id="panelUsersCard" hidden>
@@ -2349,12 +2354,6 @@ window.saveTicker = () => {
     set(tickerRef, msg);
     set(ref(db, "ticker/duration"), parseInt(duration));
     alert("✅ Mensaje guardado");
-};
-
-window.saveFlightSectionConfig = () => {
-    const seconds = parseInt(document.getElementById("flightSectionSeconds").value) || 15;
-    set(ref(db, "config/flightSectionSeconds"), Math.max(5, Math.min(180, seconds)));
-    alert("✅ Tiempo de sección guardado");
 };
 
 function parseArrivalSpeechMinutesInput(raw){
@@ -4645,6 +4644,108 @@ window.seleccionarSalidaApi = (index, el) => {
     if (box) box.innerHTML = "";
 };
 
+const BOARD_SECTION_META = {
+    vuelos: { label: "Tablero vuelos", icon: "✈️", min: 15, max: 600, default: 90 },
+    anuncios: { label: "Anuncios", icon: "📢", min: 10, max: 300, default: 35 },
+    posiciones: { label: "Posiciones", icon: "👥", min: 15, max: 300, default: 50 }
+};
+
+let boardProgramItems = [
+    { id: "vuelos", enabled: true, seconds: 90 },
+    { id: "anuncios", enabled: true, seconds: 35 },
+    { id: "posiciones", enabled: true, seconds: 50 }
+];
+
+function clampBoardProgramSeconds(id, val){
+    const meta = BOARD_SECTION_META[id];
+    if(!meta) return 30;
+    const n = parseInt(val, 10);
+    if(Number.isNaN(n)) return meta.default;
+    return Math.max(meta.min, Math.min(meta.max, n));
+}
+
+function normalizeBoardProgramItems(raw){
+    const defaults = [
+        { id: "vuelos", enabled: true, seconds: 90 },
+        { id: "anuncios", enabled: true, seconds: 35 },
+        { id: "posiciones", enabled: true, seconds: 50 }
+    ];
+    if(!raw || !Array.isArray(raw.items)) return defaults.map((x) => ({ ...x }));
+    const known = new Set(["vuelos", "anuncios", "posiciones"]);
+    const items = raw.items
+        .filter((i) => i && known.has(i.id))
+        .map((i) => ({
+            id: i.id,
+            enabled: i.enabled !== false,
+            seconds: clampBoardProgramSeconds(i.id, i.seconds)
+        }));
+    defaults.forEach((d) => {
+        if(!items.some((x) => x.id === d.id)) items.push({ ...d });
+    });
+    return items;
+}
+
+function renderBoardProgramList(){
+    const el = document.getElementById("boardProgramList");
+    if(!el) return;
+    el.innerHTML = boardProgramItems.map((item, idx) => {
+        const meta = BOARD_SECTION_META[item.id] || { label: item.id, icon: "•", min: 10, max: 300 };
+        const upDisabled = idx === 0 ? "disabled" : "";
+        const downDisabled = idx === boardProgramItems.length - 1 ? "disabled" : "";
+        return `
+            <div class="board-program-row" data-id="${item.id}">
+                <span class="board-program-order">${idx + 1}</span>
+                <span class="board-program-label">${meta.icon} ${meta.label}</span>
+                <label class="board-program-toggle">
+                    <input type="checkbox" ${item.enabled ? "checked" : ""} onchange="toggleBoardProgramEnabled('${item.id}', this.checked)">
+                    <span class="board-program-toggle-label">${item.enabled ? "ON" : "OFF"}</span>
+                </label>
+                <label class="board-program-seconds">
+                    <input type="number" min="${meta.min}" max="${meta.max}" value="${item.seconds}" onchange="setBoardProgramSeconds('${item.id}', this.value)">
+                    <span>seg</span>
+                </label>
+                <div class="board-program-move">
+                    <button type="button" class="board-program-move-btn" ${upDisabled} onclick="moveBoardProgramItem('${item.id}', -1)" title="Subir">▲</button>
+                    <button type="button" class="board-program-move-btn" ${downDisabled} onclick="moveBoardProgramItem('${item.id}', 1)" title="Bajar">▼</button>
+                </div>
+            </div>`;
+    }).join("");
+}
+
+window.moveBoardProgramItem = (id, dir) => {
+    const idx = boardProgramItems.findIndex((i) => i.id === id);
+    if(idx < 0) return;
+    const next = idx + dir;
+    if(next < 0 || next >= boardProgramItems.length) return;
+    const copy = boardProgramItems.slice();
+    const tmp = copy[idx];
+    copy[idx] = copy[next];
+    copy[next] = tmp;
+    boardProgramItems = copy;
+    renderBoardProgramList();
+};
+
+window.toggleBoardProgramEnabled = (id, on) => {
+    const item = boardProgramItems.find((i) => i.id === id);
+    if(!item) return;
+    item.enabled = Boolean(on);
+    renderBoardProgramList();
+};
+
+window.setBoardProgramSeconds = (id, val) => {
+    const item = boardProgramItems.find((i) => i.id === id);
+    if(!item) return;
+    item.seconds = clampBoardProgramSeconds(id, val);
+    renderBoardProgramList();
+};
+
+window.saveBoardProgram = () => {
+    set(ref(db, "config/boardProgram"), { items: boardProgramItems });
+    alert("✅ Programación de pantalla guardada");
+};
+
+renderBoardProgramList();
+
 window.saveConfig = () => {
     const defaultDuration = parseInt(document.getElementById("defaultDuration").value) || 10;
     const autoChange = document.getElementById("autoChangeFlights").checked;
@@ -4659,6 +4760,7 @@ window.saveConfig = () => {
 
 onValue(configRef, (snap) => {
     const conf = snap.val() || {};
+    if (conf.panelUsers) cachePanelUsersForOffline(conf.panelUsers);
     if(typeof conf.defaultDuration === "number"){
         document.getElementById("defaultDuration").value = conf.defaultDuration;
     }
@@ -4672,8 +4774,13 @@ onValue(configRef, (snap) => {
     }
     const flightSectionSeconds = parseInt(conf.flightSectionSeconds);
     if(!Number.isNaN(flightSectionSeconds) && flightSectionSeconds >= 5 && flightSectionSeconds <= 180){
-        document.getElementById("flightSectionSeconds").value = flightSectionSeconds;
+        const anunciosItem = boardProgramItems.find((i) => i.id === "anuncios");
+        if(anunciosItem && !conf.boardProgram) anunciosItem.seconds = flightSectionSeconds;
     }
+    if(conf.boardProgram){
+        boardProgramItems = normalizeBoardProgramItems(conf.boardProgram);
+    }
+    renderBoardProgramList();
     if(Array.isArray(conf.arrivalSpeechMinutes) && conf.arrivalSpeechMinutes.length){
         const mins = parseArrivalSpeechMinutesInput(conf.arrivalSpeechMinutes.join(", "));
         if(mins.length) document.getElementById("arrivalSpeechMinutes").value = mins.join(", ");

@@ -190,6 +190,8 @@ let anuncioHideTimeout = null;
 let cumpleanosData = {};
 let anuncioImageScale = 60;
 let flightSectionSeconds = 15;
+let suppressAnuncioAutoLoop = true;
+let anuncioSlideLooper = null;
 let titlesData = {};
 let visibilityData = {};
 let airlinesExtraData = {};
@@ -527,7 +529,7 @@ onValue(ref(db,"anuncios"), snap => {
         return a.tipo === "mensaje" || a.tipo === "cumple" || a.tipo === "canvas";
     });
     indexAnuncio = 0;
-    mostrarAnuncios();
+    requestBoardRotationRestart();
     if(!anunciosActivos) return;
 });
 
@@ -537,14 +539,7 @@ onValue(ref(db,"cumpleanos"), snap => {
 
 onValue(ref(db, "visibility/anuncios"), snap => {
     anunciosActivos = snap.val() !== false;
-    if(!anunciosActivos){
-        const contenedor = document.getElementById("anuncioFull");
-        contenedor.style.display = "none";
-        contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
-        document.body.classList.remove("board--msg-media-full", "board--cumple-full");
-    }else{
-        mostrarAnuncios();
-    }
+    requestBoardRotationRestart();
 });
 
 onValue(ref(db,"ticker/duration"), snap => {
@@ -569,7 +564,7 @@ onValue(ref(db,"config/flightSectionSeconds"), snap => {
     }else{
         flightSectionSeconds = 15;
     }
-    if(anunciosActivos) mostrarAnuncios();
+    requestBoardRotationRestart();
 });
 
 onValue(ref(db, "config/arrivalSpeechMinutes"), snap => {
@@ -940,8 +935,11 @@ function mostrarAnuncios(){
         indexAnuncio = (indexAnuncio + 1) % anuncios.length;
     }
 
+    anuncioSlideLooper = loop;
     loop();
-    anuncioLoopInterval = setInterval(loop, flightSectionSeconds * 1000);
+    if(!suppressAnuncioAutoLoop){
+        anuncioLoopInterval = setInterval(loop, flightSectionSeconds * 1000);
+    }
 }
 
 function getFlightAirlineTheme(row){
@@ -1571,6 +1569,160 @@ function renderPositionSlideHtml(slide){
         </div>`;
 }
 
+const BOARD_PROGRAM_DEFAULTS = [
+    { id: "vuelos", enabled: true, seconds: 90 },
+    { id: "anuncios", enabled: true, seconds: 35 },
+    { id: "posiciones", enabled: true, seconds: 50 }
+];
+
+let boardProgram = { items: BOARD_PROGRAM_DEFAULTS.map((x) => ({ ...x })) };
+let boardRotationStep = 0;
+let boardSectionTimer = null;
+let boardAnuncioCadenceTimer = null;
+let boardPositionsSlideTimer = null;
+let boardPositionsActive = false;
+let boardRotationRestartTimer = null;
+
+function clampBoardSectionSeconds(id, val){
+    const limits = { vuelos: [15, 600], anuncios: [10, 300], posiciones: [15, 300] };
+    const dflt = { vuelos: 90, anuncios: 35, posiciones: 50 };
+    const lim = limits[id] || [10, 300];
+    const n = parseInt(val, 10);
+    if(Number.isNaN(n)) return dflt[id] || 30;
+    return Math.max(lim[0], Math.min(lim[1], n));
+}
+
+function normalizeBoardProgram(raw){
+    if(!raw || !Array.isArray(raw.items)){
+        return { items: BOARD_PROGRAM_DEFAULTS.map((x) => ({ ...x })) };
+    }
+    const known = new Set(["vuelos", "anuncios", "posiciones"]);
+    const items = raw.items
+        .filter((i) => i && known.has(i.id))
+        .map((i) => ({
+            id: i.id,
+            enabled: i.enabled !== false,
+            seconds: clampBoardSectionSeconds(i.id, i.seconds)
+        }));
+    BOARD_PROGRAM_DEFAULTS.forEach((d) => {
+        if(!items.some((x) => x.id === d.id)) items.push({ ...d });
+    });
+    return { items };
+}
+
+function boardSectionRunnable(id){
+    if(id === "vuelos") return true;
+    if(id === "anuncios") return anunciosActivos && anuncios.length > 0;
+    if(id === "posiciones") return positionsEnabled && buildPositionsSlides().length > 0;
+    return false;
+}
+
+function getActiveBoardSections(){
+    const active = boardProgram.items
+        .filter((i) => i.enabled && boardSectionRunnable(i.id))
+        .map((i) => ({ ...i, seconds: clampBoardSectionSeconds(i.id, i.seconds) }));
+    if(active.length) return active;
+    return [{ id: "vuelos", enabled: true, seconds: 90 }];
+}
+
+function hideAnuncioOverlayForRotation(){
+    if(anuncioLoopInterval){
+        clearInterval(anuncioLoopInterval);
+        anuncioLoopInterval = null;
+    }
+    if(anuncioHideTimeout){
+        clearTimeout(anuncioHideTimeout);
+        anuncioHideTimeout = null;
+    }
+    if(boardAnuncioCadenceTimer){
+        clearInterval(boardAnuncioCadenceTimer);
+        boardAnuncioCadenceTimer = null;
+    }
+    const contenedor = document.getElementById("anuncioFull");
+    if(contenedor){
+        contenedor.style.display = "none";
+        contenedor.classList.remove("anuncio-full--cumple", "active", "anuncio-full--embed-fs", "anuncio-full--msg-media-full");
+    }
+    document.body.classList.remove("board--msg-media-full", "board--cumple-full");
+}
+
+function clearBoardRotationTimers(){
+    if(boardSectionTimer){
+        clearTimeout(boardSectionTimer);
+        boardSectionTimer = null;
+    }
+    if(boardPositionsSlideTimer){
+        clearTimeout(boardPositionsSlideTimer);
+        boardPositionsSlideTimer = null;
+    }
+    boardPositionsActive = false;
+    hideAnuncioOverlayForRotation();
+    hidePositionsFull();
+}
+
+function runPosicionesSection(totalSec){
+    if(!positionsEnabled){
+        hidePositionsFull();
+        return;
+    }
+    positionsSlides = buildPositionsSlides();
+    if(!positionsSlides.length){
+        hidePositionsFull();
+        return;
+    }
+    boardPositionsActive = true;
+    let idx = 0;
+    const slideCount = positionsSlides.length;
+    const perSlide = Math.max(3, Math.floor(totalSec / slideCount));
+
+    function showNext(){
+        if(!boardPositionsActive) return;
+        showPositionSlide(positionsSlides[idx % slideCount]);
+        idx++;
+        boardPositionsSlideTimer = setTimeout(showNext, perSlide * 1000);
+    }
+    showNext();
+}
+
+function runBoardRotationStep(){
+    clearBoardRotationTimers();
+    const sections = getActiveBoardSections();
+    if(!sections.length) return;
+    boardRotationStep = boardRotationStep % sections.length;
+    const sec = sections[boardRotationStep];
+
+    if(sec.id === "vuelos"){
+        /* Tablero FIDS visible por defecto; overlays ocultos */
+    }else if(sec.id === "anuncios"){
+        suppressAnuncioAutoLoop = true;
+        mostrarAnuncios();
+        const cadence = Math.max(5000, Math.floor(sec.seconds * 1000 / Math.max(1, anuncios.length)));
+        boardAnuncioCadenceTimer = setInterval(() => {
+            if(anuncioSlideLooper) anuncioSlideLooper();
+        }, cadence);
+    }else if(sec.id === "posiciones"){
+        runPosicionesSection(sec.seconds);
+    }
+
+    boardSectionTimer = setTimeout(() => {
+        boardRotationStep = (boardRotationStep + 1) % sections.length;
+        runBoardRotationStep();
+    }, sec.seconds * 1000);
+}
+
+function restartBoardRotation(){
+    boardRotationStep = 0;
+    runBoardRotationStep();
+}
+
+function requestBoardRotationRestart(){
+    if(boardRotationRestartTimer) clearTimeout(boardRotationRestartTimer);
+    boardRotationRestartTimer = setTimeout(() => {
+        boardRotationRestartTimer = null;
+        restartBoardRotation();
+    }, 120);
+}
+
 let positionsSlides = [];
 let positionsSlideIndex = 0;
 let positionsCycleTimer = null;
@@ -1603,7 +1755,6 @@ function endPositionsCycle(){
         positionsSlideTimer = null;
     }
     hidePositionsFull();
-    schedulePositionsCycle();
 }
 
 function advancePositionSlide(){
@@ -1618,44 +1769,21 @@ function advancePositionSlide(){
 }
 
 function startPositionsCycle(){
-    if(positionsSlideTimer) clearTimeout(positionsSlideTimer);
-    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
-    if(!positionsEnabled) return;
-
-    positionsSlides = buildPositionsSlides();
-    if(!positionsSlides.length){
-        hidePositionsFull();
-        schedulePositionsCycle();
-        return;
-    }
-
-    positionsSlideIndex = 0;
-    advancePositionSlide();
+    /* Rotación unificada en restartBoardRotation */
 }
 
-let positionsFirstCycle = true;
-
 function schedulePositionsCycle(){
-    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
-    if(!positionsEnabled) return;
-    positionsSlides = buildPositionsSlides();
-    if(!positionsSlides.length){
-        hidePositionsFull();
-        return;
-    }
-    const gap = positionsFirstCycle
-        ? 12
-        : Math.max(20, Math.min(300, positionsGapSeconds || 45));
-    positionsFirstCycle = false;
-    positionsCycleTimer = setTimeout(startPositionsCycle, gap * 1000);
+    /* Rotación unificada en restartBoardRotation */
 }
 
 function restartPositionsRotation(){
-    if(positionsSlideTimer) clearTimeout(positionsSlideTimer);
-    if(positionsCycleTimer) clearTimeout(positionsCycleTimer);
-    hidePositionsFull();
-    if(positionsEnabled) schedulePositionsCycle();
+    requestBoardRotationRestart();
 }
+
+onValue(ref(db,"config/boardProgram"), snap => {
+    boardProgram = normalizeBoardProgram(snap.val());
+    requestBoardRotationRestart();
+});
 
 onValue(ref(db,"config/positionsEnabled"), snap => {
     positionsEnabled = snap.val() !== false;
@@ -1711,7 +1839,7 @@ onValue(ref(db,"westjetFlights"), snap => {
     restartPositionsRotation();
 });
 
-restartPositionsRotation();
+restartBoardRotation();
 
 // 📢 TICKER
 onValue(ref(db,"ticker/message"), snap => {

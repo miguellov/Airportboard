@@ -2857,3 +2857,115 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   font-size: 0.85rem;
   color: var(--pop-success);
 }
+
+.board-program-card {
+  max-width: 720px;
+}
+
+.board-program-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--pop-muted);
+  line-height: 1.45;
+}
+
+.board-program-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.board-program-row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto auto auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--pop-elevated);
+  border: 1px solid var(--pop-border);
+  border-radius: var(--radius-sm);
+}
+
+.board-program-order {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--pop-cyan);
+  text-align: center;
+}
+
+.board-program-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.board-program-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--pop-muted);
+  cursor: pointer;
+}
+
+.board-program-toggle input {
+  accent-color: var(--pop-cyan);
+  margin: 0;
+}
+
+.board-program-toggle-label {
+  min-width: 1.75rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.board-program-seconds {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--pop-muted);
+}
+
+.board-program-seconds input {
+  width: 4.25rem;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  text-align: center;
+}
+
+.board-program-move {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.board-program-move-btn {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.65rem;
+  line-height: 1;
+  min-width: 1.75rem;
+}
+
+.board-program-move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.board-program-actions {
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 560px) {
+  .board-program-row {
+    grid-template-columns: 1.75rem 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  .board-program-seconds {
+    grid-column: 2;
+  }
+  .board-program-move {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    flex-direction: row;
+  }
+}

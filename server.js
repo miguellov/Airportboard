@@ -424,10 +424,8 @@ function deriveBoardEstadoFromAeroArrival(f, dateStr) {
   const enRoute = st === "en_route" || st === "active" || Boolean(actOff);
 
   if (enRoute && diffMin !== null && diffMin <= ARRIVING_ETA_MIN) return "ARRIVING";
-  if (actOff || enRoute) {
-    if (diffMin === null || diffMin > ARRIVING_ETA_MIN) {
-      return st === "delayed" ? "DELAYED" : "SALIÓ";
-    }
+  if (actOff && (diffMin === null || diffMin > ARRIVING_ETA_MIN)) {
+    return st === "delayed" ? "DELAYED" : "SALIÓ";
   }
   if (st === "delayed") return "DELAYED";
   return "ON-TIME";
@@ -737,10 +735,7 @@ async function buildFlightsPayloadFlightAware() {
       llegadaProgramada,
       llegadaEstimada,
       llegadaReal: formatHora(f.actual_in || f.actual_on),
-      salidaOrigen: formatHora(
-        f.actual_off || f.estimated_off || f.scheduled_off ||
-          f.actual_out || f.estimated_out || f.scheduled_out
-      ),
+      salidaOrigen: formatHora(f.actual_off || f.actual_out || ""),
       salida: "",
       gate: f.gate_destination || "",
       estado: estadoApi,
@@ -1595,6 +1590,32 @@ async function syncPayloadToRtdb(payload) {
         patch.llegadaReal = "";
         patch.salidaOrigen = "";
         changelog.push("estado-reset-futuro");
+      }
+
+      if (
+        !futureBoard &&
+        !row.manual &&
+        String(row.salidaOrigen || "").trim()
+      ) {
+        const depIns = rdWallClockToInstant(dateStr, row.salidaOrigen);
+        if (depIns && depIns.getTime() > Date.now()) {
+          patch.salidaOrigen = "";
+          changelog.push("salidaOrigen-clear-programada");
+        }
+      }
+
+      if (
+        !futureBoard &&
+        !row.manual &&
+        normalizeEstadoKey(row.estado).replace(/Ó/g, "O") === "SALIO"
+      ) {
+        const so = patch.salidaOrigen !== undefined ? patch.salidaOrigen : row.salidaOrigen;
+        const depIns = so ? rdWallClockToInstant(dateStr, so) : null;
+        if (!depIns || depIns.getTime() > Date.now()) {
+          patch.estado = "ON-TIME";
+          if (patch.salidaOrigen === undefined) patch.salidaOrigen = "";
+          changelog.push("estado-reset-salio-prematuro");
+        }
       }
 
       const mergedLlegada =

@@ -1034,6 +1034,25 @@ function isVagueBoardEstado(estado) {
     return !n || n === "ON-TIME" || n === "ON" || n === "EN-ROUTE" || n === "SCHEDULED";
 }
 
+/** Minutos hasta HH:MM en selectedDate (negativo = ya pasó). */
+function minutesUntilBoardTime(dateStr, hhmm) {
+    const dt = parseLlegadaInstant(dateStr, hhmm);
+    if (Number.isNaN(dt.getTime())) return null;
+    return Math.floor((dt.getTime() - Date.now()) / 60000);
+}
+
+/** En ruta: salió del origen de verdad (hora real pasada), no solo programada. */
+function flightEnRouteFromOrigin(r, diffMinArrival) {
+    if (diffMinArrival <= 10) return false;
+    const so = String(r.salidaOrigen || "").trim();
+    if (!so) {
+        return r.enRuta === true;
+    }
+    const depMin = minutesUntilBoardTime(selectedDate, so);
+    if (depMin === null) return false;
+    return depMin <= 0;
+}
+
 function flightHasLanded(r, diffMin) {
     if (r.manual && isLandingBoardEstado(r.estado)) return true;
     if (diffMin > 0) return false;
@@ -1111,17 +1130,29 @@ function computeFlightRowState(r) {
                 estadoClase = "arriving";
             } else if (
                 !isBoardDateFuture() &&
-                String(r.salidaOrigen || "").trim() &&
-                diffMin > 10
+                flightEnRouteFromOrigin(r, diffMin)
             ) {
                 estadoFinal = "SALIÓ";
                 estadoClase = "salio";
             } else if (isBoardDateFuture()) {
                 estadoFinal = "ON-TIME";
                 estadoClase = "on-time";
+            } else if (
+                !isBoardDateFuture() &&
+                (estadoNorm === "SALIO" || estadoNorm === "EN-ROUTE")
+            ) {
+                estadoFinal = "ON-TIME";
+                estadoClase = "on-time";
             }
         } else {
             if (isBoardDateFuture() && !r.manual) {
+                estadoFinal = "ON-TIME";
+                estadoClase = "on-time";
+            } else if (
+                !r.manual &&
+                (estadoNorm === "SALIO" || estadoNorm === "EN-ROUTE") &&
+                !flightEnRouteFromOrigin(r, diffMin)
+            ) {
                 estadoFinal = "ON-TIME";
                 estadoClase = "on-time";
             } else {

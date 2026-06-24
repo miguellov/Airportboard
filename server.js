@@ -724,6 +724,194 @@ function mapAeroDepartureEstado(f) {
   return deriveBoardEstadoFromAeroDeparture(f);
 }
 
+function aeroArrivalDateRd(f) {
+  return dateStrFromAeroIso(
+    f.scheduled_in ||
+      f.scheduled_on ||
+      f.estimated_in ||
+      f.estimated_on ||
+      f.scheduled_out ||
+      f.scheduled_off
+  );
+}
+
+function aeroAirportIata(node) {
+  return node?.code_iata || node?.code || "";
+}
+
+function isPopArrivalOnDate(f, targetDate) {
+  const dest = aeroAirportIata(f.destination);
+  if (dest !== "POP" && dest !== "MDPP") return false;
+  return aeroArrivalDateRd(f) === targetDate;
+}
+
+function isPopDepartureOnDate(f, targetDate) {
+  const orig = aeroAirportIata(f.origin);
+  if (orig !== "POP" && orig !== "MDPP") return false;
+  return aeroFlightDateRd(f) === targetDate;
+}
+
+function mapRawFlightToArrivalRow(f) {
+  const schedAnchor = f.scheduled_in || f.scheduled_on;
+  const dateAnchor = aeroArrivalDateRd(f);
+  const { hora: horaLlegadaPop, fuente: llegadaFuente } = calcularLlegadaAero(f);
+  const llegadaProgramada = formatHora(f.scheduled_in || f.scheduled_on);
+  const llegadaEstimada = formatHora(f.estimated_in || f.estimated_on);
+  const estadoApi = mapAeroArrivalEstado(f, dateAnchor);
+  const enRuta = ["SALIÓ", "ARRIVING", "DELAYED", "EN ROUTE"].includes(estadoApi);
+  return {
+    vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
+    origen: aeroAirportIata(f.origin),
+    destino: aeroAirportIata(f.origin),
+    boardDate: dateAnchor,
+    llegada: horaLlegadaPop,
+    llegadaFuente,
+    llegadaProgramada,
+    llegadaEstimada,
+    llegadaReal: formatHora(f.actual_in || f.actual_on),
+    salidaOrigen: formatHora(f.actual_off || f.actual_out || ""),
+    salida: "",
+    gate: f.gate_destination || "",
+    estado: estadoApi,
+    enRuta,
+    retraso: retrasoMinutosDesdeHHMM(
+      horaLlegadaPop,
+      llegadaProgramada,
+      dateAnchor
+    ),
+    source: "flightaware"
+  };
+}
+
+function mapRawFlightToDepartureRow(f) {
+  return {
+    vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
+    destino: aeroAirportIata(f.destination),
+    boardDate: aeroFlightDateRd(f),
+    salida: formatHora(
+      f.actual_out ||
+        f.actual_off ||
+        f.estimated_out ||
+        f.estimated_off ||
+        f.scheduled_out ||
+        f.scheduled_off
+    ),
+    llegada: "",
+    gate: f.gate_origin || "",
+    estado: mapAeroDepartureEstado(f),
+    source: "flightaware"
+  };
+}
+
+/** Números frecuentes POP — si el listado del aeropuerto falla, buscar por ident. */
+const POP_PROBE_FLIGHT_NUMS = [
+  "627", "1528", "2740", "2741", "2506", "2507", "2908", "2909"
+];
+
+function probeIdentsForNums(nums) {
+  const idents = new Set();
+  for (const n of nums || []) {
+    for (const p of ["B6", "JBU", "WS", "WJA", "WEN"]) {
+      idents.add(p + n);
+    }
+  }
+  return [...idents];
+}
+
+async function fetchFaIdentFlights(ident) {
+  try {
+    const id = encodeURIComponent(String(ident || "").trim());
+    if (!id) return [];
+    const res = await aeroApiGet(
+      `https://aeroapi.flightaware.com/aeroapi/flights/${id}`,
+      {
+        headers: { "x-apikey": AERO_API_KEY },
+        params: { max_pages: 2 },
+        timeout: 45_000
+      }
+    );
+    return res.data?.flights || [];
+  } catch {
+    return [];
+  }
+}
+
+async function supplementFaListsForDate(targetDate, arrToday, depToday) {
+  const arr = [...arrToday];
+  const dep = [...depToday];
+  const haveArr = new Set(arr.map((f) => normalizeIdent(f.vuelo)));
+  const haveDep = new Set(dep.map((f) => normalizeIdent(f.vuelo)));
+
+  for (const ident of probeIdentsForNums(POP_PROBE_FLIGHT_NUMS)) {
+    const flights = await fetchFaIdentFlights(ident);
+    for (const f of flights) {
+      if (!CU.isAllowedCarrierIdent(f.ident || ident)) continue;
+      if (isPopArrivalOnDate(f, targetDate)) {
+        const row = mapRawFlightToArrivalRow(f);
+        const key = normalizeIdent(row.vuelo);
+        if (!haveArr.has(key)) {
+          haveArr.add(key);
+          arr.push(row);
+        }
+      }
+      if (isPopDepartureOnDate(f, targetDate)) {
+        const row = mapRawFlightToDepartureRow(f);
+        const key = normalizeIdent(row.vuelo);
+        if (!haveDep.has(key)) {
+          haveDep.add(key);
+          dep.push(row);
+        }
+      }
+    }
+  }
+  return { arrToday: arr, depToday: dep };
+}
+
+function pairFaListsToBoardRows(arrToday, depToday) {
+  arrToday.sort(
+    (a, b) =>
+      (hhmmToMinutes(a.llegadaProgramada || a.llegada) ?? 99999) -
+      (hhmmToMinutes(b.llegadaProgramada || b.llegada) ?? 99999)
+  );
+  depToday.sort(
+    (a, b) =>
+      (hhmmToMinutes(a.salida) ?? 99999) - (hhmmToMinutes(b.salida) ?? 99999)
+  );
+
+  const usedDep = new Set();
+  const rows = [];
+
+  for (const arr of arrToday) {
+    const carrier = CU.detectCarrierFromRaw(arr.vuelo);
+    const arrMin =
+      hhmmToMinutes(arr.llegadaProgramada || arr.llegada) ?? 99999;
+    let bestDep = null;
+    let bestDepMin = Infinity;
+    for (const dep of depToday) {
+      if (usedDep.has(dep.vuelo)) continue;
+      if (CU.detectCarrierFromRaw(dep.vuelo) !== carrier) continue;
+      const depMin = hhmmToMinutes(dep.salida);
+      if (depMin === null || depMin < arrMin - 45) continue;
+      if (depMin < bestDepMin) {
+        bestDepMin = depMin;
+        bestDep = dep;
+      }
+    }
+    if (bestDep) usedDep.add(bestDep.vuelo);
+    const row = boardRowFromFaPair(arr, bestDep, carrier);
+    if (row) rows.push(row);
+  }
+
+  for (const dep of depToday) {
+    if (usedDep.has(dep.vuelo)) continue;
+    const carrier = CU.detectCarrierFromRaw(dep.vuelo);
+    const row = boardRowFromFaPair(null, dep, carrier);
+    if (row) rows.push(row);
+  }
+
+  return CU.sortFlightsByArrival(rows);
+}
+
 async function buildFlightsPayloadFlightAware() {
   if (!AERO_API_KEY) {
     const err = new Error("FA_API_KEY no configurada");
@@ -745,55 +933,9 @@ async function buildFlightsPayloadFlightAware() {
   const arrRaw = new Map();
   const depRaw = new Map();
 
-  const mapAeroSalida = (f) => ({
-    vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
-    destino: airportCode(f.destination),
-    boardDate: aeroFlightDateRd(f),
-    salida: formatHora(
-      f.actual_out ||
-        f.actual_off ||
-        f.estimated_out ||
-        f.estimated_off ||
-        f.scheduled_out ||
-        f.scheduled_off
-    ),
-    llegada: "",
-    gate: f.gate_origin || "",
-    estado: mapAeroDepartureEstado(f),
-    source: "flightaware"
-  });
+  const mapAeroSalida = (f) => mapRawFlightToDepartureRow(f);
 
-  const mapAeroLlegada = (f) => {
-    const schedAnchor = f.scheduled_in || f.scheduled_on;
-    const dateAnchor = dateStrFromAeroIso(schedAnchor || f.scheduled_out);
-    const { hora: horaLlegadaPop, fuente: llegadaFuente } = calcularLlegadaAero(f);
-    const llegadaProgramada = formatHora(f.scheduled_in || f.scheduled_on);
-    const llegadaEstimada = formatHora(f.estimated_in || f.estimated_on);
-    const estadoApi = mapAeroArrivalEstado(f, dateAnchor);
-    const enRuta = ["SALIÓ", "ARRIVING", "DELAYED", "EN ROUTE"].includes(estadoApi);
-    return {
-      vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
-      origen: airportCode(f.origin),
-      destino: airportCode(f.origin),
-      boardDate: dateAnchor,
-      llegada: horaLlegadaPop,
-      llegadaFuente,
-      llegadaProgramada,
-      llegadaEstimada,
-      llegadaReal: formatHora(f.actual_in || f.actual_on),
-      salidaOrigen: formatHora(f.actual_off || f.actual_out || ""),
-      salida: "",
-      gate: f.gate_destination || "",
-      estado: estadoApi,
-      enRuta,
-      retraso: retrasoMinutosDesdeHHMM(
-        horaLlegadaPop,
-        llegadaProgramada,
-        dateAnchor
-      ),
-      source: "flightaware"
-    };
-  };
+  const mapAeroLlegada = (f) => mapRawFlightToArrivalRow(f);
 
   ingestAeroList(data.scheduled_arrivals, mapAeroLlegada, arrMap, arrRaw, targetDate, "arr");
   ingestAeroList(data.scheduled_departures, mapAeroSalida, depMap, depRaw, targetDate, "dep");
@@ -2021,55 +2163,22 @@ async function buildBoardRowsFromFlightAware(targetDate) {
     return [];
   }
 
-  const arrToday = CU.restrictToAllowedCarriers(
+  let arrToday = CU.restrictToAllowedCarriers(
     (payload.llegadas || []).filter((f) => f.boardDate === targetDate)
   );
-  const depToday = CU.restrictToAllowedCarriers(
+  let depToday = CU.restrictToAllowedCarriers(
     (payload.salidas || []).filter((f) => f.boardDate === targetDate)
   );
 
-  arrToday.sort(
-    (a, b) =>
-      (hhmmToMinutes(a.llegadaProgramada || a.llegada) ?? 99999) -
-      (hhmmToMinutes(b.llegadaProgramada || b.llegada) ?? 99999)
+  const supplemented = await supplementFaListsForDate(
+    targetDate,
+    arrToday,
+    depToday
   );
-  depToday.sort(
-    (a, b) =>
-      (hhmmToMinutes(a.salida) ?? 99999) - (hhmmToMinutes(b.salida) ?? 99999)
-  );
+  arrToday = CU.restrictToAllowedCarriers(supplemented.arrToday);
+  depToday = CU.restrictToAllowedCarriers(supplemented.depToday);
 
-  const usedDep = new Set();
-  const rows = [];
-
-  for (const arr of arrToday) {
-    const carrier = CU.detectCarrierFromRaw(arr.vuelo);
-    const arrMin =
-      hhmmToMinutes(arr.llegadaProgramada || arr.llegada) ?? 99999;
-    let bestDep = null;
-    let bestDepMin = Infinity;
-    for (const dep of depToday) {
-      if (usedDep.has(dep.vuelo)) continue;
-      if (CU.detectCarrierFromRaw(dep.vuelo) !== carrier) continue;
-      const depMin = hhmmToMinutes(dep.salida);
-      if (depMin === null || depMin < arrMin - 45) continue;
-      if (depMin < bestDepMin) {
-        bestDepMin = depMin;
-        bestDep = dep;
-      }
-    }
-    if (bestDep) usedDep.add(bestDep.vuelo);
-    const row = boardRowFromFaPair(arr, bestDep, carrier);
-    if (row) rows.push(row);
-  }
-
-  for (const dep of depToday) {
-    if (usedDep.has(dep.vuelo)) continue;
-    const carrier = CU.detectCarrierFromRaw(dep.vuelo);
-    const row = boardRowFromFaPair(null, dep, carrier);
-    if (row) rows.push(row);
-  }
-
-  return CU.sortFlightsByArrival(rows);
+  return pairFaListsToBoardRows(arrToday, depToday);
 }
 
 /** Plantilla limpia para reprogramar una fila (solo uso manual). */
@@ -2137,16 +2246,13 @@ async function runProDayRollover(opts = {}) {
 
   const faRows = await buildBoardRowsFromFlightAware(targetDate);
   if (!faRows.length) {
-    if (!force) {
-      await rtdbPatch("config/autoChangeFlightsLastRun", targetDate);
-    }
     await rtdbPatch("config/selectedDate", targetDate);
     return {
       ok: true,
       skipped: true,
       reason: "no_fa_flights",
       date: targetDate,
-      note: "FlightAware no tiene vuelos JB/WS programados para esta fecha"
+      note: "FlightAware aún sin vuelos JB/WS para esta fecha — se reintentará"
     };
   }
 

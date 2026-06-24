@@ -207,6 +207,41 @@ function dateTodayInPop() {
     return new Intl.DateTimeFormat("en-CA", { timeZone: BOARD_TZ_IANA }).format(new Date());
 }
 
+/** Tablero FIDS: nunca mostrar vuelos de un día calendario pasado. */
+function resolveBoardFlightDate(cfgDate) {
+    const today = dateTodayInPop();
+    if (typeof cfgDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(cfgDate)) {
+        return cfgDate < today ? today : cfgDate;
+    }
+    return today;
+}
+
+function boardMinutesSinceMidnightPop() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: BOARD_TZ_IANA,
+        hour: "numeric",
+        minute: "numeric",
+        hour12: false
+    }).formatToParts(new Date());
+    const h = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+    const m = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+    return h * 60 + m;
+}
+
+/** Madrugada (00:00–05:59): ocultar vuelos ya aterrizados del día anterior en RTDB. */
+function filterBoardFlightsForDisplay(rows, dateStr) {
+    let list = rows || [];
+    const CU = window.CarrierUtils;
+    if (CU) list = CU.restrictToAllowedCarriers(list);
+    const today = dateTodayInPop();
+    if (dateStr !== today || boardMinutesSinceMidnightPop() >= 360) return list;
+    return list.filter((r) => {
+        if (r && r.manual) return true;
+        if (hasConfirmedRealArrival(r) || isLandingBoardEstado(r?.estado)) return false;
+        return true;
+    });
+}
+
 function isBoardDateFuture() {
     return selectedDate > dateTodayInPop();
 }
@@ -614,6 +649,7 @@ onValue(ref(db, "config/arrivalSpeechTolerance"), snap => {
 });
 
 // ⏰ RELOJ (zona POP)
+let boardCalendarDay = dateTodayInPop();
 setInterval(() => {
     const now = new Date();
     document.getElementById("clock").innerText = now.toLocaleTimeString("es-DO", {
@@ -630,17 +666,23 @@ setInterval(() => {
         month: "short",
         year: "numeric"
     });
+    const today = dateTodayInPop();
+    if (today !== boardCalendarDay) {
+        boardCalendarDay = today;
+        if (selectedDate < today) {
+            selectedDate = today;
+            speechArrivalMeta = Object.create(null);
+            watchFlightsForDate(today);
+        }
+    }
 }, 1000);
 
 // 🛫 VUELOS
 function watchFlightsForDate(dateStr){
     if(unsubscribeFlightsByDate) unsubscribeFlightsByDate();
     unsubscribeFlightsByDate = onValue(ref(db, "flightsByDate/" + dateStr), snap => {
-        const CU = window.CarrierUtils;
         let rows = Object.values(snap.val() || {});
-        if (CU) {
-            rows = CU.restrictToAllowedCarriers(rows);
-        }
+        rows = filterBoardFlightsForDisplay(rows, dateStr);
         vuelosData = rows;
         lastFlightsDataSig = "";
         renderVuelos(true);
@@ -649,8 +691,7 @@ function watchFlightsForDate(dateStr){
 
 onValue(ref(db, "config/selectedDate"), snap => {
     const prev = selectedDate;
-    const cfgDate = snap.val();
-    if (cfgDate) selectedDate = cfgDate;
+    selectedDate = resolveBoardFlightDate(snap.val());
     if (prev !== selectedDate) speechArrivalMeta = Object.create(null);
     watchFlightsForDate(selectedDate);
 });

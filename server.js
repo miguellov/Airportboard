@@ -1980,6 +1980,21 @@ function cleanFlightForNextDay(row) {
   };
 }
 
+/** Si el tablero quedó en un día pasado, avanzar config/selectedDate al calendario RD. */
+async function ensureBoardDateNotStale() {
+  const today = dateStrTodayInRD();
+  let selected = await rtdbGet("config/selectedDate");
+  if (typeof selected !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(selected)) {
+    await rtdbPatch("config/selectedDate", today);
+    return { advanced: true, from: selected || null, to: today };
+  }
+  if (selected < today) {
+    await rtdbPatch("config/selectedDate", today);
+    return { advanced: true, from: selected, to: today };
+  }
+  return { advanced: false, date: today };
+}
+
 async function findSourceFlightsForRollover(today) {
   const yesterday = addDaysToDateStr(today, -1);
   let flights = await rtdbGet("flightsByDate/" + yesterday);
@@ -2056,8 +2071,12 @@ async function runProDayRollover(opts = {}) {
     const k = normalizeBoardVueloKey(cleaned.vuelo);
     if (byVuelo.has(k)) {
       const existing = byVuelo.get(k);
-      byVuelo.set(k, { ...existing, ...cleaned });
-      updated++;
+      if (existing?.manual) {
+        byVuelo.set(k, existing);
+      } else {
+        byVuelo.set(k, cleaned);
+        updated++;
+      }
     } else {
       byVuelo.set(k, cleaned);
       added++;
@@ -2102,6 +2121,12 @@ async function flightSyncSchedulerLoop() {
     const ts = new Date().toISOString();
 
     try {
+      const stale = await ensureBoardDateNotStale();
+      if (stale.advanced) {
+        console.log(
+          `[${ts}] Fecha tablero avanzada: ${stale.from || "—"} → ${stale.to}`
+        );
+      }
       const rollover = await runProDayRollover();
       if (rollover.changed) {
         console.log(

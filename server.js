@@ -480,15 +480,59 @@ function rowHasDepartureLeg(row) {
 }
 
 /** Vuelo que aún debe recibir datos de FlightAware (en ruta / pendiente). */
-function rowNeedsLiveApiSync(row) {
+function rowNeedsLiveApiSync(row, dateStr) {
   if (!row || typeof row !== "object") return false;
   if (row.noApiSync === true) return false;
-  const st = normalizeEstadoKey(row.estado);
+
+  const boardDate =
+    dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+      ? dateStr
+      : dateStrTodayInRD();
+  if (isFutureBoardDate(boardDate)) return false;
+
+  const st = normalizeEstadoKey(row.estado).replace(/Ó/g, "O");
   if (rowHasArrivalLeg(row) && isLandingBoardEstado(st)) return false;
   if (!rowHasArrivalLeg(row) && rowHasDepartureLeg(row) && st === "DEPARTED") {
     return false;
   }
-  return true;
+
+  // Ya en vuelo → sync activo cada 10 min
+  if (st === "SALIO" || st === "ARRIVING" || st === "DELAYED") return true;
+
+  const actualOrigin = String(row.salidaOrigen || "").trim();
+  if (actualOrigin) {
+    const ins = rdWallClockToInstant(boardDate, actualOrigin);
+    if (ins && ins.getTime() <= Date.now()) return true;
+  }
+
+  const schedOrigin = String(row.salidaOrigenProgramada || "").trim();
+  if (!schedOrigin) return false;
+
+  const depIns = rdWallClockToInstant(boardDate, schedOrigin);
+  if (!depIns) return false;
+
+  // A partir de la hora programada de salida del origen (ej. 10:00) → sync
+  return depIns.getTime() <= Date.now();
+}
+
+/** Vuelos en tablero que aún esperan la hora de salida del origen (sin gastar API). */
+function rowWaitingOriginDeparture(row, dateStr) {
+  if (!row || typeof row !== "object") return false;
+  if (row.noApiSync === true) return false;
+  if (rowNeedsLiveApiSync(row, dateStr)) return false;
+  const st = normalizeEstadoKey(row.estado);
+  if (rowHasArrivalLeg(row) && isLandingBoardEstado(st)) return false;
+  const sched = String(row.salidaOrigenProgramada || "").trim();
+  if (!sched) return false;
+  const depIns = rdWallClockToInstant(dateStr, sched);
+  return Boolean(depIns && depIns.getTime() > Date.now());
+}
+
+function countRowsWaitingOriginDeparture(flights, dateStr) {
+  if (!flights || !dateStr) return 0;
+  return Object.values(flights).filter((row) =>
+    rowWaitingOriginDeparture(row, dateStr)
+  ).length;
 }
 
 /** Tras aterrizaje (o salida en filas solo-dep), dejar de sincronizar ese vuelo. */
@@ -770,6 +814,7 @@ function mapRawFlightToArrivalRow(f) {
     llegadaEstimada,
     llegadaReal: formatHora(f.actual_in || f.actual_on),
     salidaOrigen: formatHora(f.actual_off || f.actual_out || ""),
+    salidaOrigenProgramada: formatHora(f.scheduled_out || f.scheduled_off || ""),
     salida: "",
     gate: f.gate_destination || "",
     estado: estadoApi,
@@ -1184,10 +1229,22 @@ app.get("/api/health", async (req, res) => {
 app.get("/api/flights/sync-state", async (_req, res) => {
   try {
     const pollingSec = await readPollingIntervalSec();
+    let pendingApi = 0;
+    let waitingOrigin = 0;
+    try {
+      const { dateStr, flights } = await getBoardFlightsForSync();
+      if (flights && dateStr) {
+        pendingApi = countRowsNeedingApiSync(flights, dateStr);
+        waitingOrigin = countRowsWaitingOriginDeparture(flights, dateStr);
+      }
+    } catch (_) {}
     res.json({
       enabled: flightSyncEnabled,
       pollingSec,
-      flightaware: Boolean(AERO_API_KEY && AERO_API_KEY.length > 8)
+      flightaware: Boolean(AERO_API_KEY && AERO_API_KEY.length > 8),
+      pendingApi,
+      waitingOrigin,
+      smartSyncOrigin: true
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -1596,9 +1653,13 @@ async function getBoardFlightsForSync() {
   return { dateStr, flights: flights && typeof flights === "object" ? flights : null };
 }
 
-function countRowsNeedingApiSync(flights) {
+function countRowsNeedingApiSync(flights, dateStr) {
   if (!flights) return 0;
-  return Object.values(flights).filter((row) => rowNeedsLiveApiSync(row)).length;
+  const d =
+    dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+      ? dateStr
+      : dateStrTodayInRD();
+  return Object.values(flights).filter((row) => rowNeedsLiveApiSync(row, d)).length;
 }
 
 /** Marca noApiSync en vuelos ya aterrizados/salidos sin llamar a FlightAware. */
@@ -1743,6 +1804,15 @@ async function syncPayloadToRtdb(payload) {
         changelog.push("llegadaReal");
       }
 
+      if (
+        !futureBoard &&
+        arr?.salidaOrigenProgramada &&
+        String(arr.salidaOrigenProgramada) !==
+          String(row.salidaOrigenProgramada || "")
+      ) {
+        patch.salidaOrigenProgramada = arr.salidaOrigenProgramada;
+        changelog.push("salidaOrigenProgramada");
+      }
       if (
         !futureBoard &&
         arr?.salidaOrigen &&
@@ -1924,11 +1994,18 @@ async function syncFlightTimesToRtdb() {
     };
   }
 
-  const pendingApi = countRowsNeedingApiSync(flights);
+  const pendingApi = countRowsNeedingApiSync(flights, dateStr);
   if (pendingApi === 0) {
-    console.log(
-      `FlightAware ⏭ omitido — ${Object.keys(flights).length} vuelo(s) ya finalizados o con sync pausada`
-    );
+    const waitingOrigin = countRowsWaitingOriginDeparture(flights, dateStr);
+    if (waitingOrigin > 0) {
+      console.log(
+        `FlightAware ⏭ ${waitingOrigin} vuelo(s) esperando salida del origen — sin llamada API`
+      );
+    } else {
+      console.log(
+        `FlightAware ⏭ omitido — ${Object.keys(flights).length} vuelo(s) finalizados o sin sync pendiente`
+      );
+    }
     return pauseTerminalFlightsOnBoard(dateStr, flights);
   }
 
@@ -2087,14 +2164,14 @@ async function readFlightsOnBoardCount() {
   try {
     const { dateStr, flights } = await getBoardFlightsForSync();
     if (!flights) {
-      return { dateStr, count: 0, pendingApi: 0 };
+      return { dateStr, count: 0, pendingApi: 0, waitingOrigin: 0 };
     }
     const count = Object.values(flights).filter(
       (row) => row && typeof row === "object"
     ).length;
-    return { dateStr, count, pendingApi: countRowsNeedingApiSync(flights) };
+    return { dateStr, count, pendingApi: countRowsNeedingApiSync(flights, dateStr), waitingOrigin: countRowsWaitingOriginDeparture(flights, dateStr) };
   } catch (e) {
-    return { dateStr: null, count: 0, pendingApi: 0, error: e.message };
+    return { dateStr: null, count: 0, pendingApi: 0, waitingOrigin: 0, error: e.message };
   }
 }
 
@@ -2144,6 +2221,7 @@ function boardRowFromFaPair(arr, dep, carrier) {
     llegadaReal: "",
     salida: dep?.salida || "",
     salidaOrigen: "",
+    salidaOrigenProgramada: String(arr?.salidaOrigenProgramada || "").trim(),
     gate: dep?.gate || arr?.gate || "",
     estado: "ON-TIME",
     retraso: arr?.retraso ?? null,
@@ -2198,6 +2276,7 @@ function cleanFlightForNextDay(row) {
     llegadaReal: "",
     salida: row.salida || "",
     salidaOrigen: "",
+    salidaOrigenProgramada: String(row.salidaOrigenProgramada || "").trim(),
     gate: "",
     estado: "ON-TIME",
     retraso: null,
@@ -2341,7 +2420,7 @@ async function flightSyncSchedulerLoop() {
       console.log(`[${ts}] PRO auto-programación error:`, e.message);
     }
 
-    const { dateStr, count, pendingApi, error: boardError } =
+    const { dateStr, count, pendingApi, waitingOrigin, error: boardError } =
       await readFlightsOnBoardCount();
 
     if (!flightSyncEnabled) {
@@ -2351,9 +2430,13 @@ async function flightSyncSchedulerLoop() {
     } else if (count === 0) {
       console.log(`[${ts}] Sin vuelos en tablero (${dateStr}) — sync omitido`);
     } else {
-      if (pendingApi === 0) {
+      if (pendingApi === 0 && waitingOrigin > 0) {
         console.log(
-          `[${ts}] Todos los vuelos aterrizados/salidos (${dateStr}) — sin llamada FlightAware`
+          `[${ts}] ${waitingOrigin} vuelo(s) esperando salida del origen (${dateStr}) — sin llamada FlightAware`
+        );
+      } else if (pendingApi === 0) {
+        console.log(
+          `[${ts}] Todos los vuelos finalizados (${dateStr}) — sin llamada FlightAware`
         );
       }
       try {

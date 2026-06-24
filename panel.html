@@ -962,7 +962,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <input id="arrivalSpeechTolerance" type="number" value="7" min="3" max="15">
                     </label>
                 </div>
-                <p class="config-field-hint">Cubre actualizaciones de la API cada ~10 min. La TV debe tocarse una vez para activar la voz; si la API cambia la hora, los avisos se recalculan solos.</p>
+                <p class="config-field-hint">Cubre actualizaciones de la API cada ~10 min cuando el vuelo ya salió del origen. Antes de esa hora no se llama FlightAware (ahorra cuota). La TV debe tocarse una vez para activar la voz.</p>
 
                 <div class="arrival-speech-preview">
                     <header class="arrival-speech-preview__head">
@@ -4947,9 +4947,17 @@ async function refreshSyncControlUI() {
             statusEl.style.color = enabled ? "#4ade80" : "#fbbf24";
             const mins = Math.max(1, Math.round((data.pollingSec || 600) / 60));
             const fa = data.flightaware ? "FlightAware ✓" : "sin FA_API_KEY";
-            statusEl.textContent = enabled
-                ? `▶ Sync cada ${mins} min · ${fa}`
-                : `⏸ Sync pausado · ${fa}`;
+            const waitN = data.waitingOrigin || 0;
+            const liveN = data.pendingApi || 0;
+            if (!enabled) {
+                statusEl.textContent = `⏸ Sync pausado · ${fa}`;
+            } else if (waitN > 0 && liveN === 0) {
+                statusEl.textContent = `⏳ Esperando salida origen (${waitN}) · revisa cada ${mins} min · ${fa}`;
+            } else if (liveN > 0) {
+                statusEl.textContent = `▶ Sync en vivo · ${liveN} vuelo(s) · cada ${mins} min · ${fa}`;
+            } else {
+                statusEl.textContent = `▶ Sync cada ${mins} min · ${fa}`;
+            }
         }
     } catch (_) {
         statusEl.style.color = "#f87171";

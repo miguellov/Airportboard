@@ -932,11 +932,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     </label>
                     <label class="config-field config-field--check">
                         <input type="checkbox" id="autoChangeFlights">
-                        <span><strong>PRO:</strong> Auto-programar vuelos al día siguiente (medianoche RD)</span>
+                        <span><strong>PRO:</strong> Auto-cargar vuelos del día desde FlightAware (medianoche RD)</span>
                     </label>
                 </div>
                 <p class="config-field-hint" id="proAutoScheduleHint">
-                    Copia la plantilla del día anterior (mismo vuelo y destino), resetea estados en vivo y cambia la fecha del tablero. Luego el sync de FlightAware actualiza horarios.
+                    Al cambiar la fecha, consulta FlightAware y programa solo los JetBlue/WestJet que vuelan ese día (no copia ayer). Luego el sync actualiza horarios en vivo.
                 </p>
                 <p class="config-field-hint" id="proAutoScheduleStatus" aria-live="polite"></p>
                 <div class="config-section-card__actions config-section-card__actions--row">
@@ -4829,10 +4829,10 @@ function dateTomorrowInPop(){
 function formatProAutoScheduleStatus(meta){
     if(!meta || typeof meta !== "object") return "";
     const when = meta.ranAt ? new Date(meta.ranAt).toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" }) : "";
-    const src = meta.sourceDate || "—";
+    const src = meta.source === "flightaware" ? "FlightAware" : (meta.sourceDate || meta.source || "—");
     const dst = meta.targetDate || meta.date || "—";
     const total = meta.total != null ? meta.total : "—";
-    return `Última programación PRO: ${when} · ${src} → ${dst} · ${total} vuelo(s)`;
+    return `Última programación PRO: ${when} · ${src} · ${dst} · ${total} vuelo(s)`;
 }
 
 window.proScheduleTomorrowNow = async () => {
@@ -4850,10 +4850,12 @@ window.proScheduleTomorrowNow = async () => {
         const data = await res.json().catch(() => ({}));
         if(!res.ok) throw new Error(data.error || "HTTP " + res.status);
         if(data.changed){
-            if(status) status.textContent = `✓ ${data.total} vuelo(s) programados para ${data.date} (desde ${data.sourceDate}).`;
+            if(status) status.textContent = `✓ ${data.total} vuelo(s) JB/WS programados para ${data.date} (FlightAware).`;
             changeDateFlights(data.date);
+        } else if(data.reason === "no_fa_flights"){
+            if(status) status.textContent = "⚠️ FlightAware no tiene vuelos JB/WS ese día. Agrégalos manualmente en el panel.";
         } else if(data.reason === "no_source_flights"){
-            if(status) status.textContent = "⚠️ No hay vuelos de referencia para copiar. Agrega vuelos hoy primero.";
+            if(status) status.textContent = "⚠️ Sin vuelos en FlightAware para esa fecha. Agrégalos manualmente.";
         } else {
             if(status) status.textContent = "Sin cambios: " + (data.reason || "ya programado");
         }

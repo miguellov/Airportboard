@@ -748,6 +748,7 @@ async function buildFlightsPayloadFlightAware() {
   const mapAeroSalida = (f) => ({
     vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
     destino: airportCode(f.destination),
+    boardDate: aeroFlightDateRd(f),
     salida: formatHora(
       f.actual_out ||
         f.actual_off ||
@@ -774,6 +775,7 @@ async function buildFlightsPayloadFlightAware() {
       vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
       origen: airportCode(f.origin),
       destino: airportCode(f.origin),
+      boardDate: dateAnchor,
       llegada: horaLlegadaPop,
       llegadaFuente,
       llegadaProgramada,
@@ -1954,7 +1956,123 @@ async function readFlightsOnBoardCount() {
   }
 }
 
-/** Plantilla limpia para el día siguiente (sin estados en vivo del día anterior). */
+/** Etiquetas destino del tablero POP por código IATA. */
+const POP_DEST_LABELS = {
+  JFK: "JFK-JFK (New York)",
+  YYZ: "YYZ-YYZ (Toronto)",
+  YUL: "YUL-YUL (Montréal)",
+  EWR: "EWR-EWR (Newark)",
+  BOS: "BOS-BOS (Boston)"
+};
+
+function hhmmToMinutes(hhmm) {
+  const m = String(hhmm || "").trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function formatBoardDestino(arr, dep) {
+  const from = arr?.origen || "";
+  const to = dep?.destino || from;
+  if (from && POP_DEST_LABELS[from]) return POP_DEST_LABELS[from];
+  if (from && to) return `${from}-${to}`;
+  return from || to || "";
+}
+
+function boardRowFromFaPair(arr, dep, carrier) {
+  const prefix = carrier === "westjet" ? "WS" : carrier === "jetblue" ? "B6" : "";
+  const arrN = arr ? CU.getFlightIdentDigits(arr.vuelo) : "";
+  const depN = dep ? CU.getFlightIdentDigits(dep.vuelo) : "";
+  let vuelo = "";
+  if (prefix && arrN && depN) vuelo = `${prefix} ${arrN}/${depN}`;
+  else if (prefix && arrN) vuelo = `${prefix} ${arrN}`;
+  else if (prefix && depN) vuelo = `${prefix} ${depN}`;
+  else vuelo = String(arr?.vuelo || dep?.vuelo || "").trim();
+  if (!vuelo) return null;
+
+  const prog = String(arr?.llegadaProgramada || arr?.llegada || "").trim();
+  return {
+    vuelo,
+    vueloLlegada: arr?.vuelo || "",
+    destino: formatBoardDestino(arr, dep),
+    aerolinea: CU.carrierLabel(carrier) || "",
+    llegada: prog,
+    llegadaProgramada: prog,
+    llegadaEstimada: "",
+    llegadaReal: "",
+    salida: dep?.salida || "",
+    salidaOrigen: "",
+    gate: dep?.gate || arr?.gate || "",
+    estado: "ON-TIME",
+    retraso: arr?.retraso ?? null,
+    manual: false,
+    noApiSync: false,
+    source: "flightaware"
+  };
+}
+
+/** Empareja llegadas/salidas JB·WS del día desde FlightAware (no copia ayer). */
+async function buildBoardRowsFromFlightAware(targetDate) {
+  if (!AERO_API_KEY || AERO_API_KEY.length < 8) return [];
+  let payload;
+  try {
+    payload = await buildFlightsPayloadFlightAware();
+  } catch {
+    return [];
+  }
+
+  const arrToday = CU.restrictToAllowedCarriers(
+    (payload.llegadas || []).filter((f) => f.boardDate === targetDate)
+  );
+  const depToday = CU.restrictToAllowedCarriers(
+    (payload.salidas || []).filter((f) => f.boardDate === targetDate)
+  );
+
+  arrToday.sort(
+    (a, b) =>
+      (hhmmToMinutes(a.llegadaProgramada || a.llegada) ?? 99999) -
+      (hhmmToMinutes(b.llegadaProgramada || b.llegada) ?? 99999)
+  );
+  depToday.sort(
+    (a, b) =>
+      (hhmmToMinutes(a.salida) ?? 99999) - (hhmmToMinutes(b.salida) ?? 99999)
+  );
+
+  const usedDep = new Set();
+  const rows = [];
+
+  for (const arr of arrToday) {
+    const carrier = CU.detectCarrierFromRaw(arr.vuelo);
+    const arrMin =
+      hhmmToMinutes(arr.llegadaProgramada || arr.llegada) ?? 99999;
+    let bestDep = null;
+    let bestDepMin = Infinity;
+    for (const dep of depToday) {
+      if (usedDep.has(dep.vuelo)) continue;
+      if (CU.detectCarrierFromRaw(dep.vuelo) !== carrier) continue;
+      const depMin = hhmmToMinutes(dep.salida);
+      if (depMin === null || depMin < arrMin - 45) continue;
+      if (depMin < bestDepMin) {
+        bestDepMin = depMin;
+        bestDep = dep;
+      }
+    }
+    if (bestDep) usedDep.add(bestDep.vuelo);
+    const row = boardRowFromFaPair(arr, bestDep, carrier);
+    if (row) rows.push(row);
+  }
+
+  for (const dep of depToday) {
+    if (usedDep.has(dep.vuelo)) continue;
+    const carrier = CU.detectCarrierFromRaw(dep.vuelo);
+    const row = boardRowFromFaPair(null, dep, carrier);
+    if (row) rows.push(row);
+  }
+
+  return CU.sortFlightsByArrival(rows);
+}
+
+/** Plantilla limpia para reprogramar una fila (solo uso manual). */
 function cleanFlightForNextDay(row) {
   if (!row || typeof row !== "object") return null;
   const vuelo = String(row.vuelo || "").trim();
@@ -1975,8 +2093,7 @@ function cleanFlightForNextDay(row) {
     estado: "ON-TIME",
     retraso: null,
     manual: false,
-    noApiSync: false,
-    aerolinea: row.aerolinea || ""
+    noApiSync: false
   };
 }
 
@@ -1995,30 +2112,6 @@ async function ensureBoardDateNotStale() {
   return { advanced: false, date: today };
 }
 
-async function findSourceFlightsForRollover(today) {
-  const yesterday = addDaysToDateStr(today, -1);
-  let flights = await rtdbGet("flightsByDate/" + yesterday);
-  if (flights && typeof flights === "object" && Object.keys(flights).length) {
-    return { dateStr: yesterday, flights };
-  }
-  const selectedDate = await rtdbGet("config/selectedDate");
-  if (
-    typeof selectedDate === "string" &&
-    selectedDate < today &&
-    /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
-  ) {
-    flights = await rtdbGet("flightsByDate/" + selectedDate);
-    if (flights && typeof flights === "object" && Object.keys(flights).length) {
-      return { dateStr: selectedDate, flights };
-    }
-  }
-  return { dateStr: null, flights: null };
-}
-
-/**
- * PRO: al cambiar el día en RD, copia la plantilla de vuelos al día nuevo,
- * resetea estados en vivo y avanza config/selectedDate.
- */
 async function runProDayRollover(opts = {}) {
   const force = Boolean(opts.force);
   const targetDate =
@@ -2026,12 +2119,11 @@ async function runProDayRollover(opts = {}) {
       ? opts.targetDate
       : dateStrTodayInRD();
 
+  let todayFlights = (await rtdbGet("flightsByDate/" + targetDate)) || {};
+  if (typeof todayFlights !== "object") todayFlights = {};
+  const todayCount = Object.keys(todayFlights).length;
+
   if (!force) {
-    const todayFlights = (await rtdbGet("flightsByDate/" + targetDate)) || {};
-    const todayCount =
-      todayFlights && typeof todayFlights === "object"
-        ? Object.keys(todayFlights).length
-        : 0;
     const enabled = await rtdbGet("config/autoChangeFlights");
     const lastRun = await rtdbGet("config/autoChangeFlightsLastRun");
 
@@ -2043,10 +2135,8 @@ async function runProDayRollover(opts = {}) {
     }
   }
 
-  const { dateStr: srcDate, flights: srcFlights } =
-    await findSourceFlightsForRollover(targetDate);
-
-  if (!srcFlights || !Object.keys(srcFlights).length) {
+  const faRows = await buildBoardRowsFromFlightAware(targetDate);
+  if (!faRows.length) {
     if (!force) {
       await rtdbPatch("config/autoChangeFlightsLastRun", targetDate);
     }
@@ -2054,13 +2144,11 @@ async function runProDayRollover(opts = {}) {
     return {
       ok: true,
       skipped: true,
-      reason: "no_source_flights",
-      date: targetDate
+      reason: "no_fa_flights",
+      date: targetDate,
+      note: "FlightAware no tiene vuelos JB/WS programados para esta fecha"
     };
   }
-
-  let todayFlights = (await rtdbGet("flightsByDate/" + targetDate)) || {};
-  if (typeof todayFlights !== "object") todayFlights = {};
 
   const byVuelo = new Map();
   Object.values(todayFlights).forEach((row) => {
@@ -2070,21 +2158,20 @@ async function runProDayRollover(opts = {}) {
 
   let added = 0;
   let updated = 0;
-  Object.values(srcFlights).forEach((row) => {
+  faRows.forEach((row) => {
     if (!CU.isAllowedCarrierBoardRow(row)) return;
-    const cleaned = cleanFlightForNextDay(row);
-    if (!cleaned) return;
-    const k = normalizeBoardVueloKey(cleaned.vuelo);
+    const k = normalizeBoardVueloKey(row.vuelo);
+    if (!k) return;
     if (byVuelo.has(k)) {
       const existing = byVuelo.get(k);
       if (existing?.manual) {
         byVuelo.set(k, existing);
       } else {
-        byVuelo.set(k, cleaned);
+        byVuelo.set(k, row);
         updated++;
       }
     } else {
-      byVuelo.set(k, cleaned);
+      byVuelo.set(k, row);
       added++;
     }
   });
@@ -2102,7 +2189,7 @@ async function runProDayRollover(opts = {}) {
   }
   await rtdbPatch("config/proAutoScheduleMeta", {
     ranAt: new Date().toISOString(),
-    sourceDate: srcDate,
+    source: "flightaware",
     targetDate,
     added,
     updated,
@@ -2114,7 +2201,7 @@ async function runProDayRollover(opts = {}) {
     ok: true,
     changed: true,
     date: targetDate,
-    sourceDate: srcDate,
+    source: "flightaware",
     added,
     updated,
     total: Object.keys(merged).length
@@ -2136,7 +2223,7 @@ async function flightSyncSchedulerLoop() {
       const rollover = await runProDayRollover();
       if (rollover.changed) {
         console.log(
-          `[${ts}] PRO auto-programación: ${rollover.total} vuelos (${rollover.sourceDate} → ${rollover.date})`
+          `[${ts}] PRO auto-programación: ${rollover.total} vuelos desde FlightAware (${rollover.date})`
         );
         try {
           await syncFlightTimesToRtdbSafe();
@@ -2389,13 +2476,13 @@ app.listen(PORT, () => {
       const rollover = await runProDayRollover();
       if (rollover.changed) {
         console.log(
-          "📅 Plantilla del día:",
+          "📅 Vuelos del día (FlightAware):",
           rollover.total,
           "vuelo(s)",
-          `(${rollover.sourceDate} → ${rollover.date})`
+          rollover.date
         );
-      } else if (rollover.reason === "no_source_flights") {
-        console.log("📅 Sin vuelos de referencia para programar hoy");
+      } else if (rollover.reason === "no_fa_flights") {
+        console.log("📅 FlightAware sin vuelos JB/WS programados para hoy");
       }
     } catch (e) {
       console.log("⚠️ Rollover al arrancar:", e.message);

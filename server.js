@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 require("dotenv").config();
+const CU = require("./carrier-utils.js");
 
 const app = express();
 app.use(cors());
@@ -177,6 +178,20 @@ function dateStrTodayInRD() {
   });
 }
 
+function addDaysToDateStr(dateStr, days) {
+  const d = new Date(String(dateStr) + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return dateStrTodayInRD();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function normalizeBoardVueloKey(v) {
+  return String(v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ");
+}
+
 function isFutureBoardDate(dateStr) {
   const d = String(dateStr || "").trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(d) && d > dateStrTodayInRD();
@@ -316,9 +331,8 @@ function flightIdentCandidates(raw) {
   const s = String(raw || "").trim();
   if (!s) return [];
   add(s);
-  const dual = splitBoardVuelo(s);
-  add(dual.arr);
-  add(dual.dep);
+  const parsed = CU.parseBoardVueloField(s);
+  (parsed.allCandidates || []).forEach((c) => add(c));
   return [...out];
 }
 
@@ -506,16 +520,17 @@ function applyAutoPausePatch(patch) {
 
 function splitBoardVuelo(raw) {
   const s = String(raw || "").trim();
-  if (!s.includes("/")) return { arr: s, dep: s };
-  const legs = s.split("/").map((x) => x.trim()).filter(Boolean);
-  const arr = legs[0] || s;
-  const m = arr.match(/^([A-Za-z0-9]+\s+)/);
-  const prefix = m ? m[1].trim() : "";
-  const depLeg = legs[1] || "";
+  const parsed = CU.parseBoardVueloField(s);
+  if (!parsed.legCount || parsed.legCount <= 1) return { arr: s, dep: s };
+  const segments = s.split("/").map((x) => x.trim()).filter(Boolean);
+  const arr = segments[0];
+  const firstMatch = arr.match(/^(.+?)\s+(\d+)\s*$/);
+  const prefix = firstMatch ? firstMatch[1].replace(/\s+/g, " ").trim() : "";
+  const lastSeg = segments[segments.length - 1];
   const dep =
-    prefix && depLeg && !/[A-Za-z]/.test(depLeg)
-      ? `${prefix}${depLeg}`.replace(/\s+/g, " ").trim()
-      : depLeg || arr;
+    prefix && /^\d+$/.test(String(lastSeg).replace(/\s+/g, ""))
+      ? `${prefix} ${String(lastSeg).trim()}`.replace(/\s+/g, " ").trim()
+      : lastSeg || arr;
   return { arr, dep };
 }
 
@@ -539,6 +554,7 @@ async function buildFlightsPayloadFromFirebase() {
 
   for (const row of Object.values(flights)) {
     if (!row || typeof row !== "object") continue;
+    if (!CU.isAllowedCarrierBoardRow(row)) continue;
     const { arr, dep } = splitBoardVuelo(row.vuelo);
     const dest = String(row.destino || row.origen || "").trim();
     const gate = row.gate || "";
@@ -577,7 +593,12 @@ async function buildFlightsPayloadFromFirebase() {
     }
   }
 
-  return { salidas, llegadas, source: "firebase", date: dateStr };
+  return {
+    salidas: CU.restrictToAllowedCarriers(salidas),
+    llegadas: CU.restrictToAllowedCarriers(llegadas),
+    source: "firebase",
+    date: dateStr
+  };
 }
 
 async function aeroApiGet(url, config) {
@@ -754,8 +775,8 @@ async function buildFlightsPayloadFlightAware() {
   ingestAeroList(data.arrivals, mapAeroLlegada, arrMap, arrRaw, targetDate, "arr");
   ingestAeroList(data.departures, mapAeroSalida, depMap, depRaw, targetDate, "dep");
 
-  const salidas = [...depMap.values()];
-  const llegadas = [...arrMap.values()];
+  const salidas = CU.restrictToAllowedCarriers([...depMap.values()]);
+  const llegadas = CU.restrictToAllowedCarriers([...arrMap.values()]);
 
   return { salidas, llegadas };
 }
@@ -829,26 +850,12 @@ function mapFlightAwareToSuggestRow(f, tipo) {
 }
 
 function flightAwareMatchesQuery(vuelo, q) {
-  const compact = q.trim().toUpperCase().replace(/\s+/g, "");
-  const qLower = q.trim().toLowerCase();
-  const digits = q.replace(/\D/g, "");
-  const vn = normalizeIdent(vuelo);
-  if (!vn) return false;
-  if (!isAllowedCarrierIdent(vn)) return false;
-  if (compact.length >= 2 && vn.includes(compact)) return true;
-  if (digits.length >= 2 && vn.replace(/\D/g, "").includes(digits)) return true;
-  return vn.toLowerCase().includes(qLower);
+  if (!CU.isAllowedCarrierIdent(vuelo)) return false;
+  return CU.filterCarrierFlightsByQuery([{ vuelo }], q).length > 0;
 }
 
 function isAllowedCarrierIdent(vn) {
-  const id = String(vn || "").toUpperCase();
-  if (/^(B6|JBU)\d/.test(id) || id.startsWith("B6") || id.startsWith("JBU")) {
-    return true;
-  }
-  if (/^(WS|WJA|WEN)\d/.test(id) || id.startsWith("WS") || id.startsWith("WJA") || id.startsWith("WEN")) {
-    return true;
-  }
-  return false;
+  return CU.isAllowedCarrierIdent(vn);
 }
 
 async function searchFlightAwareSuggest(q) {
@@ -897,18 +904,19 @@ async function searchFirebaseSuggest(q) {
   }
 
   const out = [];
-  for (const [key, raw] of Object.entries(flightsData)) {
-    const f = raw || {};
-    const vuelo = String(f.vuelo || key);
-    const haystack = [vuelo, f.destino, f.aerolinea, key]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    if (!haystack.includes(qLower)) continue;
+  const rows = Object.entries(flightsData)
+    .map(([key, raw]) => ({ key, ...(raw || {}) }))
+    .filter((f) => CU.isAllowedCarrierBoardRow(f));
+  const hits = CU.filterCarrierFlightsByQuery(
+    rows.map((f) => ({ ...f, vuelo: String(f.vuelo || f.key) })),
+    q
+  );
+  for (const f of hits) {
+    const vuelo = String(f.vuelo || f.key);
     out.push({
       vuelo,
       destino: f.destino || "",
-      aerolinea: f.aerolinea || "",
+      aerolinea: f.aerolinea || CU.carrierLabel(CU.detectCarrierFromRaw(vuelo)) || "",
       llegada: f.llegada || "",
       llegadaProgramada: f.llegadaProgramada || "",
       salida: f.salida || "",
@@ -1080,6 +1088,27 @@ async function rtdbPatch(path, body) {
   });
   if (!res.ok) {
     const err = new Error(`RTDB PATCH ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function rtdbPut(path, body) {
+  const res = await fetch(rtdbJsonUrl(path), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = new Error(`RTDB PUT ${res.status}`);
     err.status = res.status;
     throw err;
   }
@@ -1882,10 +1911,168 @@ async function readFlightsOnBoardCount() {
   }
 }
 
+/** Plantilla limpia para el día siguiente (sin estados en vivo del día anterior). */
+function cleanFlightForNextDay(row) {
+  if (!row || typeof row !== "object") return null;
+  const vuelo = String(row.vuelo || "").trim();
+  if (!vuelo) return null;
+  const prog = String(row.llegadaProgramada || row.llegada || "").trim();
+  return {
+    vuelo,
+    vueloLlegada: row.vueloLlegada || "",
+    destino: row.destino || "",
+    aerolinea: CU.carrierLabel(CU.detectCarrierFromRaw(vuelo)) || row.aerolinea || "",
+    llegada: prog,
+    llegadaProgramada: prog,
+    llegadaEstimada: "",
+    llegadaReal: "",
+    salida: row.salida || "",
+    salidaOrigen: "",
+    gate: "",
+    estado: "ON-TIME",
+    retraso: null,
+    manual: false,
+    noApiSync: false,
+    aerolinea: row.aerolinea || ""
+  };
+}
+
+async function findSourceFlightsForRollover(today) {
+  const yesterday = addDaysToDateStr(today, -1);
+  let flights = await rtdbGet("flightsByDate/" + yesterday);
+  if (flights && typeof flights === "object" && Object.keys(flights).length) {
+    return { dateStr: yesterday, flights };
+  }
+  const selectedDate = await rtdbGet("config/selectedDate");
+  if (
+    typeof selectedDate === "string" &&
+    selectedDate < today &&
+    /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+  ) {
+    flights = await rtdbGet("flightsByDate/" + selectedDate);
+    if (flights && typeof flights === "object" && Object.keys(flights).length) {
+      return { dateStr: selectedDate, flights };
+    }
+  }
+  return { dateStr: null, flights: null };
+}
+
+/**
+ * PRO: al cambiar el día en RD, copia la plantilla de vuelos al día nuevo,
+ * resetea estados en vivo y avanza config/selectedDate.
+ */
+async function runProDayRollover(opts = {}) {
+  const force = Boolean(opts.force);
+  const targetDate =
+    opts.targetDate && /^\d{4}-\d{2}-\d{2}$/.test(opts.targetDate)
+      ? opts.targetDate
+      : dateStrTodayInRD();
+
+  if (!force) {
+    const enabled = await rtdbGet("config/autoChangeFlights");
+    if (!enabled) {
+      return { ok: true, skipped: true, reason: "disabled" };
+    }
+    const lastRun = await rtdbGet("config/autoChangeFlightsLastRun");
+    if (lastRun === targetDate) {
+      return { ok: true, skipped: true, reason: "already_ran", date: targetDate };
+    }
+  }
+
+  const { dateStr: srcDate, flights: srcFlights } =
+    await findSourceFlightsForRollover(targetDate);
+
+  if (!srcFlights || !Object.keys(srcFlights).length) {
+    if (!force) {
+      await rtdbPatch("config/autoChangeFlightsLastRun", targetDate);
+    }
+    await rtdbPatch("config/selectedDate", targetDate);
+    return {
+      ok: true,
+      skipped: true,
+      reason: "no_source_flights",
+      date: targetDate
+    };
+  }
+
+  let todayFlights = (await rtdbGet("flightsByDate/" + targetDate)) || {};
+  if (typeof todayFlights !== "object") todayFlights = {};
+
+  const byVuelo = new Map();
+  Object.values(todayFlights).forEach((row) => {
+    const k = normalizeBoardVueloKey(row?.vuelo);
+    if (k) byVuelo.set(k, row);
+  });
+
+  let added = 0;
+  let updated = 0;
+  Object.values(srcFlights).forEach((row) => {
+    if (!CU.isAllowedCarrierBoardRow(row)) return;
+    const cleaned = cleanFlightForNextDay(row);
+    if (!cleaned) return;
+    const k = normalizeBoardVueloKey(cleaned.vuelo);
+    if (byVuelo.has(k)) {
+      const existing = byVuelo.get(k);
+      byVuelo.set(k, { ...existing, ...cleaned });
+      updated++;
+    } else {
+      byVuelo.set(k, cleaned);
+      added++;
+    }
+  });
+
+  const merged = {};
+  let i = 0;
+  for (const row of byVuelo.values()) {
+    merged["flight" + i++] = row;
+  }
+
+  await rtdbPut("flightsByDate/" + targetDate, merged);
+  await rtdbPatch("config/selectedDate", targetDate);
+  if (!force) {
+    await rtdbPatch("config/autoChangeFlightsLastRun", targetDate);
+  }
+  await rtdbPatch("config/proAutoScheduleMeta", {
+    ranAt: new Date().toISOString(),
+    sourceDate: srcDate,
+    targetDate,
+    added,
+    updated,
+    total: Object.keys(merged).length,
+    forced: force
+  });
+
+  return {
+    ok: true,
+    changed: true,
+    date: targetDate,
+    sourceDate: srcDate,
+    added,
+    updated,
+    total: Object.keys(merged).length
+  };
+}
+
 async function flightSyncSchedulerLoop() {
   for (;;) {
     let pollingSec = await readPollingIntervalSec();
     const ts = new Date().toISOString();
+
+    try {
+      const rollover = await runProDayRollover();
+      if (rollover.changed) {
+        console.log(
+          `[${ts}] PRO auto-programación: ${rollover.total} vuelos (${rollover.sourceDate} → ${rollover.date})`
+        );
+        try {
+          await syncFlightTimesToRtdbSafe();
+        } catch (syncErr) {
+          console.log(`[${ts}] PRO sync post-rollover:`, syncErr.message);
+        }
+      }
+    } catch (e) {
+      console.log(`[${ts}] PRO auto-programación error:`, e.message);
+    }
 
     const { dateStr, count, pendingApi, error: boardError } =
       await readFlightsOnBoardCount();
@@ -1977,6 +2164,46 @@ app.get("/api/flights/refresh", async (req, res) => {
       console.log(
         `[${ts}] /api/flights/refresh (FlightAware): sin cambios`
       );
+    }
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+/** PRO: programar vuelos en el día indicado (por defecto mañana). */
+app.post("/api/pro/schedule-day", async (req, res) => {
+  if (!authorizeSync(req)) {
+    return res.status(401).json({ error: "No autorizado" });
+  }
+  try {
+    const qTarget = req.query.targetDate || req.body?.targetDate;
+    const targetDate =
+      qTarget && /^\d{4}-\d{2}-\d{2}$/.test(String(qTarget))
+        ? String(qTarget)
+        : addDaysToDateStr(dateStrTodayInRD(), 1);
+    const result = await runProDayRollover({ force: true, targetDate });
+    if (result.changed) {
+      await syncFlightTimesToRtdbSafe();
+    }
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/pro/schedule-day", async (req, res) => {
+  if (!authorizeSync(req)) {
+    return res.status(401).json({ error: "No autorizado" });
+  }
+  try {
+    const targetDate =
+      req.query.targetDate && /^\d{4}-\d{2}-\d{2}$/.test(req.query.targetDate)
+        ? req.query.targetDate
+        : addDaysToDateStr(dateStrTodayInRD(), 1);
+    const result = await runProDayRollover({ force: true, targetDate });
+    if (result.changed) {
+      await syncFlightTimesToRtdbSafe();
     }
     res.json(result);
   } catch (e) {

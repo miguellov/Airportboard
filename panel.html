@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="panel.css">
 <script src="api-config.js"></script>
+<script src="carrier-utils.js"></script>
 </head>
 
 <body>
@@ -931,8 +932,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     </label>
                     <label class="config-field config-field--check">
                         <input type="checkbox" id="autoChangeFlights">
-                        <span>Auto-cambiar vuelos a las 12:00 AM</span>
+                        <span><strong>PRO:</strong> Auto-programar vuelos al día siguiente (medianoche RD)</span>
                     </label>
+                </div>
+                <p class="config-field-hint" id="proAutoScheduleHint">
+                    Copia la plantilla del día anterior (mismo vuelo y destino), resetea estados en vivo y cambia la fecha del tablero. Luego el sync de FlightAware actualiza horarios.
+                </p>
+                <p class="config-field-hint" id="proAutoScheduleStatus" aria-live="polite"></p>
+                <div class="config-section-card__actions config-section-card__actions--row">
+                    <button type="button" class="config-save-btn config-save-btn--secondary" id="btnProScheduleTomorrow" onclick="proScheduleTomorrowNow()">📅 Programar mañana ahora</button>
                 </div>
                 <div class="config-section-card__actions">
                     <button type="button" class="config-save-btn" onclick="saveConfig()">💾 Guardar cambios</button>
@@ -1034,7 +1042,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, update, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "933c97406ad862095eade39aef8a1f5d",
@@ -4371,9 +4379,12 @@ function getFlightsByDateRef(dateStr){
 }
 
 function saveFlightsForSelectedDate(data){
-    const obj = data || {};
+    let obj = data || {};
+    const CU = window.CarrierUtils;
+    if (CU) {
+        obj = toObj(CU.restrictToAllowedCarriers(getArray(obj)));
+    }
     set(getFlightsByDateRef(selectedDate), obj);
-    // Mantiene compatibilidad con la pantalla principal vieja
     set(ref(db, "flights"), obj);
 }
 
@@ -4393,6 +4404,11 @@ function renderFlightsPanel(data){
     const panel=document.getElementById("panel");
     panel.innerHTML="";
 
+    const CU = window.CarrierUtils;
+    if (CU) {
+        data = toObj(CU.restrictToAllowedCarriers(getArray(data)));
+    }
+
     currentData=data;
     saveState(data);
     renderBoardProgramDetailPanel();
@@ -4408,7 +4424,7 @@ function renderFlightsPanel(data){
         div.id = "flightCard" + i;
 
         div.innerHTML=`
-<p class="api-search-hint">Solo <strong>JetBlue</strong> (B6/JBU) y <strong>WestJet</strong> (WS/WJA). Busca por número (<strong>627</strong>, <strong>2507</strong>), código (<strong>WS</strong>, <strong>B6</strong>) o completo (<strong>JBU627</strong>, <strong>WJA2909</strong>).</p>
+<p class="api-search-hint">Solo <strong>JetBlue</strong> (B6/JBU) y <strong>WestJet</strong> (WS/WJA). Busca por número (<strong>627</strong>), código (<strong>WS</strong>, <strong>B6</strong>), completo (<strong>JBU627</strong>) o ruta con 1, 2 o 3 tramos (<strong>B6 627/1528</strong>, <strong>WS 2506/2507/2508</strong>).</p>
 <div class="search-box">
     <input placeholder="🔽 Llegadas — 627, B6, JBU627, WS, 2507…" oninput="buscarVueloLlegada(this, ${i})">
     <div id="resultsLlegada${i}" class="results" onmousedown="event.preventDefault()"></div>
@@ -4426,7 +4442,7 @@ function renderFlightsPanel(data){
 
 <label class="fld-label">Vuelo</label>
 <div class="fld-vuelo-row">
-<input id="fldVuelo${i}" class="fld-vuelo" list="presetVuelosLista" value="${(r.vuelo || "").replace(/"/g, "&quot;")}" placeholder="Ej. B6 627/1528" onchange="onVueloPresetMatch(${i}, this)" oninput="window.clearFlightCardVueloSelected(${i})">
+<input id="fldVuelo${i}" class="fld-vuelo" list="presetVuelosLista" value="${(r.vuelo || "").replace(/"/g, "&quot;")}" placeholder="Ej. B6 627/1528 o WS 2506/2507/2508" onchange="onVueloPresetMatch(${i}, this)" oninput="window.clearFlightCardVueloSelected(${i})">
 <button type="button" class="btn-buscar-vuelo" id="btnBuscarDatosVuelo${i}" onclick="buscarDatosVueloTarjeta(${i})">🔍 Buscar datos del vuelo</button>
 </div>
 <span id="buscarVueloDatosMsg${i}" class="buscar-vuelo-msg" aria-live="polite"></span>
@@ -4795,6 +4811,59 @@ function panelApiFlightsUrl(){
     return b ? `${b}/flights?_=${Date.now()}` : "";
 }
 
+function panelApiProScheduleUrl(targetDate){
+    const b = getPanelApiBase();
+    if(!b) return "";
+    let u = `${b}/api/pro/schedule-day?secret=${encodeURIComponent(FLIGHTS_SYNC_SECRET)}`;
+    if(targetDate) u += "&targetDate=" + encodeURIComponent(targetDate);
+    return u;
+}
+
+function dateTomorrowInPop(){
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
+    const d = new Date(today + "T12:00:00");
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+}
+
+function formatProAutoScheduleStatus(meta){
+    if(!meta || typeof meta !== "object") return "";
+    const when = meta.ranAt ? new Date(meta.ranAt).toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" }) : "";
+    const src = meta.sourceDate || "—";
+    const dst = meta.targetDate || meta.date || "—";
+    const total = meta.total != null ? meta.total : "—";
+    return `Última programación PRO: ${when} · ${src} → ${dst} · ${total} vuelo(s)`;
+}
+
+window.proScheduleTomorrowNow = async () => {
+    const btn = document.getElementById("btnProScheduleTomorrow");
+    const status = document.getElementById("proAutoScheduleStatus");
+    const url = panelApiProScheduleUrl(dateTomorrowInPop());
+    if(!url){
+        if(status) status.textContent = "❌ Configura la URL del servidor API.";
+        return;
+    }
+    if(btn) btn.disabled = true;
+    if(status) status.textContent = "Programando mañana…";
+    try {
+        const res = await fetch(url, { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok) throw new Error(data.error || "HTTP " + res.status);
+        if(data.changed){
+            if(status) status.textContent = `✓ ${data.total} vuelo(s) programados para ${data.date} (desde ${data.sourceDate}).`;
+            changeDateFlights(data.date);
+        } else if(data.reason === "no_source_flights"){
+            if(status) status.textContent = "⚠️ No hay vuelos de referencia para copiar. Agrega vuelos hoy primero.";
+        } else {
+            if(status) status.textContent = "Sin cambios: " + (data.reason || "ya programado");
+        }
+    } catch (e) {
+        if(status) status.textContent = "❌ " + (e.message || "Error al programar");
+    } finally {
+        if(btn) btn.disabled = false;
+    }
+};
+
 function panelApiRefreshUrl(){
     const b = getPanelApiBase();
     return b ? `${b}/api/flights/refresh?secret=${FLIGHTS_SYNC_SECRET}` : "";
@@ -4962,91 +5031,62 @@ async function showFlightApiStatus() {
 }
 showFlightApiStatus();
 
+function cu() {
+    return window.CarrierUtils;
+}
+
 function extractVueloSearchNeedles(raw) {
-    const s = String(raw || "").trim();
-    if (!s) return [];
-    const out = new Set();
-    out.add(s.toLowerCase());
-    const compactNoSpace = s.replace(/\s+/g, "");
-    if (compactNoSpace) out.add(compactNoSpace.toLowerCase());
-    const upperCompact = s.toUpperCase().replace(/\s+/g, "");
-    if (upperCompact) out.add(upperCompact.toLowerCase());
-    s.split("/").forEach((p) => {
-        const c = p.replace(/\s+/g, "").toLowerCase();
-        if (c) out.add(c);
-        const d = p.replace(/\D/g, "");
-        if (d.length >= 2) out.add(d);
-    });
-    (s.match(/\d+/g) || []).forEach((d) => out.add(d));
-    return [...out];
+    return cu().extractVueloSearchNeedles(raw);
 }
 
-/** Variantes de prefijo aerolínea (API puede usar ICAO distinto al IATA del panel). */
 function airlinePrefixVariants(prefix) {
-    const p = String(prefix || "").toUpperCase().replace(/\s+/g, "");
-    const set = new Set([p]);
-    if (p === "B6") set.add("JBU");
-    if (p === "JBU") set.add("B6");
-    if (p === "WS" || p === "WJA" || p === "WEN") {
-        set.add("WS");
-        set.add("WJA");
-        set.add("WEN");
-    }
-    return [...set];
+    return cu().airlinePrefixVariants(prefix);
 }
-
-const CARRIER_PREFIXES_JB = ["B6", "JBU"];
-const CARRIER_PREFIXES_WJ = ["WS", "WJA", "WEN"];
 
 function getFlightIdentPrefix(vuelo) {
-    const fn = normFlightIdent(vuelo);
-    return (fn.match(/^([A-Z]+)/) || [])[1] || "";
+    return cu().getFlightIdentPrefix(vuelo);
 }
 
 function getFlightIdentDigits(vuelo) {
-    const fn = normFlightIdent(vuelo);
-    return (fn.match(/(\d+)$/) || [])[1] || "";
+    return cu().getFlightIdentDigits(vuelo);
 }
 
-/** Solo JetBlue y WestJet en búsqueda API del panel. */
 function isAllowedCarrierFlight(f) {
-    const vuelo = typeof f === "string" ? f : f && f.vuelo;
-    const fn = normFlightIdent(vuelo);
-    if (!fn) return false;
-    const prefix = getFlightIdentPrefix(fn);
-    const variants = airlinePrefixVariants(prefix);
-    if (CARRIER_PREFIXES_JB.some((p) => variants.includes(p) || fn.startsWith(p))) {
-        return true;
-    }
-    if (CARRIER_PREFIXES_WJ.some((p) => variants.includes(p) || fn.startsWith(p))) {
-        return true;
-    }
-    const al = String((typeof f === "object" && f && f.aerolinea) || "").toLowerCase();
-    if (/jetblue|\bjbu\b|\bb6\b/.test(al)) return true;
-    if (/westjet|\bwja\b|\bws\b|\bwen\b/.test(al)) return true;
-    return false;
+    return cu().isAllowedCarrierFlight(f);
 }
 
 function restrictToAllowedCarriers(list) {
-    return (list || []).filter(isAllowedCarrierFlight);
+    return cu().restrictToAllowedCarriers(list);
 }
 
-function parsePrefixOnlyFilter(raw) {
-    const s = String(raw || "").trim().toUpperCase().replace(/\s+/g, "");
-    if (/^(B6|JBU|WS|WJA|WEN)$/.test(s)) {
-        return airlinePrefixVariants(s);
-    }
-    return null;
+function normFlightIdent(x) {
+    return cu().normFlightIdent(x);
 }
 
-function flightMatchesPrefixFilter(vuelo, prefixFilter) {
-    const fn = normFlightIdent(vuelo);
-    if (!fn) return false;
-    const p = getFlightIdentPrefix(fn);
-    const vars = airlinePrefixVariants(p);
-    return (prefixFilter || []).some(
-        (pf) => vars.includes(pf) || fn.startsWith(pf)
-    );
+function flightRowMatchesApiIdent(apiVuelo, candidates) {
+    return cu().flightRowMatchesApiIdent(apiVuelo, candidates);
+}
+
+function filterCarrierFlightsByQuery(flights, query, legMode) {
+    return cu().filterCarrierFlightsByQuery(flights, query, legMode);
+}
+
+function filterArrivalsBySearchQuery(llegadas, query) {
+    return cu().filterCarrierFlightsByQuery(llegadas, query, "arr");
+}
+
+function filterDeparturesBySearchQuery(salidas, query) {
+    return cu().filterCarrierFlightsByQuery(salidas, query, "dep");
+}
+
+function findArrivalForVueloField(llegadas, raw) {
+    const hits = filterArrivalsBySearchQuery(llegadas, raw);
+    return hits[0] || null;
+}
+
+function findDepartureForVueloField(salidas, raw) {
+    const hits = filterDeparturesBySearchQuery(salidas, raw);
+    return hits[0] || null;
 }
 
 function setFlightCardVueloSelected(index, cleanCode) {
@@ -5065,191 +5105,6 @@ function getFlightCardVueloQuery(index, inputEl) {
             : "";
     if (fromAttr) return fromAttr;
     return inputEl && inputEl.value ? String(inputEl.value).trim() : "";
-}
-
-/**
- * Un solo ident compacto (ej. JBU627 → candidatos B6627, JBU627…).
- * No usar si el texto es formato "B6 627/1528" (lo cubre parseDualFlightIdsFromField).
- */
-function parseCompactFlightIdent(raw) {
-    const s0 = String(raw || "").trim();
-    if (!s0 || s0.includes("/")) {
-        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
-    }
-    const digitsOnly = s0.replace(/\s+/g, "");
-    if (/^\d{2,5}$/.test(digitsOnly)) {
-        const prefs = [...CARRIER_PREFIXES_JB, ...CARRIER_PREFIXES_WJ];
-        return {
-            candidates: prefs.map((pr) => `${pr}${digitsOnly}`),
-            fallbackNeedles: [digitsOnly],
-            digitSearch: digitsOnly
-        };
-    }
-    const s = normFlightIdent(s0);
-    if (!s) {
-        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
-    }
-    const m = s.match(/^([A-Z]+)(\d+)$/);
-    if (!m) {
-        return { candidates: [], fallbackNeedles: extractVueloSearchNeedles(s0) };
-    }
-    const prefs = airlinePrefixVariants(m[1]);
-    return {
-        candidates: prefs.map((pr) => `${pr}${m[2]}`),
-        fallbackNeedles: extractVueloSearchNeedles(s0)
-    };
-}
-
-/**
- * "B6 627/1528" → llegada B6627…, salida B61528… (más variantes de prefijo).
- * Primer número = llegada a POP; segundo = salida de POP.
- */
-function parseDualFlightIdsFromField(raw) {
-    const s = String(raw || "").trim();
-    if (!s) {
-        return { arrCandidates: [], depCandidates: [], fallbackNeedles: [] };
-    }
-    const slashIdx = s.indexOf("/");
-    if (slashIdx === -1) {
-        return {
-            arrCandidates: [],
-            depCandidates: [],
-            fallbackNeedles: extractVueloSearchNeedles(s)
-        };
-    }
-    const left = s.slice(0, slashIdx).trim();
-    const right = s.slice(slashIdx + 1).trim();
-    const lm = left.match(/^(.+)\s+(\d+)\s*$/);
-    const rm = right.match(/^\s*(\d+)\s*$/);
-    if (!lm || !rm) {
-        return {
-            arrCandidates: [],
-            depCandidates: [],
-            fallbackNeedles: extractVueloSearchNeedles(s)
-        };
-    }
-    const prefix = lm[1].replace(/\s+/g, "").toUpperCase();
-    const nArr = lm[2];
-    const nDep = rm[1];
-    const prefs = airlinePrefixVariants(prefix);
-    return {
-        arrCandidates: prefs.map((pr) => `${pr}${nArr}`),
-        depCandidates: prefs.map((pr) => `${pr}${nDep}`),
-        fallbackNeedles: extractVueloSearchNeedles(s)
-    };
-}
-
-function normFlightIdent(x) {
-    return String(x || "")
-        .toUpperCase()
-        .replace(/\s+/g, "");
-}
-
-function flightRowMatchesApiIdent(apiVuelo, candidates) {
-    const fn = normFlightIdent(apiVuelo);
-    if (!fn) return false;
-    return (candidates || []).some((c) => {
-        const cn = normFlightIdent(c);
-        if (!cn) return false;
-        if (fn.includes(cn) || cn.includes(fn)) return true;
-        const dn = (fn.match(/\d+$/) || [""])[0];
-        const dt = (cn.match(/\d+$/) || [""])[0];
-        if (dn && dt && dn === dt) {
-            const ln = fn.slice(0, fn.length - dn.length);
-            const lt = cn.slice(0, cn.length - dt.length);
-            if (!ln || !lt) return true;
-            if (ln.includes(lt) || lt.includes(ln)) return true;
-            const vLn = airlinePrefixVariants(ln);
-            const vLt = airlinePrefixVariants(lt);
-            if (vLn.some((v) => vLt.includes(v))) return true;
-        }
-        return false;
-    });
-}
-
-function filterCarrierFlightsByQuery(flights, query, legMode) {
-    const raw = String(query || "").trim();
-    if (!raw) return [];
-    const list = restrictToAllowedCarriers(flights || []);
-    if (!list.length) return [];
-
-    const prefixFilter = parsePrefixOnlyFilter(raw);
-    if (prefixFilter) {
-        return list.filter((f) => flightMatchesPrefixFilter(f.vuelo, prefixFilter));
-    }
-
-    const dual = parseDualFlightIdsFromField(raw);
-    if (legMode === "arr" && dual.arrCandidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.arrCandidates)
-        );
-        if (hits.length) return hits;
-    }
-    if (legMode === "dep" && dual.depCandidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, dual.depCandidates)
-        );
-        if (hits.length) return hits;
-    }
-    if (!legMode && (dual.arrCandidates.length || dual.depCandidates.length)) {
-        const cands = [...dual.arrCandidates, ...dual.depCandidates];
-        const hits = list.filter((f) => flightRowMatchesApiIdent(f.vuelo, cands));
-        if (hits.length) return hits;
-    }
-
-    const one = parseCompactFlightIdent(raw);
-    if (one.digitSearch) {
-        const hits = list.filter(
-            (f) => getFlightIdentDigits(f.vuelo) === one.digitSearch
-        );
-        if (hits.length) return hits;
-    }
-    if (one.candidates.length) {
-        const hits = list.filter((f) =>
-            flightRowMatchesApiIdent(f.vuelo, one.candidates)
-        );
-        if (hits.length) return hits;
-    }
-
-    const fallbackNeedles =
-        dual.fallbackNeedles.length > 0
-            ? dual.fallbackNeedles
-            : one.fallbackNeedles;
-    if (fallbackNeedles.length) {
-        const hits = list.filter((f) => {
-            const fv = normFlightIdent(f.vuelo);
-            const fd = getFlightIdentDigits(f.vuelo);
-            return fallbackNeedles.some((n) => {
-                if (!n) return false;
-                const nn = String(n).toLowerCase();
-                if (/^\d+$/.test(nn) && fd === nn) return true;
-                return fv.toLowerCase().includes(nn);
-            });
-        });
-        if (hits.length) return hits;
-    }
-
-    const q = normFlightIdent(raw).toLowerCase();
-    if (!q) return [];
-    return list.filter((f) => normFlightIdent(f.vuelo).toLowerCase().includes(q));
-}
-
-function filterArrivalsBySearchQuery(llegadas, query) {
-    return filterCarrierFlightsByQuery(llegadas, query, "arr");
-}
-
-function filterDeparturesBySearchQuery(salidas, query) {
-    return filterCarrierFlightsByQuery(salidas, query, "dep");
-}
-
-function findArrivalForVueloField(llegadas, raw) {
-    const hits = filterArrivalsBySearchQuery(llegadas, raw);
-    return hits[0] || null;
-}
-
-function findDepartureForVueloField(salidas, raw) {
-    const hits = filterDeparturesBySearchQuery(salidas, raw);
-    return hits[0] || null;
 }
 
 async function fetchFlightsJsonAfterRefresh() {
@@ -5357,6 +5212,12 @@ window.buscarDatosVueloTarjeta = async (index) => {
             const hs = convertirHora24(dep.salida || "");
             if (hs) rows[index].salida = hs;
             if (dep.gate) rows[index].gate = dep.gate;
+        }
+        const CU = window.CarrierUtils;
+        if (CU) {
+            rows[index].vuelo = CU.inferBoardVueloLabel(raw, arr, dep);
+            const carrier = CU.detectCarrierFromRaw(rows[index].vuelo);
+            if (carrier) rows[index].aerolinea = CU.carrierLabel(carrier);
         }
         const l = rows[index].llegada;
         const lp = rows[index].llegadaProgramada;
@@ -6629,7 +6490,7 @@ window.saveConfig = () => {
     const defaultDuration = parseInt(document.getElementById("defaultDuration").value) || 10;
     const autoChange = document.getElementById("autoChangeFlights").checked;
     
-    set(configRef, {
+    update(configRef, {
         defaultDuration,
         autoChangeFlights: autoChange
     });
@@ -6646,6 +6507,8 @@ onValue(configRef, (snap) => {
     if(typeof conf.autoChangeFlights === "boolean"){
         document.getElementById("autoChangeFlights").checked = conf.autoChangeFlights;
     }
+    const proStatus = document.getElementById("proAutoScheduleStatus");
+    if(proStatus) proStatus.textContent = formatProAutoScheduleStatus(conf.proAutoScheduleMeta);
     const scale = parseInt(conf.anuncioImageScale, 10);
     if(!Number.isNaN(scale) && scale >= 30 && scale <= 150){
         document.getElementById("anuncioImageScale").value = scale;

@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Orbitron:wght@500;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Great+Vibes&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="board.css">
+<script src="carrier-utils.js"></script>
 </head>
 
 <body class="fids-board">
@@ -624,7 +625,12 @@ setInterval(() => {
 function watchFlightsForDate(dateStr){
     if(unsubscribeFlightsByDate) unsubscribeFlightsByDate();
     unsubscribeFlightsByDate = onValue(ref(db, "flightsByDate/" + dateStr), snap => {
-        vuelosData = Object.values(snap.val() || {});
+        const CU = window.CarrierUtils;
+        let rows = Object.values(snap.val() || {});
+        if (CU) {
+            rows = CU.restrictToAllowedCarriers(rows);
+        }
+        vuelosData = rows;
         lastFlightsDataSig = "";
         renderVuelos(true);
     });

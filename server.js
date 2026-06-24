@@ -2027,12 +2027,18 @@ async function runProDayRollover(opts = {}) {
       : dateStrTodayInRD();
 
   if (!force) {
+    const todayFlights = (await rtdbGet("flightsByDate/" + targetDate)) || {};
+    const todayCount =
+      todayFlights && typeof todayFlights === "object"
+        ? Object.keys(todayFlights).length
+        : 0;
     const enabled = await rtdbGet("config/autoChangeFlights");
-    if (!enabled) {
+    const lastRun = await rtdbGet("config/autoChangeFlightsLastRun");
+
+    if (!enabled && todayCount > 0) {
       return { ok: true, skipped: true, reason: "disabled" };
     }
-    const lastRun = await rtdbGet("config/autoChangeFlightsLastRun");
-    if (lastRun === targetDate) {
+    if (lastRun === targetDate && todayCount > 0) {
       return { ok: true, skipped: true, reason: "already_ran", date: targetDate };
     }
   }
@@ -2367,9 +2373,33 @@ app.listen(PORT, () => {
     POLLING_MIN_SEC,
     ")"
   );
-  void (async () => {
+    void (async () => {
     await ensureBootstrapPanelUser();
     await ensureSyncEnabledDefault();
+    try {
+      const stale = await ensureBoardDateNotStale();
+      if (stale.advanced) {
+        console.log(
+          "📅 Fecha tablero al arrancar:",
+          stale.from || "—",
+          "→",
+          stale.to
+        );
+      }
+      const rollover = await runProDayRollover();
+      if (rollover.changed) {
+        console.log(
+          "📅 Plantilla del día:",
+          rollover.total,
+          "vuelo(s)",
+          `(${rollover.sourceDate} → ${rollover.date})`
+        );
+      } else if (rollover.reason === "no_source_flights") {
+        console.log("📅 Sin vuelos de referencia para programar hoy");
+      }
+    } catch (e) {
+      console.log("⚠️ Rollover al arrancar:", e.message);
+    }
     flightSyncEnabled = await readSyncEnabledFromRtdb();
     console.log(
       flightSyncEnabled

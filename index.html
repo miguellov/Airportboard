@@ -227,14 +227,24 @@ function isLandingBoardEstado(estado) {
     return n === "ARRIVED" || n === "LANDED" || n === "ATERRIZADO" || n === "ATERIZADO";
 }
 
+/** Sync guardó hora real de aterrizaje (actual_in/on) — prioridad sobre ETA. */
+function hasConfirmedRealArrival(r) {
+    const x = r || {};
+    if (isBoardDateFuture() && !x.manual) return false;
+    return Boolean(String(x.llegadaReal || "").trim());
+}
+
 function effectiveArrivalHhmm(r) {
     const x = r || {};
     const ignoreLiveFields = isBoardDateFuture() && !x.manual;
-    const hasReal = !ignoreLiveFields && Boolean(String(x.llegadaReal || "").trim());
-    const isArrived = !ignoreLiveFields && (isLandingBoardEstado(x.estado) || hasReal);
+    const real = String(x.llegadaReal || "").trim();
+    if (!ignoreLiveFields && real) return real;
+    const isArrived =
+        !ignoreLiveFields &&
+        (isLandingBoardEstado(x.estado) || Boolean(real));
     if (isArrived) {
         return (
-            String(x.llegadaReal || "").trim() ||
+            real ||
             String(x.llegada || "").trim() ||
             String(x.llegadaEstimada || "").trim() ||
             String(x.llegadaProgramada || "").trim() ||
@@ -245,7 +255,7 @@ function effectiveArrivalHhmm(r) {
         String(x.llegadaEstimada || "").trim() ||
         String(x.llegada || "").trim() ||
         String(x.llegadaProgramada || "").trim() ||
-        String(x.llegadaReal || "").trim() ||
+        real ||
         "00:00"
     );
 }
@@ -476,6 +486,7 @@ function getArrivalSpeechMilestone(diffMin){
 }
 
 function tryArrivalSpeech(r, diffMin, dateStr) {
+    if (hasConfirmedRealArrival(r) || isLandingBoardEstado(r.estado)) return;
     const eff = effectiveArrivalHhmm(r);
     if(diffMin <= 0 || eff === "00:00") return;
 
@@ -1061,9 +1072,9 @@ function flightEnRouteFromOrigin(r, diffMinArrival) {
 
 function flightHasLanded(r, diffMin) {
     if (r.manual && isLandingBoardEstado(r.estado)) return true;
-    if (diffMin > 0) return false;
+    if (hasConfirmedRealArrival(r)) return true;
     if (isLandingBoardEstado(r.estado)) return true;
-    if (String(r.llegadaReal || "").trim()) return true;
+    if (diffMin > 0) return false;
     if (String(r.llegada || "").trim()) return true;
     return false;
 }
@@ -1126,9 +1137,13 @@ function computeFlightRowState(r) {
     if (progreso < 0) progreso = 0;
     if (progreso > 100) progreso = 100;
 
+    let countdown = "0 min";
+    let countdownClass = "countdown-green";
+
     if (flightHasLanded(r, diffMin)) {
         estadoFinal = "ATERRIZADO";
         estadoClase = "arrived";
+        progreso = 100;
     } else if (!estadoManual) {
         if (isVagueBoardEstado(r.estado)) {
             if (diffMin <= 10 && diffMin > 0) {
@@ -1172,9 +1187,7 @@ function computeFlightRowState(r) {
         extraClass = "blink";
     }
 
-    let countdown = "0 min";
-    let countdownClass = "countdown-green";
-    if (diffMin > 0) {
+    if (!flightHasLanded(r, diffMin) && diffMin > 0) {
         countdown = hours > 0 ? hours + "h " + minutes + "m" : minutes + " min";
         if (diffMin <= 60) countdownClass = "countdown-yellow";
         if (diffMin <= 15) countdownClass = "countdown-red";

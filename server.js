@@ -514,6 +514,29 @@ function applyAutoPausePatch(patch) {
   return p;
 }
 
+/** Cuando el sync recibe llegadaReal, alinear llegada + ATERRIZADO al instante. */
+function reinforcePatchFromLlegadaReal(row, patch, futureBoard) {
+  if (futureBoard || !row || !patch) return patch;
+  const mergedReal = String(
+    patch.llegadaReal !== undefined ? patch.llegadaReal : row.llegadaReal || ""
+  ).trim();
+  if (!mergedReal || !rowHasArrivalLeg(row)) return patch;
+
+  const curLlegada = String(
+    patch.llegada !== undefined ? patch.llegada : row.llegada || ""
+  ).trim();
+  if (curLlegada !== mergedReal) {
+    patch.llegada = mergedReal;
+  }
+
+  const mergedEst = patch.estado !== undefined ? patch.estado : row.estado;
+  if (!isEstadoStaffLocked(row.estado) && !isLandingBoardEstado(mergedEst)) {
+    patch.estado = "ATERRIZADO";
+    patch.manual = false;
+  }
+  return patch;
+}
+
 // =========================
 // ✈️ FlightAware: GET /flights, sync scheduler, /api/flights/refresh
 // =========================
@@ -1539,6 +1562,15 @@ async function syncPayloadToRtdb(payload) {
       if (arr?.llegada && arr.llegada !== (row.llegada || "")) {
         patch.llegada = arr.llegada;
         changelog.push(llegadaFieldLabel(arr.llegadaFuente));
+        if (
+          !futureBoard &&
+          arr.llegadaFuente === "real" &&
+          String(arr.llegada).trim() &&
+          String(arr.llegada) !== String(row.llegadaReal || "")
+        ) {
+          patch.llegadaReal = arr.llegada;
+          changelog.push("llegadaReal");
+        }
       }
 
       if (
@@ -1559,9 +1591,11 @@ async function syncPayloadToRtdb(payload) {
       if (
         !futureBoard &&
         arr?.llegadaReal != null &&
+        String(arr.llegadaReal).trim() &&
         String(arr.llegadaReal) !== String(row.llegadaReal || "")
       ) {
         patch.llegadaReal = arr.llegadaReal;
+        patch.llegada = arr.llegadaReal;
         changelog.push("llegadaReal");
       }
 
@@ -1645,6 +1679,15 @@ async function syncPayloadToRtdb(payload) {
           if (patch.salidaOrigen === undefined) patch.salidaOrigen = "";
           changelog.push("estado-reset-salio-prematuro");
         }
+      }
+
+      reinforcePatchFromLlegadaReal(row, patch, futureBoard);
+      if (
+        patch.llegadaReal &&
+        patch.estado === "ATERRIZADO" &&
+        !changelog.includes("estado")
+      ) {
+        changelog.push("estado");
       }
 
       const mergedLlegada =

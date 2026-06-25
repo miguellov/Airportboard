@@ -1747,7 +1747,7 @@ function normalizeBoardProgram(raw){
 }
 
 function boardSectionRunnable(id){
-    if(id === "vuelos") return true;
+    if(id === "vuelos") return flightsEnabled;
     if(id === "anuncios") return anunciosActivos && anuncios.length > 0;
     if(id === "posiciones") return positionsEnabled && buildPositionsSlides().length > 0;
     return false;
@@ -1758,7 +1758,14 @@ function getActiveBoardSections(){
         .filter((i) => i.enabled && boardSectionRunnable(i.id))
         .map((i) => ({ ...i, seconds: clampBoardSectionSeconds(i.id, i.seconds) }));
     if(active.length) return active;
-    return [{ id: "vuelos", enabled: true, seconds: 90 }];
+    if(flightsEnabled) return [{ id: "vuelos", enabled: true, seconds: 90 }];
+    return [];
+}
+
+function syncFlightsBoardVisibility(){
+    const shell = document.querySelector(".fids-shell");
+    if(!shell) return;
+    shell.style.display = flightsEnabled ? "" : "none";
 }
 
 function resolveBoardSectionId(preferredId){
@@ -1894,6 +1901,7 @@ let positionsSlides = [];
 let positionsSlideIndex = 0;
 let positionsCycleTimer = null;
 let positionsSlideTimer = null;
+let flightsEnabled = true;
 let positionsEnabled = true;
 let positionsGapSeconds = 45;
 let positionsDurationsData = {};
@@ -1952,6 +1960,12 @@ onValue(ref(db,"config/boardProgram"), snap => {
     requestBoardRotationRestart({ hard: true });
 });
 
+onValue(ref(db,"config/flightsEnabled"), snap => {
+    flightsEnabled = snap.val() !== false;
+    syncFlightsBoardVisibility();
+    requestBoardRotationRestart({ hard: true });
+});
+
 onValue(ref(db,"config/positionsEnabled"), snap => {
     positionsEnabled = snap.val() !== false;
     if(currentBoardSectionId === "posiciones" || !positionsEnabled) requestBoardRotationRestart();
@@ -2005,6 +2019,7 @@ onValue(ref(db,"westjetFlights"), snap => {
     if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
 });
 
+syncFlightsBoardVisibility();
 restartBoardRotation();
 
 // 📢 TICKER

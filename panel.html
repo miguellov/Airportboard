@@ -258,6 +258,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     <span class="toolbar-btn__label">Play sync</span>
                 </button>
             </div>
+            <span class="toolbar-pro__sep" aria-hidden="true"></span>
+            <div class="toolbar-pro__group">
+                <button type="button" id="toggleFlightsBtn" class="toolbar-btn toolbar-btn--ghost flights-board-toggle on" onclick="toggleFlightsBoard()" title="Mostrar u ocultar el tablero de llegadas en la TV">
+                    <span class="toolbar-btn__label">🟢 En pantalla</span>
+                </button>
+            </div>
         </div>
         <div class="toolbar-pro__status-wrap">
             <span id="flightRefreshStatus" class="flight-refresh-status toolbar-pro__status" aria-live="polite"></span>
@@ -6499,6 +6505,11 @@ window.toggleBoardProgramEnabled = (id, on) => {
     const item = boardProgramItems.find((i) => i.id === id);
     if(!item) return;
     item.enabled = Boolean(on);
+    if(id === "vuelos"){
+        flightsBoardEnabled = Boolean(on);
+        set(ref(db, "config/flightsEnabled"), flightsBoardEnabled);
+        updateFlightsBoardToggleUI();
+    }
     if(!on && selectedBoardProgramId === id) selectedBoardProgramId = null;
     renderBoardProgramList();
 };
@@ -6511,9 +6522,47 @@ window.setBoardProgramSeconds = (id, val) => {
 };
 
 window.saveBoardProgram = () => {
+    const vuelosItem = boardProgramItems.find((i) => i.id === "vuelos");
+    if(vuelosItem){
+        flightsBoardEnabled = vuelosItem.enabled !== false;
+        set(ref(db, "config/flightsEnabled"), flightsBoardEnabled);
+        updateFlightsBoardToggleUI();
+    }
     set(ref(db, "config/boardProgram"), { items: boardProgramItems });
     alert("✅ Programación de pantalla guardada");
 };
+
+let flightsBoardEnabled = true;
+
+function updateFlightsBoardToggleUI(){
+    const btn = document.getElementById("toggleFlightsBtn");
+    if(!btn) return;
+    btn.classList.toggle("on", flightsBoardEnabled);
+    const label = btn.querySelector(".toolbar-btn__label");
+    if(label) label.textContent = flightsBoardEnabled ? "🟢 En pantalla" : "🔴 Apagado";
+}
+
+window.toggleFlightsBoard = () => {
+    flightsBoardEnabled = !flightsBoardEnabled;
+    set(ref(db, "config/flightsEnabled"), flightsBoardEnabled);
+    const item = boardProgramItems.find((i) => i.id === "vuelos");
+    if(item){
+        item.enabled = flightsBoardEnabled;
+        set(ref(db, "config/boardProgram"), { items: boardProgramItems });
+    }
+    updateFlightsBoardToggleUI();
+    renderBoardProgramList();
+};
+
+onValue(ref(db, "config/flightsEnabled"), (snap) => {
+    flightsBoardEnabled = snap.val() !== false;
+    updateFlightsBoardToggleUI();
+    const item = boardProgramItems.find((i) => i.id === "vuelos");
+    if(item && item.enabled !== flightsBoardEnabled){
+        item.enabled = flightsBoardEnabled;
+        renderBoardProgramList();
+    }
+});
 
 renderBoardProgramList();
 

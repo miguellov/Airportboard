@@ -1538,6 +1538,18 @@ body.airport .flight-time-primary { color: #00ff9c !important; }
   color: #86efac;
 }
 
+.flights-board-toggle.on {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.flights-board-toggle:not(.on) {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(220, 38, 38, 0.12);
+  color: #fca5a5;
+}
+
 .positions-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);

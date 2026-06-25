@@ -640,6 +640,7 @@ async function buildFlightsPayloadFromFirebase() {
         salidaOrigen: row.salidaOrigen || "",
         salida: "",
         gate,
+        matricula: String(row.matricula || "").trim(),
         estado,
         retraso: row.retraso ?? null,
         aerolinea: row.aerolinea || "",
@@ -653,6 +654,7 @@ async function buildFlightsPayloadFromFirebase() {
         destino: parts[1] || parts[0] || dest,
         salida: row.salida || "",
         gate,
+        matricula: String(row.matricula || "").trim(),
         estado,
         aerolinea: row.aerolinea || "",
         source: "firebase"
@@ -795,6 +797,13 @@ function isPopDepartureOnDate(f, targetDate) {
   return aeroFlightDateRd(f) === targetDate;
 }
 
+function aeroRegistration(f) {
+  const raw = f?.registration || f?.aircraft?.registration || "";
+  return String(raw || "")
+    .trim()
+    .toUpperCase();
+}
+
 function mapRawFlightToArrivalRow(f) {
   const schedAnchor = f.scheduled_in || f.scheduled_on;
   const dateAnchor = aeroArrivalDateRd(f);
@@ -808,6 +817,7 @@ function mapRawFlightToArrivalRow(f) {
     origen: aeroAirportIata(f.origin),
     destino: aeroAirportIata(f.origin),
     boardDate: dateAnchor,
+    matricula: aeroRegistration(f),
     llegada: horaLlegadaPop,
     llegadaFuente,
     llegadaProgramada,
@@ -833,6 +843,7 @@ function mapRawFlightToDepartureRow(f) {
     vuelo: normalizeIdent(f.ident) || String(f.ident || "N/A"),
     destino: aeroAirportIata(f.destination),
     boardDate: aeroFlightDateRd(f),
+    matricula: aeroRegistration(f),
     salida: formatHora(
       f.actual_out ||
         f.actual_off ||
@@ -1831,6 +1842,11 @@ async function syncPayloadToRtdb(payload) {
         patch.gate = g;
         changelog.push("gate");
       }
+      const reg = String(arr?.matricula || dep?.matricula || "").trim();
+      if (reg && reg !== String(row.matricula || "").trim()) {
+        patch.matricula = reg;
+        changelog.push("matricula");
+      }
 
       const apiEstado = boardEstadoFromApi(pickApiEstado(row, arr, dep));
       const apiConfirmsLanding =
@@ -2224,6 +2240,7 @@ function boardRowFromFaPair(arr, dep, carrier) {
     salidaOrigen: "",
     salidaOrigenProgramada: String(arr?.salidaOrigenProgramada || "").trim(),
     gate: dep?.gate || arr?.gate || "",
+    matricula: String(arr?.matricula || dep?.matricula || "").trim(),
     estado: "ON-TIME",
     retraso: arr?.retraso ?? null,
     manual: false,
@@ -2279,6 +2296,7 @@ function cleanFlightForNextDay(row) {
     salidaOrigen: "",
     salidaOrigenProgramada: String(row.salidaOrigenProgramada || "").trim(),
     gate: "",
+    matricula: String(row.matricula || "").trim(),
     estado: "ON-TIME",
     retraso: null,
     manual: false,

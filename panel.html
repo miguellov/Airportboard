@@ -4470,6 +4470,9 @@ function renderFlightsPanel(data){
 <label class="fld-label">Destino</label>
 <input class="fld-destino" value="${(r.destino || "").replace(/"/g, "&quot;")}" placeholder="Ej. JFK-JFK (New York)" onchange="updateField(${i},'destino',this.value)">
 
+<label class="fld-label">Matrícula (avión)</label>
+<input class="fld-matricula" value="${(r.matricula || "").replace(/"/g, "&quot;")}" placeholder="Ej. N123JB, C-GABC" maxlength="12" autocapitalize="characters" onchange="updateField(${i},'matricula',this.value.trim().toUpperCase())">
+
 <label class="fld-label">Gate</label>
 <select onchange="updateField(${i},'gate',this.value)">
     <option value="">GATE</option>
@@ -4568,6 +4571,7 @@ window.addFlight = (i=null) => {
         llegadaReal:"",
         salida:"",
         gate:"",
+        matricula:"",
         estado:"ON-TIME",
         retraso:null,
         manual:true,
@@ -4803,18 +4807,18 @@ function applyPanelApiFromQuery(){
 function resolvePanelApiBase(){
     const fromParam = new URLSearchParams(location.search).get("api");
     if(fromParam) return normalizePanelApiUrl(fromParam);
-    /* Como antes: si entras por server.js, la API es la misma URL sin configurar nada */
+    /* Entrada directa por server.js (npm start) */
     if(location.protocol !== "file:" && String(location.port) === "4000"){
         return location.origin;
     }
-    if(location.protocol === "file:") return "http://localhost:4000";
-    if(isLocalDevHost(location.hostname)) return `http://${location.hostname}:4000`;
     try{
         const stored = localStorage.getItem("panelApiBase");
         if(stored) return normalizePanelApiUrl(stored);
     }catch(_){}
     const cfg = typeof window.AIRPORT_BOARD_API === "string" ? window.AIRPORT_BOARD_API.trim() : "";
     if(cfg) return cfg.replace(/\/+$/, "");
+    if(location.protocol === "file:") return "http://localhost:4000";
+    if(isLocalDevHost(location.hostname)) return `http://${location.hostname}:4000`;
     if(isStaticPanelHost(location.hostname)) return "";
     return `http://${location.hostname}:4000`;
 }
@@ -5227,6 +5231,7 @@ window.buscarDatosVueloTarjeta = async (index) => {
             if (hl) rows[index].llegada = hl;
             if (hp) rows[index].llegadaProgramada = hp;
             if (arr.vuelo) rows[index].vueloLlegada = arr.vuelo;
+            if (arr.matricula) rows[index].matricula = String(arr.matricula).trim().toUpperCase();
             const isFutureBoard = selectedDate > new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
             if (!isFutureBoard) {
                 if (arr.salidaOrigen) {
@@ -5246,6 +5251,9 @@ window.buscarDatosVueloTarjeta = async (index) => {
             const hs = convertirHora24(dep.salida || "");
             if (hs) rows[index].salida = hs;
             if (dep.gate) rows[index].gate = dep.gate;
+            if (dep.matricula && !rows[index].matricula) {
+                rows[index].matricula = String(dep.matricula).trim().toUpperCase();
+            }
         }
         const CU = window.CarrierUtils;
         if (CU) {
@@ -5393,7 +5401,8 @@ window.buscarVueloLlegada = async (input, index) => {
                                   ? String(f.retraso)
                                   : "";
                           const label = `${escapeHtmlPanel(f.vuelo)} · desde ${escapeHtmlPanel(orig)} · POP ${escapeHtmlPanel(hora || "N/A")}${escapeHtmlPanel(txtSo)}${escapeHtmlPanel(txtEst)}`;
-                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-e="${escapeDataAttr(est)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" onclick="seleccionarLlegadaApi(${index},this)">${label}</div>`;
+                          const mat = String(f.matricula || "").trim();
+                          return `<div class="results-row" data-v="${escapeDataAttr(f.vuelo)}" data-l="${escapeDataAttr(hora)}" data-lp="${escapeDataAttr(lp)}" data-le="${escapeDataAttr(le)}" data-lr="${escapeDataAttr(lr)}" data-so="${escapeDataAttr(so)}" data-e="${escapeDataAttr(est)}" data-r="${escapeDataAttr(ret)}" data-o="${escapeDataAttr(orig)}" data-m="${escapeDataAttr(mat)}" onclick="seleccionarLlegadaApi(${index},this)">${label}${mat ? ` · ${escapeHtmlPanel(mat)}` : ""}</div>`;
                       })
                       .join("")
                 : flightsSearchEmptyHtml(qNow, data, "llegada");
@@ -5459,6 +5468,7 @@ window.seleccionarLlegadaApi = (index, el) => {
     const lr = el.getAttribute("data-lr") || "";
     const so = el.getAttribute("data-so") || "";
     const est = el.getAttribute("data-e") || "";
+    const mat = el.getAttribute("data-m") || "";
     const dr = el.getAttribute("data-r");
     arr[index].llegada = l;
     arr[index].llegadaProgramada = lp || "";
@@ -5466,6 +5476,7 @@ window.seleccionarLlegadaApi = (index, el) => {
     arr[index].llegadaReal = lr || "";
     arr[index].vueloLlegada = v;
     arr[index].salidaOrigen = so;
+    if (mat) arr[index].matricula = mat.trim().toUpperCase();
     if (est) {
         arr[index].estado = est;
         arr[index].manual = false;
@@ -5970,8 +5981,10 @@ function boardProgramTvRealHtml(sectionId, subIndex){
         const body = rows.slice(0, 10).map((r) => {
             const eta = (r.llegada || r.llegadaEstimada || r.llegadaProgramada || "—").slice(0, 5);
             const estado = r.estado || "ON-TIME";
+            const mat = String(r.matricula || "").trim() || "—";
             return `<div class="bp-mock__row">
                 <span>${escapeHtmlPanel(r.vuelo || "—")}</span>
+                <span>${escapeHtmlPanel(mat)}</span>
                 <span>${escapeHtmlPanel((r.destino || "").split("-")[0].trim() || "—")}</span>
                 <span>${escapeHtmlPanel(eta)}</span>
                 <span class="${flightEstadoPillClass(estado)}">${escapeHtmlPanel(estado)}</span>
@@ -5980,7 +5993,7 @@ function boardProgramTvRealHtml(sectionId, subIndex){
         return `
             <div class="bp-mock bp-mock--vuelos">
                 <div class="bp-mock__head">LLEGADAS · MDPP</div>
-                <div class="bp-mock__cols"><span>VUELO</span><span>DESTINO</span><span>ETA</span><span>ESTADO</span></div>
+                <div class="bp-mock__cols"><span>VUELO</span><span>MAT.</span><span>DESTINO</span><span>ETA</span><span>ESTADO</span></div>
                 ${body}
                 ${rows.length > 10 ? `<div class="bp-mock__more">+${rows.length - 10} vuelos más</div>` : ""}
             </div>`;
@@ -6077,13 +6090,15 @@ function renderBoardProgramDetailPanel(){
         }
         const list = rows.map((r, idx) => {
             const eta = (r.llegada || r.llegadaEstimada || "—").slice(0, 5);
+            const mat = String(r.matricula || "").trim();
+            const matTxt = mat ? ` · ${mat}` : "";
             return `
                 <article class="board-program-detail-row board-program-detail-row--vuelos">
                     <div class="board-program-detail-row__main">
                         <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
                         <div class="board-program-detail-row__copy">
                             <strong>${escapeHtmlPanel(r.vuelo || "—")}</strong>
-                            <span>${escapeHtmlPanel(r.destino || "—")} · ETA ${escapeHtmlPanel(eta)} · ${escapeHtmlPanel(r.estado || "ON-TIME")}</span>
+                            <span>${escapeHtmlPanel(r.destino || "—")}${escapeHtmlPanel(matTxt)} · ETA ${escapeHtmlPanel(eta)} · ${escapeHtmlPanel(r.estado || "ON-TIME")}</span>
                         </div>
                     </div>
                 </article>`;

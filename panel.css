@@ -4620,7 +4620,7 @@ button.board-program-chip:hover {
 .bp-mock__cols,
 .bp-mock__row {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 0.7fr 0.9fr;
+  grid-template-columns: 1.1fr 0.75fr 1fr 0.7fr 0.9fr;
   gap: 0.5rem;
   align-items: center;
 }

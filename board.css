@@ -231,8 +231,40 @@ body.fids-board{
 table.fids-table,
 table{
     width:100%;
+    table-layout:fixed;
     border-collapse:separate;
     border-spacing:0 var(--flight-row-gap, 5px);
+    --fids-grid-cols:minmax(0, 1.05fr) minmax(0, 0.68fr) minmax(0, 1fr) minmax(0, 1.72fr) minmax(0, 0.78fr) minmax(0, 0.82fr) minmax(0, 0.95fr);
+}
+
+.fids-thead th.fids-head-shell{
+    padding:0 !important;
+    border:none;
+    background:transparent;
+    font-weight:inherit;
+    vertical-align:bottom;
+}
+
+.fids-head-grid{
+    padding:10px 14px 12px;
+    border-bottom:2px solid var(--fids-accent);
+    background:linear-gradient(180deg, rgba(2,6,23,.98), rgba(15,23,42,.92));
+    font-size:clamp(11px, 1.25vw, 16px);
+    gap:clamp(2px, 0.35vw, 6px);
+}
+
+.fids-head-cell{
+    font-family:'Orbitron', sans-serif;
+    font-weight:700;
+    letter-spacing:.1em;
+    color:rgba(148,163,184,.95);
+    line-height:1.2;
+    min-width:0;
+}
+
+.fids-head-cell:nth-child(2){
+    letter-spacing:.06em;
+    font-size:.92em;
 }
 
 .fids-table thead{
@@ -361,16 +393,21 @@ td{
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:1.05fr 0.95fr 1.75fr 0.8fr 0.85fr 1fr;
+    grid-template-columns:var(--fids-grid-cols);
     align-items:center;
     text-align:center;
-    gap:4px;
+    gap:clamp(2px, 0.35vw, 6px);
     padding:12px 14px;
     font-size:clamp(20px, 2.4vw, 30px);
 }
 
 .flight-row-cell{
     min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
 }
 
 /* Ajuste automático cuando hay varios vuelos */
@@ -533,13 +570,40 @@ td{
     border:1px solid rgba(148,163,184,.2);
 }
 
-.destino-text{ font-weight:600; color:#e2e8f0; }
+.destino-text{
+    font-weight:600;
+    color:#e2e8f0;
+    font-size:clamp(14px, 1.55vw, 22px);
+    line-height:1.15;
+    max-width:100%;
+    word-break:break-word;
+}
 
 .td-salida{
     font-family:'JetBrains Mono', monospace;
     font-weight:600;
     font-variant-numeric:tabular-nums;
     color:#bae6fd;
+}
+
+.matricula-pill{
+    display:inline-block;
+    font-family:'JetBrains Mono', 'Consolas', monospace;
+    font-weight:700;
+    font-size:clamp(16px, 1.85vw, 26px);
+    letter-spacing:.06em;
+    line-height:1.2;
+    color:#e2e8f0;
+    padding:.28em .55em;
+    border-radius:8px;
+    background:rgba(15,23,42,.55);
+    border:1px solid rgba(148,163,184,.35);
+    text-transform:uppercase;
+}
+
+.fids-table.fids-compact .matricula-pill{
+    font-size:clamp(13px, 1.55vw, 20px);
+    padding:.22em .45em;
 }
 
 .gate-pill{
@@ -620,9 +684,18 @@ td{
 
 .td-llegada{
     line-height:1.1;
-    vertical-align:middle;
-    padding-top:10px;
-    padding-bottom:10px;
+    width:100%;
+    max-width:100%;
+    align-self:stretch;
+    justify-content:center;
+}
+
+.td-llegada .flight-progress{
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    margin-left:0;
+    margin-right:0;
 }
 
 .td-llegada .hora-llegada{
@@ -1511,8 +1584,8 @@ body.board--cumple-full .flight-arrival-toast{
     .title{ font-size:18px; }
     th{ font-size:12px; }
     td{ font-size:15px; padding:8px; }
+    .fids-head-grid{ padding:8px 10px 10px; font-size:11px; }
     .flight-row-grid{
-        grid-template-columns:1fr 0.85fr 1.5fr 0.75fr 0.8fr 0.95fr;
         padding:8px 10px;
         font-size:15px;
     }

@@ -51,14 +51,19 @@
 
 <div class="table-container fids-table-wrap">
 <table class="fids-table">
-<thead>
+<thead class="fids-thead">
 <tr>
-<th>VUELO</th>
-<th>DESTINO</th>
-<th>LLEGADA</th>
-<th>SALIDA</th>
-<th>GATE</th>
-<th>ESTADO</th>
+<th colspan="7" class="fids-head-shell" scope="colgroup">
+<div class="flight-row-grid fids-head-grid">
+<span class="fids-head-cell">VUELO</span>
+<span class="fids-head-cell">MATRÍCULA</span>
+<span class="fids-head-cell">DESTINO</span>
+<span class="fids-head-cell">LLEGADA</span>
+<span class="fids-head-cell">SALIDA</span>
+<span class="fids-head-cell">GATE</span>
+<span class="fids-head-cell">ESTADO</span>
+</div>
+</th>
 </tr>
 </thead>
 <tbody id="board"></tbody>
@@ -1323,7 +1328,7 @@ function renderVuelos(forceFull) {
         const when = selectedDateEmptyLabel();
         document.getElementById("board").innerHTML = `
         <tr class="fids-empty">
-            <td colspan="6">
+            <td colspan="7">
                 <div class="fids-empty__inner">
                     <span class="fids-empty__icon">✈</span>
                     <span class="fids-empty__text">Sin vuelos programados para ${escapeHtmlBoard(when)}</span>
@@ -1342,12 +1347,13 @@ function renderVuelos(forceFull) {
 
         html += `
         <tr class="flight-row ${st.estadoClase}${st.airlineClass} ${st.extraClass}" style="--row-progress:${st.progreso}%">
-        <td colspan="6" class="flight-row-shell">
+        <td colspan="7" class="flight-row-shell">
             <div class="flight-row-bg" aria-hidden="true">
                 <div class="flight-row-fill"><span class="flight-row-frontier" aria-hidden="true"></span></div>
             </div>
             <div class="flight-row-grid">
                 <div class="flight-row-cell"><span class="flight-code">${escapeHtmlBoard(r.vuelo || "")}</span></div>
+                <div class="flight-row-cell"><span class="matricula-pill">${escapeHtmlBoard(String(r.matricula || "").trim() || "—")}</span></div>
                 <div class="flight-row-cell"><span class="destino-text">${escapeHtmlBoard(r.destino || "")}</span></div>
                 <div class="flight-row-cell td-llegada">
                     <span class="hora-llegada">${escapeHtmlBoard(st.eff)}</span>

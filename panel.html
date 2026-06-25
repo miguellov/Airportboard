@@ -4379,11 +4379,18 @@ function getFlightsByDateRef(dateStr){
 }
 
 function saveFlightsForSelectedDate(data){
-    let obj = data || {};
+    let arr = getArray(data || {});
     const CU = window.CarrierUtils;
     if (CU) {
-        obj = toObj(CU.restrictToAllowedCarriers(getArray(obj)));
+        arr = arr.filter((r) => {
+            if (!r || typeof r !== "object") return false;
+            const v = String(r.vuelo || "").trim();
+            if (!v) return true;
+            return CU.isAllowedCarrierFlight(r);
+        });
+        arr = CU.sortFlightsByArrival(arr);
     }
+    const obj = toObj(arr);
     set(getFlightsByDateRef(selectedDate), obj);
     set(ref(db, "flights"), obj);
 }
@@ -4406,7 +4413,14 @@ function renderFlightsPanel(data){
 
     const CU = window.CarrierUtils;
     if (CU) {
-        data = toObj(CU.restrictToAllowedCarriers(getArray(data)));
+        data = toObj(
+            getArray(data).filter((r) => {
+                if (!r || typeof r !== "object") return false;
+                const v = String(r.vuelo || "").trim();
+                if (!v) return true;
+                return CU.isAllowedCarrierFlight(r);
+            })
+        );
     }
 
     currentData=data;
@@ -4512,6 +4526,7 @@ window.updateField = (i,f,v) => {
     saveState(currentData);
     let a = getArray(currentData);
     a[i][f] = v;
+    a[i].manual = true;
     saveFlightsForSelectedDate(toObj(a));
 };
 
@@ -4548,7 +4563,9 @@ window.addFlight = (i=null) => {
         salida:"",
         gate:"",
         estado:"ON-TIME",
-        retraso:null
+        retraso:null,
+        manual:true,
+        noApiSync:true
     };
     i==null ? a.push(n) : a.splice(i+1,0,n);
     saveFlightsForSelectedDate(toObj(a));
@@ -5185,12 +5202,13 @@ window.buscarDatosVueloTarjeta = async (index) => {
         const dep = findDepartureForVueloField(j.salidas, raw);
         if (!arr && !dep) {
             if (msg) {
-                msg.textContent = "Sin datos disponibles";
+                msg.textContent =
+                    "Sin datos FlightAware (¿límite API?). Completa vuelo, destino y horas a mano.";
                 msg.style.color = "#fb923c";
                 setTimeout(() => {
                     msg.textContent = "";
                     msg.style.color = "";
-                }, 3000);
+                }, 6000);
             }
             return;
         }
@@ -5247,12 +5265,15 @@ window.buscarDatosVueloTarjeta = async (index) => {
     } catch (e) {
         console.error(e);
         if (msg) {
-            msg.textContent = "Sin datos disponibles";
+            const quota = /429|quota|l[ií]mite/i.test(String(e.message || ""));
+            msg.textContent = quota
+                ? "Límite FlightAware agotado — edita vuelo, destino y horas manualmente."
+                : "Sin datos FlightAware. Completa los campos a mano.";
             msg.style.color = "#fb923c";
             setTimeout(() => {
                 msg.textContent = "";
                 msg.style.color = "";
-            }, 3000);
+            }, 6000);
         }
     } finally {
         btn.disabled = false;

@@ -1734,6 +1734,7 @@ async function syncPayloadToRtdb(payload) {
       const row = flights[key];
       if (!row || typeof row !== "object") continue;
       if (row.noApiSync === true) continue;
+      if (row.manual === true) continue;
 
       const identLabel =
         (row.vuelo && String(row.vuelo).trim()) ||

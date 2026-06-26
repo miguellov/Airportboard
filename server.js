@@ -99,13 +99,13 @@ const FLIGHT_SYNC_MS = Math.max(
 
 const POLLING_MIN_SEC = 600; // 10 min
 
-const SYNC_SECRET = process.env.SYNC_SECRET || "POP_sync_2026_airport";
+const SYNC_SECRET = (process.env.SYNC_SECRET || "").trim();
 
 const AERO_API_KEY =
   process.env.FA_API_KEY || process.env.API_KEY || "";
 
 const PANEL_JWT_SECRET =
-  process.env.PANEL_JWT_SECRET || SYNC_SECRET + "_panel_jwt_2026";
+  process.env.PANEL_JWT_SECRET || crypto.randomBytes(32).toString("hex");
 const PANEL_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PANEL_TOKEN_TTL_REMEMBER_MS = 30 * 24 * 60 * 60 * 1000;
 const PANEL_BOOTSTRAP_USER = (process.env.PANEL_BOOTSTRAP_USER || "").trim();
@@ -1263,9 +1263,7 @@ app.get("/api/flights/sync-state", async (_req, res) => {
 });
 
 app.post("/api/flights/sync-state", async (req, res) => {
-  if (!authorizeSync(req)) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
+  if (!requirePanelOrSyncAuth(req, res)) return;
   const raw =
     req.body?.enabled ??
     req.query.enabled ??
@@ -2471,12 +2469,33 @@ async function flightSyncSchedulerLoop() {
   }
 }
 
+function readBearerToken(req) {
+  const h = req.get("authorization") || "";
+  return h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+}
+
 function authorizeSync(req) {
   if (!SYNC_SECRET) return false;
-  const h = req.get("authorization") || "";
-  const token = h.startsWith("Bearer ") ? h.slice(7) : "";
-  const q = req.query.secret;
-  return token === SYNC_SECRET || q === SYNC_SECRET;
+  const bearer = readBearerToken(req);
+  const headerSecret = (req.get("x-sync-secret") || "").trim();
+  return bearer === SYNC_SECRET || headerSecret === SYNC_SECRET;
+}
+
+function requirePanelOrSyncAuth(req, res, { adminOnly = false } = {}) {
+  const bearer = readBearerToken(req);
+  const panel = verifyPanelToken(bearer);
+  if (panel) {
+    if (adminOnly && panel.role !== "admin") {
+      res.status(403).json({ error: "Solo administradores" });
+      return null;
+    }
+    return { type: "panel", user: panel };
+  }
+  if (authorizeSync(req)) {
+    return { type: "sync" };
+  }
+  res.status(401).json({ error: "No autorizado" });
+  return null;
 }
 
 app.post("/sync-flights", async (req, res) => {
@@ -2504,11 +2523,9 @@ app.get("/sync-flights", async (req, res) => {
   }
 });
 
-/** Forzar sincronización FlightAware → Firebase (mismo auth que /sync-flights) */
+/** Forzar sincronización FlightAware → Firebase (panel JWT o sync header privado). */
 app.get("/api/flights/refresh", async (req, res) => {
-  if (!authorizeSync(req)) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
+  if (!requirePanelOrSyncAuth(req, res)) return;
   try {
     const result = await syncFlightTimesToRtdbSafe();
     const ts = new Date().toISOString();
@@ -2542,9 +2559,7 @@ app.get("/api/flights/refresh", async (req, res) => {
 
 /** PRO: programar vuelos en el día indicado (por defecto mañana). */
 app.post("/api/pro/schedule-day", async (req, res) => {
-  if (!authorizeSync(req)) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
+  if (!requirePanelOrSyncAuth(req, res)) return;
   try {
     const qTarget = req.query.targetDate || req.body?.targetDate;
     const targetDate =
@@ -2562,9 +2577,7 @@ app.post("/api/pro/schedule-day", async (req, res) => {
 });
 
 app.get("/api/pro/schedule-day", async (req, res) => {
-  if (!authorizeSync(req)) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
+  if (!requirePanelOrSyncAuth(req, res)) return;
   try {
     const targetDate =
       req.query.targetDate && /^\d{4}-\d{2}-\d{2}$/.test(req.query.targetDate)
@@ -2657,9 +2670,9 @@ app.listen(PORT, () => {
     console.log("✓ FlightAware AeroAPI — aeropuerto", AIRPORT);
   }
   if (!SYNC_SECRET) {
-    console.log("⚠️ SYNC_SECRET vacío: /api/flights/refresh rechazará peticiones");
+    console.log("⚠️ SYNC_SECRET vacío: /sync-flights rechazará peticiones; rutas /api requieren panel JWT");
   } else {
-    console.log("✓ Sync manual: GET /api/flights/refresh?secret=***");
+    console.log("✓ Sync manual servidor: Authorization: Bearer <SYNC_SECRET> o X-Sync-Secret");
   }
   console.log(
     "⏱ Sync vuelos (FlightAware) → Firebase: intervalo por defecto",

@@ -5478,3 +5478,132 @@ body.config-menu-open {
 .config-shell .card-anuncio {
   max-width: 100%;
 }
+
+/* —— Info vuelo (PAX) —— */
+.flight-info-form {
+  margin-top: 0.75rem;
+}
+
+.flight-info-form-block {
+  margin-bottom: 1rem;
+}
+
+.flight-info-form-block__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--pop-muted);
+}
+
+.flight-info-form-block__sub {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.fi-preset-select {
+  width: 100%;
+  margin-bottom: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--pop-border);
+  background: rgba(15, 23, 42, 0.55);
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.fi-route-legs-hint {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--pop-muted);
+  line-height: 1.45;
+}
+
+.flight-info-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.flight-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.flight-info-field--wide {
+  grid-column: 1 / -1;
+}
+
+.flight-info-field__label {
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.flight-info-field input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--pop-border);
+  background: rgba(15, 23, 42, 0.55);
+  color: #f8fafc;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+}
+
+.flight-info-board-preview {
+  min-height: 320px;
+  border-radius: var(--radius);
+  border: 1px solid var(--pop-border);
+  background: #020617;
+  overflow: hidden;
+  transform-origin: top center;
+}
+
+.flight-info-board-preview .fi-slide {
+  animation: none;
+  min-height: 320px;
+  padding: 12px;
+  font-size: 0.55rem;
+}
+
+.flight-info-board-preview .fi-slide-title {
+  font-size: 1rem;
+}
+
+.flight-info-board-preview .fi-stat__label {
+  font-size: 0.78rem;
+  color: #e2e8f0;
+}
+
+.flight-info-board-preview .fi-stat__value {
+  font-size: 1rem;
+}
+
+.flight-info-preview-off {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--pop-muted);
+  font-size: 0.9rem;
+}
+
+.bp-mock--flight-info {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bp-mock--flight-info .fi-slide {
+  animation: none;
+  padding: 8px;
+}
+
+@media (max-width: 900px) {
+  .flight-info-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

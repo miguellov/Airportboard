@@ -1157,7 +1157,13 @@ body.board--positions-full .fids-board-head,
 body.board--positions-full .header,
 body.board--positions-full .table-container,
 body.board--positions-full .positions-wrapper,
-body.board--positions-full .ticker{
+body.board--positions-full .ticker,
+body.board--flight-info-full .fids-ambient,
+body.board--flight-info-full .fids-board-head,
+body.board--flight-info-full .header,
+body.board--flight-info-full .table-container,
+body.board--flight-info-full .positions-wrapper,
+body.board--flight-info-full .ticker{
     display:none;
 }
 
@@ -1593,4 +1599,195 @@ body.board--cumple-full .flight-arrival-toast{
     .header{ padding:10px 14px; }
     .fids-board-head{ padding:8px 14px; }
     table{ font-size:12px; }
+}
+
+/* —— Info vuelo fullscreen (PAX llegando / saliendo) —— */
+.flight-info-full{
+    position:fixed;
+    inset:0;
+    z-index:999997;
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .55s ease;
+    background:#020617;
+}
+.flight-info-full.active{
+    opacity:1;
+    pointer-events:auto;
+}
+
+.fi-slide{
+    position:relative;
+    flex:1;
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:clamp(16px,2.8vh,32px) clamp(24px,4vw,56px) clamp(12px,2vh,24px);
+    box-sizing:border-box;
+    overflow:hidden;
+    animation:pos-slide-in .65s cubic-bezier(.22,1,.36,1) both;
+    --fi-accent:#38bdf8;
+    --fi-glow:rgba(14,165,233,.22);
+}
+.fi-slide--jetblue{ --fi-accent:#38bdf8; --fi-glow:rgba(56,189,248,.24); }
+.fi-slide--westjet{ --fi-accent:#4ade80; --fi-glow:rgba(74,222,128,.22); }
+.fi-slide--extra{ --fi-accent:#fbbf24; --fi-glow:rgba(251,191,36,.2); }
+
+.fi-slide-bg{
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, var(--fi-glow), transparent 70%),
+        linear-gradient(165deg, #020617 0%, #0f172a 45%, #020617 100%);
+    z-index:0;
+}
+
+.fi-slide-header,
+.fi-slide-body,
+.fi-slide-footer{
+    position:relative;
+    z-index:1;
+    width:min(1200px, 96vw);
+}
+
+.fi-slide-badge{
+    display:inline-block;
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(10px,1.1vw,13px);
+    letter-spacing:.2em;
+    color:var(--fi-accent);
+    border:1px solid color-mix(in srgb, var(--fi-accent) 45%, transparent);
+    padding:.32em .9em;
+    border-radius:999px;
+    background:rgba(0,0,0,.35);
+    margin-bottom:clamp(8px,1.5vh,14px);
+}
+
+.fi-slide-title{
+    margin:0 0 clamp(8px,1.2vh,12px);
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(22px,3.2vw,42px);
+    letter-spacing:.08em;
+    color:#f8fafc;
+    text-transform:uppercase;
+}
+
+.fi-slide-line{
+    height:3px;
+    width:min(280px, 40vw);
+    background:linear-gradient(90deg, transparent, var(--fi-accent), transparent);
+    margin-bottom:clamp(12px,2vh,18px);
+}
+
+.fi-slide-body{
+    flex:1 1 auto;
+    min-height:0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:clamp(12px,2vw,24px);
+    align-items:stretch;
+}
+
+.fi-slide-body:has(.fi-panel:only-child){
+    grid-template-columns:1fr;
+    max-width:min(720px, 94%);
+    margin:0 auto;
+    width:100%;
+}
+
+.fi-panel{
+    background:rgba(15,23,42,.72);
+    border:1px solid rgba(148,163,184,.18);
+    border-radius:14px;
+    padding:clamp(10px,1.6vh,16px) clamp(12px,1.8vw,18px);
+    overflow:hidden;
+}
+.fi-panel--in{ border-top:3px solid #38bdf8; }
+.fi-panel--out{ border-top:3px solid #fbbf24; }
+
+.fi-panel__title{
+    margin:0 0 clamp(4px,0.6vh,6px);
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(13px,1.4vw,18px);
+    letter-spacing:.18em;
+    color:#94a3b8;
+}
+
+.fi-panel__sub{
+    margin:0 0 clamp(8px,1.2vh,12px);
+    font-size:clamp(10px,1.05vw,13px);
+    letter-spacing:.06em;
+    color:rgba(148,163,184,.75);
+}
+
+.fi-slide-destino{
+    margin:clamp(4px,0.6vh,8px) 0 0;
+    font-size:clamp(11px,1.15vw,15px);
+    letter-spacing:.08em;
+    color:rgba(226,232,240,.85);
+}
+
+.fi-stats{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:clamp(6px,0.8vw,10px);
+}
+
+.fi-stat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:clamp(5px,0.6vh,8px);
+    padding:.5em .4em;
+    border-radius:10px;
+    background:rgba(2,6,23,.55);
+    border:1px solid rgba(148,163,184,.12);
+    min-height:clamp(56px,7.5vh,78px);
+}
+.fi-stat--wide{
+    grid-column:1 / -1;
+    min-height:clamp(62px,8.5vh,88px);
+}
+.fi-stat__label{
+    font-family:'Inter', system-ui, sans-serif;
+    font-size:clamp(13px,1.35vw,18px);
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:#e2e8f0;
+    text-align:center;
+    line-height:1.2;
+    max-width:100%;
+}
+.fi-stat--wide .fi-stat__label{
+    font-size:clamp(14px,1.5vw,20px);
+    color:#f8fafc;
+}
+.fi-stat__value{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(20px,2.6vw,34px);
+    font-weight:700;
+    color:#f8fafc;
+    line-height:1;
+}
+
+.fi-slide-footer{
+    margin-top:clamp(8px,1.2vh,14px);
+    text-align:center;
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(9px,1vw,11px);
+    letter-spacing:.2em;
+    color:rgba(148,163,184,.55);
+}
+
+@media (max-width:900px){
+    .fi-slide-body{ grid-template-columns:1fr; }
+    .fi-stats{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }

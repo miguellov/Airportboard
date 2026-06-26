@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Great+Vibes&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="board.css">
 <script src="carrier-utils.js"></script>
+<script src="flight-info.js"></script>
 </head>
 
 <body class="fids-board">
@@ -21,6 +22,7 @@
 
 <div id="anuncioFull" class="anuncio-full"></div>
 <div id="positionsFull" class="positions-full" aria-hidden="true"></div>
+<div id="flightInfoFull" class="flight-info-full" aria-hidden="true"></div>
 <div id="flightArrivalToast" class="flight-arrival-toast" aria-live="polite" aria-atomic="true"></div>
 
 <div class="fids-shell">
@@ -1710,10 +1712,37 @@ function renderPositionSlideHtml(slide){
         </div>`;
 }
 
+function buildFlightInfoSlides(){
+    const FIu = window.FlightInfoUtils;
+    if(!FIu) return [];
+    const slides = [];
+    const dur = flightInfoDurationsData || {};
+
+    FIu.FLIGHT_INFO_PRESETS.forEach((preset) => {
+        const key = FIu.routeKey(preset.vuelo);
+        const rec = flightInfoData[key];
+        if(!FIu.recordHasData(rec)) return;
+        const duration = Math.max(8, Math.min(90, parseInt(dur[key], 10) || 15));
+        slides.push(FIu.buildSlideFromPreset(preset, rec, {
+            titles: titlesData,
+            duration
+        }));
+    });
+
+    return slides;
+}
+
+function renderFlightInfoSlideHtml(slide){
+    const FIu = window.FlightInfoUtils;
+    if(!FIu) return "";
+    return FIu.renderSlideHtml(slide, escapeHtmlBoard);
+}
+
 const BOARD_PROGRAM_DEFAULTS = [
     { id: "vuelos", enabled: true, seconds: 90 },
     { id: "anuncios", enabled: true, seconds: 35 },
-    { id: "posiciones", enabled: true, seconds: 50 }
+    { id: "posiciones", enabled: true, seconds: 50 },
+    { id: "flightInfo", enabled: true, seconds: 40 }
 ];
 
 let boardProgram = { items: BOARD_PROGRAM_DEFAULTS.map((x) => ({ ...x })) };
@@ -1722,12 +1751,14 @@ let boardSectionTimer = null;
 let boardAnuncioCadenceTimer = null;
 let boardPositionsSlideTimer = null;
 let boardPositionsActive = false;
+let boardFlightInfoSlideTimer = null;
+let boardFlightInfoActive = false;
 let boardRotationRestartTimer = null;
 let boardRotationPendingHard = false;
 
 function clampBoardSectionSeconds(id, val){
-    const limits = { vuelos: [15, 600], anuncios: [10, 300], posiciones: [15, 300] };
-    const dflt = { vuelos: 90, anuncios: 35, posiciones: 50 };
+    const limits = { vuelos: [15, 600], anuncios: [10, 300], posiciones: [15, 300], flightInfo: [15, 300] };
+    const dflt = { vuelos: 90, anuncios: 35, posiciones: 50, flightInfo: 40 };
     const lim = limits[id] || [10, 300];
     const n = parseInt(val, 10);
     if(Number.isNaN(n)) return dflt[id] || 30;
@@ -1738,7 +1769,7 @@ function normalizeBoardProgram(raw){
     if(!raw || !Array.isArray(raw.items)){
         return { items: BOARD_PROGRAM_DEFAULTS.map((x) => ({ ...x })) };
     }
-    const known = new Set(["vuelos", "anuncios", "posiciones"]);
+    const known = new Set(["vuelos", "anuncios", "posiciones", "flightInfo"]);
     const items = raw.items
         .filter((i) => i && known.has(i.id))
         .map((i) => ({
@@ -1756,6 +1787,7 @@ function boardSectionRunnable(id){
     if(id === "vuelos") return flightsEnabled;
     if(id === "anuncios") return anunciosActivos && anuncios.length > 0;
     if(id === "posiciones") return positionsEnabled && buildPositionsSlides().length > 0;
+    if(id === "flightInfo") return flightInfoEnabled && buildFlightInfoSlides().length > 0;
     return false;
 }
 
@@ -1819,9 +1851,15 @@ function clearBoardRotationTimers(){
         clearTimeout(boardPositionsSlideTimer);
         boardPositionsSlideTimer = null;
     }
+    if(boardFlightInfoSlideTimer){
+        clearTimeout(boardFlightInfoSlideTimer);
+        boardFlightInfoSlideTimer = null;
+    }
     boardPositionsActive = false;
+    boardFlightInfoActive = false;
     hideAnuncioOverlayForRotation();
     hidePositionsFull();
+    hideFlightInfoFull();
 }
 
 function runPosicionesSection(totalSec){
@@ -1848,6 +1886,30 @@ function runPosicionesSection(totalSec){
     showNext();
 }
 
+function runFlightInfoSection(totalSec){
+    if(!flightInfoEnabled){
+        hideFlightInfoFull();
+        return;
+    }
+    const slides = buildFlightInfoSlides();
+    if(!slides.length){
+        hideFlightInfoFull();
+        return;
+    }
+    boardFlightInfoActive = true;
+    let idx = 0;
+    const slideCount = slides.length;
+    const perSlide = Math.max(8, Math.floor(totalSec / slideCount));
+
+    function showNext(){
+        if(!boardFlightInfoActive) return;
+        showFlightInfoSlide(slides[idx % slideCount]);
+        idx++;
+        boardFlightInfoSlideTimer = setTimeout(showNext, perSlide * 1000);
+    }
+    showNext();
+}
+
 function runBoardRotationStep(){
     clearBoardRotationTimers();
     const sections = getActiveBoardSections();
@@ -1867,6 +1929,8 @@ function runBoardRotationStep(){
         }, cadence);
     }else if(sec.id === "posiciones"){
         runPosicionesSection(sec.seconds);
+    }else if(sec.id === "flightInfo"){
+        runFlightInfoSection(sec.seconds);
     }
 
     const sectionSeconds = sec.seconds;
@@ -1909,8 +1973,30 @@ let positionsCycleTimer = null;
 let positionsSlideTimer = null;
 let flightsEnabled = true;
 let positionsEnabled = true;
+let flightInfoEnabled = true;
 let positionsGapSeconds = 45;
 let positionsDurationsData = {};
+let flightInfoData = {};
+let flightInfoDurationsData = {};
+let flightInfoSlides = [];
+
+function hideFlightInfoFull(){
+    const el = document.getElementById("flightInfoFull");
+    if(!el) return;
+    el.classList.remove("active");
+    el.innerHTML = "";
+    el.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("board--flight-info-full");
+}
+
+function showFlightInfoSlide(slide){
+    const el = document.getElementById("flightInfoFull");
+    if(!el || !slide) return;
+    el.innerHTML = renderFlightInfoSlideHtml(slide);
+    el.classList.add("active");
+    el.setAttribute("aria-hidden", "false");
+    document.body.classList.add("board--flight-info-full");
+}
 
 function hidePositionsFull(){
     const el = document.getElementById("positionsFull");
@@ -1977,6 +2063,21 @@ onValue(ref(db,"config/positionsEnabled"), snap => {
     if(currentBoardSectionId === "posiciones" || !positionsEnabled) requestBoardRotationRestart();
 });
 
+onValue(ref(db,"config/flightInfoEnabled"), snap => {
+    flightInfoEnabled = snap.val() !== false;
+    if(currentBoardSectionId === "flightInfo" || !flightInfoEnabled) requestBoardRotationRestart();
+});
+
+onValue(ref(db,"flightInfo"), snap => {
+    flightInfoData = snap.val() || {};
+    if(currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
+});
+
+onValue(ref(db,"config/flightInfoDuration"), snap => {
+    flightInfoDurationsData = snap.val() || {};
+    if(currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
+});
+
 onValue(ref(db,"config/positionsGapSeconds"), snap => {
     const v = parseInt(snap.val());
     positionsGapSeconds = !Number.isNaN(v) && v >= 20 && v <= 300 ? v : 45;
@@ -1996,7 +2097,7 @@ onValue(ref(db,"titles"), snap => {
     titlesData = snap.val() || {};
     document.querySelector(".westjet .panel-title").innerText = titlesData.westjet || "ASIGNACIONES WESTJET";
     document.querySelector(".jetblue .panel-title").innerText = titlesData.jetblue || "ASIGNACIONES JETBLUE";
-    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones" || currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"visibility"), snap => {
@@ -2007,22 +2108,22 @@ onValue(ref(db,"visibility"), snap => {
     const westPanel = document.getElementById("westjetPanel");
     if(jetPanel) jetPanel.style.display = jetVis ? "block" : "none";
     if(westPanel) westPanel.style.display = westVis ? "block" : "none";
-    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones" || currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"airlinesExtra"), snap => {
     airlinesExtraData = snap.val() || {};
-    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones" || currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"jetblueFlights"), snap => {
     jetblueFlightsData = snap.val() || {};
-    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones" || currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
 });
 
 onValue(ref(db,"westjetFlights"), snap => {
     westjetFlightsData = snap.val() || {};
-    if(currentBoardSectionId === "posiciones") requestBoardRotationRestart();
+    if(currentBoardSectionId === "posiciones" || currentBoardSectionId === "flightInfo") requestBoardRotationRestart();
 });
 
 syncFlightsBoardVisibility();

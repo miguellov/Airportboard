@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="panel.css">
 <script src="api-config.js"></script>
 <script src="carrier-utils.js"></script>
+<script src="flight-info.js"></script>
 </head>
 
 <body>
@@ -106,6 +107,7 @@
 <div class="tabs" role="tablist" aria-label="Secciones del panel">
     <button type="button" class="tab-active" data-tab="flightsTab" onclick="showTab('flightsTab')">🛫 Vuelos</button>
     <button type="button" data-tab="positionsTab" onclick="showTab('positionsTab')">👨‍✈️ Posiciones</button>
+    <button type="button" data-tab="flightInfoTab" onclick="showTab('flightInfoTab')">📋 Info vuelo</button>
     <button type="button" data-tab="anunciosTab" onclick="showTab('anunciosTab')">📢 Anuncios</button>
 </div>
 
@@ -517,6 +519,57 @@ document.addEventListener("DOMContentLoaded", function () {
         <div id="tablaPanel"></div>
     </div>
 
+</div>
+
+<!-- ========================= -->
+<!-- 📋 TAB INFO VUELO (PAX) -->
+<!-- ========================= -->
+<div id="flightInfoTab" class="flight-info-tab" style="display:none;">
+
+    <header class="positions-hero flight-info-hero">
+        <div class="positions-hero-text">
+            <h2>Información de vuelo</h2>
+            <p class="positions-sub">PAX por vuelo llegando y vuelo saliendo — mismas rutas que en <strong>Vuelos → Ruta frecuente</strong>.</p>
+        </div>
+        <div class="positions-hero-actions">
+            <span id="flightInfoCountBadge" class="positions-count-badge">0 cargados</span>
+            <button type="button" id="toggleFlightInfoBtn" class="positions-toggle on" onclick="toggleFlightInfoBoard()">🟢 En pantalla</button>
+        </div>
+    </header>
+
+    <div class="positions-layout">
+        <section class="card-positions flight-info-editor">
+            <div class="positions-editor-head">
+                <h3>Editor PAX</h3>
+                <p>Elige la ruta, completa los números y se guardan al salir de cada campo.</p>
+            </div>
+
+            <label class="fld-label" for="fiPresetSelector">Ruta frecuente</label>
+            <select id="fiPresetSelector" class="fi-preset-select" onchange="onFiPresetSelected()"></select>
+            <p id="fiRouteLegsHint" class="fi-route-legs-hint" aria-live="polite"></p>
+
+            <label class="fld-label" for="fiSlideTitle">Título en pantalla TV</label>
+            <div class="pos-title-row">
+                <input id="fiSlideTitle" placeholder="Ej. B6 627 / B6 1528">
+                <button type="button" onclick="saveFiSlideTitle()">💾</button>
+            </div>
+
+            <label class="pos-field-inline">Duración slide (s)
+                <input id="fiSlideDuration" type="number" value="15" min="8" max="90" onchange="saveFiSlideDuration()">
+            </label>
+
+            <div id="fiFormMain" class="flight-info-form"></div>
+            <button type="button" class="btn-clear-turno" onclick="clearFlightInfoActive()">🗑 Limpiar datos PAX de esta ruta</button>
+        </section>
+
+        <section class="card-positions positions-preview-section">
+            <div class="positions-preview-head">
+                <h3>Vista previa TV</h3>
+                <p>Así se verá el slide de PAX en rotación.</p>
+            </div>
+            <div id="flightInfoBoardPreview" class="flight-info-board-preview" aria-label="Vista previa info vuelo"></div>
+        </section>
+    </div>
 </div>
 
 <!-- ========================= -->
@@ -1212,6 +1265,7 @@ async function ensureMediaFitsRtdb(media, mediaTypeHint) {
 
 const tickerRef = ref(db,"ticker/message");
 const positionsRef = ref(db,"positions");
+const flightInfoRef = ref(db,"flightInfo");
 
 function positionRefByKey(key) {
     return child(positionsRef, String(key || ""));
@@ -1556,6 +1610,7 @@ window.showConfigSection = (sectionId) => {
 window.showTab = (tab)=>{
     document.getElementById("flightsTab").style.display = "none";
     document.getElementById("positionsTab").style.display = "none";
+    document.getElementById("flightInfoTab").style.display = "none";
     document.getElementById("anunciosTab").style.display = "none";
     document.getElementById("configTab").style.display = "none";
     document.getElementById(tab).style.display = "block";
@@ -1565,6 +1620,7 @@ window.showTab = (tab)=>{
     if(document.body) document.body.dataset.activeTab = tab;
     if(tab === "configTab") applyConfigSectionUI(activeConfigSection || "tv");
     else closeConfigMenu();
+    if(tab === "flightInfoTab") renderFlightInfoBoardPreview();
 };
 
 document.addEventListener("keydown", (e) => {
@@ -4118,7 +4174,9 @@ onValue(ref(db, "titles"), (snap) => {
     const wt = document.getElementById("westjetTitle");
     if(jt) jt.value = titlesPanelData.jetblue || "";
     if(wt) wt.value = titlesPanelData.westjet || "";
+    syncFiMetaInputs();
     renderPositionsBoardPreview();
+    renderFlightInfoBoardPreview();
     renderBoardProgramDetailPanel();
 });
 
@@ -4207,6 +4265,275 @@ window.deleteExtraAirline = (slug) => {
         });
     }, { onlyOnce: true });
 };
+
+/* ========================= 📋 INFO VUELO (PAX) ========================= */
+const FI = () => window.FlightInfoUtils;
+let flightInfoPanelData = {};
+let flightInfoBoardEnabled = true;
+let flightInfoDurationsPanel = {};
+let activeFiPresetKey = "";
+
+function getActiveFiPreset() {
+    const FIu = FI();
+    if (!FIu) return null;
+    if (activeFiPresetKey) {
+        const p = FIu.presetByKey(activeFiPresetKey);
+        if (p) return p;
+    }
+    return FIu.FLIGHT_INFO_PRESETS[0] || null;
+}
+
+function activeFlightInfoRecordKey() {
+    const FIu = FI();
+    const preset = getActiveFiPreset();
+    if (!FIu || !preset) return "";
+    return FIu.routeKey(preset.vuelo);
+}
+
+function fiTitleKey(presetKey) {
+    return "flightInfo_" + presetKey;
+}
+
+function readFlightInfoFormIntoRecord() {
+    const FIu = FI();
+    if (!FIu) return { paxIn: {}, paxOut: {} };
+    const rec = FIu.emptyRecord(getActiveFiPreset());
+    document.querySelectorAll("#fiFormMain [data-fi-section][data-fi-key]").forEach((el) => {
+        const section = el.getAttribute("data-fi-section");
+        const key = el.getAttribute("data-fi-key");
+        if (!section || !key) return;
+        const val = String(el.value || "").trim();
+        if (section === "in") rec.paxIn[key] = val;
+        if (section === "out") rec.paxOut[key] = val;
+    });
+    return rec;
+}
+
+function fillFlightInfoForm(record) {
+    const FIu = FI();
+    if (!FIu) return;
+    const rec = FIu.normalizeRecord(record);
+    document.querySelectorAll("#fiFormMain [data-fi-section][data-fi-key]").forEach((el) => {
+        const section = el.getAttribute("data-fi-section");
+        const key = el.getAttribute("data-fi-key");
+        if (!section || !key) return;
+        const src = section === "in" ? rec.paxIn : rec.paxOut;
+        el.value = src[key] || "";
+    });
+}
+
+function renderFlightInfoFormShell() {
+    const FIu = FI();
+    if (!FIu) return;
+    const preset = getActiveFiPreset();
+    const legMeta = FIu.buildRouteLegMeta(preset?.vuelo || "");
+    const el = document.getElementById("fiFormMain");
+    if (!el) return;
+    const mkFields = (fields, section) =>
+        fields
+            .map((f) => {
+                const label = FIu.fieldLabel(f, legMeta, section);
+                return `
+        <label class="flight-info-field${f.wide ? " flight-info-field--wide" : ""}">
+            <span class="flight-info-field__label">${escapeHtmlPanel(label)}</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" data-fi-section="${section}" data-fi-key="${f.key}" placeholder="0" onchange="saveFlightInfoFromForm()">
+        </label>`;
+            })
+            .join("");
+    el.innerHTML = `
+        <div class="flight-info-form-block">
+            <h4 class="flight-info-form-block__title">${escapeHtmlPanel(legMeta.titleLlegada)}</h4>
+            <p class="flight-info-form-block__sub">${escapeHtmlPanel(legMeta.subtitleLlegada)}</p>
+            <div class="flight-info-form-grid">${mkFields(FIu.PAX_IN_FIELDS, "in")}</div>
+        </div>
+        <div class="flight-info-form-block">
+            <h4 class="flight-info-form-block__title">${escapeHtmlPanel(legMeta.titleSalida)}</h4>
+            <p class="flight-info-form-block__sub">${escapeHtmlPanel(legMeta.subtitleSalida)}</p>
+            <div class="flight-info-form-grid">${mkFields(FIu.PAX_OUT_FIELDS, "out")}</div>
+        </div>`;
+}
+
+function updateFiRouteLegsHint() {
+    const FIu = FI();
+    const hint = document.getElementById("fiRouteLegsHint");
+    const preset = getActiveFiPreset();
+    if (!hint) return;
+    if (!FIu || !preset) {
+        hint.textContent = "";
+        return;
+    }
+    const legs = FIu.buildRouteLegMeta(preset.vuelo);
+    hint.innerHTML = `<strong>${escapeHtmlPanel(legs.vueloLlegada)}</strong> · PAX llegando &nbsp;|&nbsp; <strong>${escapeHtmlPanel(legs.vueloSalida)}</strong> · PAX saliendo · ${escapeHtmlPanel(preset.destino)}`;
+}
+
+function renderFiPresetSelector() {
+    const FIu = FI();
+    const sel = document.getElementById("fiPresetSelector");
+    if (!sel || !FIu) return;
+    const presets = FIu.FLIGHT_INFO_PRESETS;
+    sel.innerHTML = presets
+        .map((p) => {
+            const key = FIu.routeKey(p.vuelo);
+            return `<option value="${key}"${key === activeFiPresetKey ? " selected" : ""}>${escapeHtmlPanel(p.vuelo)} — ${escapeHtmlPanel(p.destino)}</option>`;
+        })
+        .join("");
+    if (!activeFiPresetKey || !FIu.presetByKey(activeFiPresetKey)) {
+        activeFiPresetKey = FIu.routeKey(presets[0]?.vuelo || "");
+        sel.value = activeFiPresetKey;
+    }
+    updateFiRouteLegsHint();
+}
+
+function syncFiMetaInputs() {
+    const FIu = FI();
+    const preset = getActiveFiPreset();
+    if (!FIu || !preset) return;
+    const key = FIu.routeKey(preset.vuelo);
+    const titleIn = document.getElementById("fiSlideTitle");
+    const durIn = document.getElementById("fiSlideDuration");
+    const legs = FIu.buildRouteLegMeta(preset.vuelo);
+    if (titleIn) titleIn.value = titlesPanelData[fiTitleKey(key)] || `${legs.vueloLlegada} / ${legs.vueloSalida}`;
+    if (durIn) durIn.value = flightInfoDurationsPanel[key] || 15;
+}
+
+function loadFlightInfoFormForActive() {
+    const key = activeFlightInfoRecordKey();
+    const rec = key ? flightInfoPanelData[key] : null;
+    fillFlightInfoForm(rec);
+}
+
+window.saveFlightInfoFromForm = () => {
+    const key = activeFlightInfoRecordKey();
+    if (!key) return;
+    const rec = readFlightInfoFormIntoRecord();
+    rec.updatedAt = new Date().toISOString();
+    set(ref(db, "flightInfo/" + key), rec);
+};
+
+window.onFiPresetSelected = () => {
+    activeFiPresetKey = document.getElementById("fiPresetSelector")?.value || "";
+    syncFiMetaInputs();
+    renderFlightInfoFormShell();
+    loadFlightInfoFormForActive();
+    renderFlightInfoBoardPreview();
+};
+
+window.saveFiSlideTitle = () => {
+    const key = activeFlightInfoRecordKey();
+    if (!key) return;
+    const v = document.getElementById("fiSlideTitle")?.value || "";
+    set(ref(db, "titles/" + fiTitleKey(key)), v);
+};
+
+window.saveFiSlideDuration = () => {
+    const key = activeFlightInfoRecordKey();
+    if (!key) return;
+    const v = parseInt(document.getElementById("fiSlideDuration")?.value, 10) || 15;
+    set(ref(db, "config/flightInfoDuration/" + key), Math.max(8, Math.min(90, v)));
+};
+
+window.clearFlightInfoActive = () => {
+    const key = activeFlightInfoRecordKey();
+    if (!key || !confirm("¿Borrar todos los datos PAX de esta ruta?")) return;
+    set(ref(db, "flightInfo/" + key), null);
+};
+
+window.toggleFlightInfoBoard = () => {
+    flightInfoBoardEnabled = !flightInfoBoardEnabled;
+    set(ref(db, "config/flightInfoEnabled"), flightInfoBoardEnabled);
+    const btn = document.getElementById("toggleFlightInfoBtn");
+    if (btn) {
+        btn.classList.toggle("on", flightInfoBoardEnabled);
+        btn.textContent = flightInfoBoardEnabled ? "🟢 En pantalla" : "🔴 Apagado";
+    }
+    renderFlightInfoBoardPreview();
+};
+
+function countFlightInfoLoaded() {
+    const FIu = FI();
+    if (!FIu) return 0;
+    return Object.values(flightInfoPanelData || {}).filter((r) => FIu.recordHasData(r)).length;
+}
+
+function buildPanelFlightInfoSlides() {
+    const FIu = FI();
+    if (!FIu) return [];
+    const slides = [];
+    const dur = flightInfoDurationsPanel || {};
+    FIu.FLIGHT_INFO_PRESETS.forEach((preset) => {
+        const key = FIu.routeKey(preset.vuelo);
+        const rec = flightInfoPanelData[key];
+        if (!FIu.recordHasData(rec)) return;
+        const duration = Math.max(8, Math.min(90, parseInt(dur[key], 10) || 15));
+        slides.push(
+            FIu.buildSlideFromPreset(preset, rec, {
+                titles: titlesPanelData,
+                duration
+            })
+        );
+    });
+    return slides;
+}
+
+function flightInfoSlideSubline(slide) {
+    const FIu = FI();
+    if (!FIu || !slide) return "";
+    const legs = slide.legMeta || FIu.buildRouteLegMeta(slide.vuelo || slide.record?.vuelo || "");
+    return `${legs.vueloLlegada} · PAX llegando · ${legs.vueloSalida} · PAX saliendo`;
+}
+
+function renderFlightInfoBoardPreview() {
+    const el = document.getElementById("flightInfoBoardPreview");
+    const badge = document.getElementById("flightInfoCountBadge");
+    if (badge) badge.textContent = countFlightInfoLoaded() + " cargados";
+    if (!el) return;
+    const FIu = FI();
+    if (!FIu) {
+        el.innerHTML = "";
+        return;
+    }
+    if (!flightInfoBoardEnabled) {
+        el.innerHTML = `<div class="flight-info-preview-off">Info vuelo apagada en TV</div>`;
+        return;
+    }
+    const slides = buildPanelFlightInfoSlides();
+    if (!slides.length) {
+        el.innerHTML = `<div class="flight-info-preview-off">Sin datos PAX — completa el formulario</div>`;
+        return;
+    }
+    const key = activeFlightInfoRecordKey();
+    const slide = slides.find((s) => s.id === key) || slides[0];
+    el.innerHTML = FIu.renderSlideHtml(slide, escapeHtmlPanel);
+}
+
+onValue(flightInfoRef, (snap) => {
+    flightInfoPanelData = snap.val() || {};
+    loadFlightInfoFormForActive();
+    renderFlightInfoBoardPreview();
+    renderBoardProgramDetailPanel();
+});
+
+onValue(ref(db, "config/flightInfoEnabled"), (snap) => {
+    flightInfoBoardEnabled = snap.val() !== false;
+    const btn = document.getElementById("toggleFlightInfoBtn");
+    if (btn) {
+        btn.classList.toggle("on", flightInfoBoardEnabled);
+        btn.textContent = flightInfoBoardEnabled ? "🟢 En pantalla" : "🔴 Apagado";
+    }
+    renderFlightInfoBoardPreview();
+    renderBoardProgramDetailPanel();
+});
+
+onValue(ref(db, "config/flightInfoDuration"), (snap) => {
+    flightInfoDurationsPanel = snap.val() || {};
+    syncFiMetaInputs();
+    renderFlightInfoBoardPreview();
+    renderBoardProgramDetailPanel();
+});
+
+renderFiPresetSelector();
+renderFlightInfoFormShell();
+loadFlightInfoFormForActive();
 
 function renderAirlineSelector(){
     const select = document.getElementById("airlineSelector");
@@ -4309,7 +4636,7 @@ window.saveWestjetTitle = () => {
 
 /* VUELOS */
 /** Rutas frecuentes: al elegir en el desplegable se rellenan vuelo + destino (sigue pudiendo editar a mano). */
-const PRESET_RUTAS = [
+const PRESET_RUTAS = (window.FlightInfoUtils && FlightInfoUtils.FLIGHT_INFO_PRESETS) || [
     { vuelo: "B6 627/1528", destino: "JFK-JFK (New York)" },
     { vuelo: "WS 2740/2741", destino: "YYZ-YYZ (Toronto)" },
     { vuelo: "WS 2506/2507", destino: "YYZ-YYZ (Toronto)" },
@@ -5540,13 +5867,22 @@ const BOARD_SECTION_META = {
         min: 15,
         max: 300,
         default: 50
+    },
+    flightInfo: {
+        label: "Info vuelo",
+        desc: "PAX llegando / PAX saliendo",
+        icon: "📋",
+        min: 15,
+        max: 300,
+        default: 40
     }
 };
 
 let boardProgramItems = [
     { id: "vuelos", enabled: true, seconds: 90 },
     { id: "anuncios", enabled: true, seconds: 35 },
-    { id: "posiciones", enabled: true, seconds: 50 }
+    { id: "posiciones", enabled: true, seconds: 50 },
+    { id: "flightInfo", enabled: true, seconds: 40 }
 ];
 
 function clampBoardProgramSeconds(id, val){
@@ -5561,10 +5897,11 @@ function normalizeBoardProgramItems(raw){
     const defaults = [
         { id: "vuelos", enabled: true, seconds: 90 },
         { id: "anuncios", enabled: true, seconds: 35 },
-        { id: "posiciones", enabled: true, seconds: 50 }
+        { id: "posiciones", enabled: true, seconds: 50 },
+        { id: "flightInfo", enabled: true, seconds: 40 }
     ];
     if(!raw || !Array.isArray(raw.items)) return defaults.map((x) => ({ ...x }));
-    const known = new Set(["vuelos", "anuncios", "posiciones"]);
+    const known = new Set(["vuelos", "anuncios", "posiciones", "flightInfo"]);
     const items = raw.items
         .filter((i) => i && known.has(i.id))
         .map((i) => ({
@@ -5752,7 +6089,7 @@ window.selectBoardProgramPreviewItem = (id) => {
         const active = getBoardProgramActiveItems();
         const stepIdx = active.findIndex((i) => i.id === id);
         const subItems = getBoardProgramSubItems(id);
-        if((id === "anuncios" || id === "posiciones") && subItems.length){
+        if((id === "anuncios" || id === "posiciones" || id === "flightInfo") && subItems.length){
             const dur = getBoardProgramSubItemDuration(id, subItems[0]);
             boardProgramPreviewSectionTotal = dur;
             boardProgramPreviewRemaining = dur;
@@ -5765,7 +6102,7 @@ window.selectBoardProgramPreviewItem = (id) => {
         const countdown = document.getElementById("boardProgramTvCountdown");
         if(bar) bar.style.width = "0%";
         if(countdown){
-            countdown.textContent = (id === "anuncios" || id === "posiciones") && subItems.length
+            countdown.textContent = (id === "anuncios" || id === "posiciones" || id === "flightInfo") && subItems.length
                 ? `${boardProgramPreviewRemaining}s por ítem`
                 : `${item.seconds}s por sección`;
         }
@@ -5954,13 +6291,14 @@ function buildPanelPositionSlides(){
 function getBoardProgramSubItems(sectionId){
     if(sectionId === "anuncios") return getActiveAnunciosForBoardProgram();
     if(sectionId === "posiciones") return buildPanelPositionSlides();
+    if(sectionId === "flightInfo") return buildPanelFlightInfoSlides();
     return [];
 }
 
 function getBoardProgramSubItemDuration(sectionId, subItem){
     if(!subItem) return 0;
     if(sectionId === "anuncios") return subItem.duracion;
-    if(sectionId === "posiciones") return subItem.duration;
+    if(sectionId === "posiciones" || sectionId === "flightInfo") return subItem.duration;
     return 0;
 }
 
@@ -6027,31 +6365,56 @@ function boardProgramTvRealHtml(sectionId, subIndex){
                 <div class="bp-mock__anuncio-counter">${idx + 1} / ${list.length}</div>
             </div>`;
     }
-    const slides = buildPanelPositionSlides();
-    if(!slides.length){
-        const off = !positionsBoardEnabled;
-        return `<div class="bp-mock bp-mock--empty">${off ? "Rotación de posiciones apagada" : "Sin asignaciones activas"}</div>`;
+    if(sectionId === "posiciones"){
+        const slides = buildPanelPositionSlides();
+        if(!slides.length){
+            const off = !positionsBoardEnabled;
+            return `<div class="bp-mock bp-mock--empty">${off ? "Rotación de posiciones apagada" : "Sin asignaciones activas"}</div>`;
+        }
+        const idx = Math.max(0, Math.min(subIndex || 0, slides.length - 1));
+        const slide = slides[idx];
+        const rows = slide.items.slice(0, 8).map((item) => `
+            <div class="bp-mock__pos-row"><span>${escapeHtmlPanel(item.role)}</span><span>${escapeHtmlPanel(item.name)}</span></div>
+        `).join("");
+        const more = slide.items.length > 8 ? `<div class="bp-mock__more">+${slide.items.length - 8} posiciones</div>` : "";
+        return `
+            <div class="bp-mock bp-mock--posiciones ${slide.themeClass || ""}">
+                <div class="bp-mock__pos-badge">${escapeHtmlPanel(slide.badge)}</div>
+                <div class="bp-mock__pos-title">${escapeHtmlPanel(slide.title)}</div>
+                ${rows}
+                ${more}
+                <div class="bp-mock__anuncio-counter">${idx + 1} / ${slides.length}</div>
+            </div>`;
     }
-    const idx = Math.max(0, Math.min(subIndex || 0, slides.length - 1));
-    const slide = slides[idx];
-    const rows = slide.items.slice(0, 8).map((item) => `
-        <div class="bp-mock__pos-row"><span>${escapeHtmlPanel(item.role)}</span><span>${escapeHtmlPanel(item.name)}</span></div>
-    `).join("");
-    const more = slide.items.length > 8 ? `<div class="bp-mock__more">+${slide.items.length - 8} posiciones</div>` : "";
-    return `
-        <div class="bp-mock bp-mock--posiciones ${slide.themeClass || ""}">
-            <div class="bp-mock__pos-badge">${escapeHtmlPanel(slide.badge)}</div>
-            <div class="bp-mock__pos-title">${escapeHtmlPanel(slide.title)}</div>
-            ${rows}
-            ${more}
-            <div class="bp-mock__anuncio-counter">${idx + 1} / ${slides.length}</div>
-        </div>`;
+    if(sectionId === "flightInfo"){
+        const slides = buildPanelFlightInfoSlides();
+        if(!slides.length){
+            const off = !flightInfoBoardEnabled;
+            return `<div class="bp-mock bp-mock--empty">${off ? "Info vuelo apagada en TV" : "Sin datos PAX cargados"}</div>`;
+        }
+        const idx = Math.max(0, Math.min(subIndex || 0, slides.length - 1));
+        const slide = slides[idx];
+        const FIu = FI();
+        const inner = FIu ? FIu.renderSlideHtml(slide, escapeHtmlPanel) : "";
+        return `<div class="bp-mock bp-mock--flight-info">${inner}<div class="bp-mock__anuncio-counter">${idx + 1} / ${slides.length}</div></div>`;
+    }
+    return `<div class="bp-mock bp-mock--empty">Sección no disponible</div>`;
 }
 
 function renderBoardProgramDetailDurationControl(sectionId, itemKey, seconds, min, max, step){
     const keyJson = JSON.stringify(String(itemKey));
-    const fnSet = sectionId === "anuncios" ? "setAnuncioProgramDuration" : "setPositionSlideProgramDuration";
-    const fnAdj = sectionId === "anuncios" ? "adjustAnuncioProgramDuration" : "adjustPositionSlideProgramDuration";
+    const fnSet =
+        sectionId === "anuncios"
+            ? "setAnuncioProgramDuration"
+            : sectionId === "flightInfo"
+              ? "setFlightInfoSlideProgramDuration"
+              : "setPositionSlideProgramDuration";
+    const fnAdj =
+        sectionId === "anuncios"
+            ? "adjustAnuncioProgramDuration"
+            : sectionId === "flightInfo"
+              ? "adjustFlightInfoSlideProgramDuration"
+              : "adjustPositionSlideProgramDuration";
     return `
         <div class="board-program-duration board-program-duration--detail">
             <button type="button" class="board-program-duration__btn" onclick="${fnAdj}(${keyJson}, -${step})" title="Menos ${step}s">−</button>
@@ -6151,41 +6514,86 @@ function renderBoardProgramDetailPanel(){
         return;
     }
 
-    const slides = buildPanelPositionSlides();
-    if(!slides.length){
+    if(sectionId === "posiciones"){
+        const slides = buildPanelPositionSlides();
+        if(!slides.length){
+            el.innerHTML = `
+                <div class="board-program-detail-panel__head">
+                    <h4>${meta.icon} Slides de posiciones</h4>
+                    <span class="board-program-detail-panel__hint">${positionsBoardEnabled ? "Asigna posiciones en la pestaña Posiciones" : "Activa posiciones en TV"}</span>
+                </div>
+                <p class="board-program-detail-panel__empty">${positionsBoardEnabled ? "Sin slides con asignaciones." : "Rotación de posiciones apagada."}</p>`;
+            return;
+        }
+        const items = slides.map((slide, idx) => {
+            const selected = boardProgramPreviewSubStep === idx && selectedBoardProgramId === "posiciones";
+            return `
+                <article class="board-program-detail-row board-program-detail-row--posiciones${selected ? " is-active" : ""}">
+                    <button type="button" class="board-program-detail-row__main" onclick="selectBoardProgramSubItem('posiciones', ${idx})" title="Ver en pantalla">
+                        <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
+                        <span class="board-program-detail-row__icon">${slide.badge.split(" ")[0]}</span>
+                        <div class="board-program-detail-row__copy">
+                            <strong>${escapeHtmlPanel(slide.title)}</strong>
+                            <span>${slide.items.length} asignación${slide.items.length === 1 ? "" : "es"}</span>
+                        </div>
+                    </button>
+                    ${renderBoardProgramDetailDurationControl("posiciones", slide.durKey, slide.duration, 5, 90, 1)}
+                </article>`;
+        }).join("");
         el.innerHTML = `
             <div class="board-program-detail-panel__head">
-                <h4>${meta.icon} Slides de posiciones</h4>
-                <span class="board-program-detail-panel__hint">${positionsBoardEnabled ? "Asigna posiciones en la pestaña Posiciones" : "Activa posiciones en TV"}</span>
+                <h4>${meta.icon} Slides activos (${slides.length})</h4>
+                <span class="board-program-detail-panel__hint">Tiempo por bloque en rotación TV</span>
             </div>
-            <p class="board-program-detail-panel__empty">${positionsBoardEnabled ? "Sin slides con asignaciones." : "Rotación de posiciones apagada."}</p>`;
+            <div class="board-program-detail-table-head board-program-detail-table-head--items">
+                <span>Slide</span>
+                <span>Duración</span>
+            </div>
+            <div class="board-program-detail-list">${items}</div>`;
         return;
     }
-    const items = slides.map((slide, idx) => {
-        const selected = boardProgramPreviewSubStep === idx && selectedBoardProgramId === "posiciones";
-        return `
-            <article class="board-program-detail-row board-program-detail-row--posiciones${selected ? " is-active" : ""}">
-                <button type="button" class="board-program-detail-row__main" onclick="selectBoardProgramSubItem('posiciones', ${idx})" title="Ver en pantalla">
-                    <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
-                    <span class="board-program-detail-row__icon">${slide.badge.split(" ")[0]}</span>
-                    <div class="board-program-detail-row__copy">
-                        <strong>${escapeHtmlPanel(slide.title)}</strong>
-                        <span>${slide.items.length} asignación${slide.items.length === 1 ? "" : "es"}</span>
-                    </div>
-                </button>
-                ${renderBoardProgramDetailDurationControl("posiciones", slide.durKey, slide.duration, 5, 90, 1)}
-            </article>`;
-    }).join("");
-    el.innerHTML = `
-        <div class="board-program-detail-panel__head">
-            <h4>${meta.icon} Slides activos (${slides.length})</h4>
-            <span class="board-program-detail-panel__hint">Tiempo por bloque en rotación TV</span>
-        </div>
-        <div class="board-program-detail-table-head board-program-detail-table-head--items">
-            <span>Slide</span>
-            <span>Duración</span>
-        </div>
-        <div class="board-program-detail-list">${items}</div>`;
+
+    if(sectionId === "flightInfo"){
+        const slides = buildPanelFlightInfoSlides();
+        if(!slides.length){
+            el.innerHTML = `
+                <div class="board-program-detail-panel__head">
+                    <h4>${meta.icon} Slides info vuelo</h4>
+                    <span class="board-program-detail-panel__hint">${flightInfoBoardEnabled ? "Carga PAX en la pestaña Info vuelo" : "Activa info vuelo en TV"}</span>
+                </div>
+                <p class="board-program-detail-panel__empty">${flightInfoBoardEnabled ? "Sin datos PAX cargados." : "Rotación de info vuelo apagada."}</p>`;
+            return;
+        }
+        const items = slides.map((slide, idx) => {
+            const selected = boardProgramPreviewSubStep === idx && selectedBoardProgramId === "flightInfo";
+            return `
+                <article class="board-program-detail-row board-program-detail-row--flight-info${selected ? " is-active" : ""}">
+                    <button type="button" class="board-program-detail-row__main" onclick="selectBoardProgramSubItem('flightInfo', ${idx})" title="Ver en pantalla">
+                        <span class="board-program-detail-row__num">${String(idx + 1).padStart(2, "0")}</span>
+                        <span class="board-program-detail-row__icon">${slide.badge.split(" ")[0]}</span>
+                        <div class="board-program-detail-row__copy">
+                            <strong>${escapeHtmlPanel(slide.title)}</strong>
+                            <span>${escapeHtmlPanel(flightInfoSlideSubline(slide))}</span>
+                        </div>
+                    </button>
+                    ${renderBoardProgramDetailDurationControl("flightInfo", slide.durKey, slide.duration, 8, 90, 1)}
+                </article>`;
+        }).join("");
+        el.innerHTML = `
+            <div class="board-program-detail-panel__head">
+                <h4>${meta.icon} Slides PAX (${slides.length})</h4>
+                <span class="board-program-detail-panel__hint">Tiempo por vuelo en rotación TV</span>
+            </div>
+            <div class="board-program-detail-table-head board-program-detail-table-head--items">
+                <span>Vuelo</span>
+                <span>Duración</span>
+            </div>
+            <div class="board-program-detail-list">${items}</div>`;
+        return;
+    }
+
+    el.innerHTML = "";
+    el.hidden = true;
 }
 
 window.setAnuncioProgramDuration = (id, val) => {
@@ -6207,6 +6615,16 @@ window.setPositionSlideProgramDuration = (durKey, val) => {
 window.adjustPositionSlideProgramDuration = (durKey, delta) => {
     const cur = clampPositionSlideDuration(positionsDurationsPanel[durKey] ?? 12);
     setPositionSlideProgramDuration(durKey, cur + delta);
+};
+
+window.setFlightInfoSlideProgramDuration = (durKey, val) => {
+    const n = Math.max(8, Math.min(90, parseInt(val, 10) || 15));
+    set(ref(db, "config/flightInfoDuration/" + durKey), n);
+};
+
+window.adjustFlightInfoSlideProgramDuration = (durKey, delta) => {
+    const cur = Math.max(8, Math.min(90, parseInt(flightInfoDurationsPanel[durKey], 10) || 15));
+    setFlightInfoSlideProgramDuration(durKey, cur + delta);
 };
 
 window.selectBoardProgramSubItem = (sectionId, subIdx) => {
@@ -6262,14 +6680,14 @@ function updateBoardProgramPreviewProgress(){
     const item = active[boardProgramPreviewStep];
     if(boardProgramPreviewPlaying && item){
         const subItems = getBoardProgramSubItems(item.id);
-        if((item.id === "anuncios" || item.id === "posiciones") && subItems.length){
+        if((item.id === "anuncios" || item.id === "posiciones" || item.id === "flightInfo") && subItems.length){
             countdown.textContent = `${boardProgramPreviewRemaining}s · ${item.id === "anuncios" ? "anuncio" : "slide"} ${boardProgramPreviewSubStep + 1}/${subItems.length}`;
             return;
         }
         countdown.textContent = `${boardProgramPreviewRemaining}s restantes`;
         return;
     }
-    if(item && (item.id === "anuncios" || item.id === "posiciones")){
+    if(item && (item.id === "anuncios" || item.id === "posiciones" || item.id === "flightInfo")){
         const subItems = getBoardProgramSubItems(item.id);
         if(subItems.length){
             countdown.textContent = `${boardProgramPreviewRemaining}s por ítem`;
@@ -6307,7 +6725,7 @@ function boardProgramPreviewAdvance(){
     const item = active[boardProgramPreviewStep];
     boardProgramPreviewSubStep = 0;
     const subItems = getBoardProgramSubItems(item.id);
-    if((item.id === "anuncios" || item.id === "posiciones") && subItems.length){
+    if((item.id === "anuncios" || item.id === "posiciones" || item.id === "flightInfo") && subItems.length){
         boardProgramPreviewSectionTotal = getBoardProgramSubItemDuration(item.id, subItems[0]);
         boardProgramPreviewRemaining = boardProgramPreviewSectionTotal;
     } else {
@@ -6337,7 +6755,7 @@ function boardProgramPreviewTick(){
     if(!active.length) return stopBoardProgramPreview();
     const currentSection = active[boardProgramPreviewStep];
     const subItems = getBoardProgramSubItems(currentSection.id);
-    if((currentSection.id === "anuncios" || currentSection.id === "posiciones") && subItems.length){
+    if((currentSection.id === "anuncios" || currentSection.id === "posiciones" || currentSection.id === "flightInfo") && subItems.length){
         if(boardProgramPreviewSubStep < subItems.length - 1){
             boardProgramPreviewSubStep++;
             const sub = subItems[boardProgramPreviewSubStep];
@@ -6404,7 +6822,7 @@ function syncBoardProgramPreviewSimulator(){
     const stepIdx = active.findIndex((i) => i.id === pick.id);
     boardProgramPreviewSubStep = 0;
     const subItems = getBoardProgramSubItems(pick.id);
-    if((pick.id === "anuncios" || pick.id === "posiciones") && subItems.length){
+    if((pick.id === "anuncios" || pick.id === "posiciones" || pick.id === "flightInfo") && subItems.length){
         boardProgramPreviewSectionTotal = getBoardProgramSubItemDuration(pick.id, subItems[0]);
         boardProgramPreviewRemaining = boardProgramPreviewSectionTotal;
     } else {
@@ -6414,7 +6832,7 @@ function syncBoardProgramPreviewSimulator(){
     renderBoardProgramTvScreen(pick, stepIdx, active.length, boardProgramPreviewSubStep);
     if(bar) bar.style.width = "0%";
     if(countdown){
-        countdown.textContent = (pick.id === "anuncios" || pick.id === "posiciones") && subItems.length
+        countdown.textContent = (pick.id === "anuncios" || pick.id === "posiciones" || pick.id === "flightInfo") && subItems.length
             ? `${boardProgramPreviewRemaining}s por ítem`
             : `${pick.seconds}s por sección`;
     }

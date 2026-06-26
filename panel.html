@@ -4998,9 +4998,9 @@ window.manualFlightRefresh = async () => {
         finish();
         return;
     }
-    const url = apiBase + "/api/flights/refresh?secret=" + FLIGHTS_SYNC_SECRET;
+    const url = panelApiRefreshUrl();
     try {
-        const res = await fetch(url, { method: "GET" });
+        const res = await fetch(url, { method: "GET", headers: panelAuthHeaders() });
         let data = {};
         try {
             data = await res.json();
@@ -5168,8 +5168,8 @@ function panelApiFlightsUrl(){
 function panelApiProScheduleUrl(targetDate){
     const b = getPanelApiBase();
     if(!b) return "";
-    let u = `${b}/api/pro/schedule-day?secret=${encodeURIComponent(FLIGHTS_SYNC_SECRET)}`;
-    if(targetDate) u += "&targetDate=" + encodeURIComponent(targetDate);
+    let u = `${b}/api/pro/schedule-day`;
+    if(targetDate) u += "?targetDate=" + encodeURIComponent(targetDate);
     return u;
 }
 
@@ -5200,7 +5200,7 @@ window.proScheduleTomorrowNow = async () => {
     if(btn) btn.disabled = true;
     if(status) status.textContent = "Programando mañana…";
     try {
-        const res = await fetch(url, { method: "POST" });
+        const res = await fetch(url, { method: "POST", headers: panelAuthHeaders() });
         const data = await res.json().catch(() => ({}));
         if(!res.ok) throw new Error(data.error || "HTTP " + res.status);
         if(data.changed){
@@ -5222,7 +5222,7 @@ window.proScheduleTomorrowNow = async () => {
 
 function panelApiRefreshUrl(){
     const b = getPanelApiBase();
-    return b ? `${b}/api/flights/refresh?secret=${FLIGHTS_SYNC_SECRET}` : "";
+    return b ? `${b}/api/flights/refresh` : "";
 }
 
 function panelApiSyncStateUrl(){
@@ -5269,7 +5269,6 @@ window.savePanelApiUrl = () => {
     location.reload();
 };
 
-const FLIGHTS_SYNC_SECRET = "POP_sync_2026_airport";
 applyPanelApiFromQuery();
 syncPanelApiUrlUi();
 
@@ -5335,14 +5334,11 @@ async function setFlightSyncEnabled(enabled) {
         statusEl.textContent = enabled ? "Reanudando sync..." : "Pausando sync...";
     }
     try {
-        const res = await fetch(
-            panelApiSyncStateUrl() +
-                "?secret=" +
-                encodeURIComponent(FLIGHTS_SYNC_SECRET) +
-                "&enabled=" +
-                (enabled ? "true" : "false"),
-            { method: "POST" }
-        );
+        const res = await fetch(panelApiSyncStateUrl(), {
+            method: "POST",
+            headers: panelAuthHeaders(),
+            body: JSON.stringify({ enabled })
+        });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
         if (flightRefreshToastTimer) {
@@ -5530,7 +5526,7 @@ window.buscarDatosVueloTarjeta = async (index) => {
         msg.style.color = "";
     }
     try {
-        const refreshRes = await fetch(panelApiRefreshUrl(), { method: "GET" });
+        const refreshRes = await fetch(panelApiRefreshUrl(), { method: "GET", headers: panelAuthHeaders() });
         if (!refreshRes.ok) {
             throw new Error("refresh HTTP " + refreshRes.status);
         }

@@ -21,7 +21,7 @@ services:
       - key: FA_API_KEY
         sync: false
       - key: SYNC_SECRET
-        value: POP_sync_2026_airport
+        generateValue: true
       - key: PANEL_BOOTSTRAP_USER
         value: admin
       - key: PANEL_BOOTSTRAP_PASS

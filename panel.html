@@ -1279,7 +1279,10 @@ const airlinesExtraRef = ref(db, "airlinesExtra");
 
 let airlinesExtraData = {};
 let visibilityData = {};
-let selectedDate = new Date().toISOString().slice(0, 10);
+function dateTodayInPop(){
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
+}
+let selectedDate = dateTodayInPop();
 let unsubscribeFlightsByDate = null;
 
 /** Clave Firebase del anuncio en edición (no confundir con el campo `id` numérico). */
@@ -4967,9 +4970,16 @@ window.changeDateFlights = (dateStr) => {
 };
 
 window.goToTodayFlights = () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = dateTodayInPop();
     changeDateFlights(today);
 };
+
+function enableFlightAwareLiveSync(row){
+    if(!row || typeof row !== "object") return;
+    row.manual = false;
+    row.noApiSync = false;
+    delete row.apiSyncPausedAt;
+}
 
 let flightRefreshToastTimer = null;
 window.manualFlightRefresh = async () => {
@@ -5174,7 +5184,7 @@ function panelApiProScheduleUrl(targetDate){
 }
 
 function dateTomorrowInPop(){
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
+    const today = dateTodayInPop();
     const d = new Date(today + "T12:00:00");
     d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
@@ -5559,7 +5569,7 @@ window.buscarDatosVueloTarjeta = async (index) => {
             if (hp) rows[index].llegadaProgramada = hp;
             if (arr.vuelo) rows[index].vueloLlegada = arr.vuelo;
             if (arr.matricula) rows[index].matricula = String(arr.matricula).trim().toUpperCase();
-            const isFutureBoard = selectedDate > new Date().toLocaleDateString("en-CA", { timeZone: "America/Santo_Domingo" });
+            const isFutureBoard = selectedDate > dateTodayInPop();
             if (!isFutureBoard) {
                 if (arr.salidaOrigen) {
                     const so = convertirHora24(arr.salidaOrigen);
@@ -5567,12 +5577,11 @@ window.buscarDatosVueloTarjeta = async (index) => {
                 }
                 if (arr.estado) {
                     rows[index].estado = arr.estado;
-                    rows[index].manual = false;
                 }
             } else {
                 rows[index].estado = rows[index].estado || "ON-TIME";
-                rows[index].manual = false;
             }
+            enableFlightAwareLiveSync(rows[index]);
         }
         if (dep) {
             const hs = convertirHora24(dep.salida || "");
@@ -5806,9 +5815,9 @@ window.seleccionarLlegadaApi = (index, el) => {
     if (mat) arr[index].matricula = mat.trim().toUpperCase();
     if (est) {
         arr[index].estado = est;
-        arr[index].manual = false;
+        enableFlightAwareLiveSync(arr[index]);
     } else {
-        arr[index].manual = false;
+        enableFlightAwareLiveSync(arr[index]);
     }
     if (dr !== null && dr !== "") {
         const rn = Number(dr);

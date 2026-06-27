@@ -480,9 +480,14 @@ function rowHasDepartureLeg(row) {
 }
 
 /** Vuelo que aún debe recibir datos de FlightAware (en ruta / pendiente). */
+function isApiSyncPausedForRow(row) {
+  if (!row || typeof row !== "object" || row.noApiSync !== true) return false;
+  return !(row.manual === false && !row.apiSyncPausedAt);
+}
+
 function rowNeedsLiveApiSync(row, dateStr) {
   if (!row || typeof row !== "object") return false;
-  if (row.noApiSync === true) return false;
+  if (isApiSyncPausedForRow(row)) return false;
 
   const boardDate =
     dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
@@ -518,7 +523,7 @@ function rowNeedsLiveApiSync(row, dateStr) {
 /** Vuelos en tablero que aún esperan la hora de salida del origen (sin gastar API). */
 function rowWaitingOriginDeparture(row, dateStr) {
   if (!row || typeof row !== "object") return false;
-  if (row.noApiSync === true) return false;
+  if (isApiSyncPausedForRow(row)) return false;
   if (rowNeedsLiveApiSync(row, dateStr)) return false;
   const st = normalizeEstadoKey(row.estado);
   if (rowHasArrivalLeg(row) && isLandingBoardEstado(st)) return false;
@@ -537,7 +542,7 @@ function countRowsWaitingOriginDeparture(flights, dateStr) {
 
 /** Tras aterrizaje (o salida en filas solo-dep), dejar de sincronizar ese vuelo. */
 function shouldAutoPauseApiSync(row, arr, dep, patch) {
-  if (row.noApiSync === true) return false;
+  if (isApiSyncPausedForRow(row)) return false;
   const mergedEst = patch?.estado !== undefined ? patch.estado : row.estado;
   const st = normalizeEstadoKey(mergedEst);
   if (rowHasArrivalLeg(row)) {
@@ -1492,17 +1497,16 @@ async function ensureBootstrapPanelUser() {
   if (!key) return null;
   try {
     const existing = await getPanelUserRecord(key);
-    const creds = createPanelPasswordRecord(PANEL_BOOTSTRAP_PASS);
     if (existing) {
-      await savePanelUserRecord(key, {
-        ...existing,
-        username: key,
-        role: "admin",
-        salt: creds.salt,
-        hash: creds.hash,
-        updatedAt: new Date().toISOString()
-      });
-      console.log(`✓ Clave panel sincronizada: ${key}`);
+      if (existing.username !== key || existing.role !== "admin") {
+        await savePanelUserRecord(key, {
+          ...existing,
+          username: key,
+          role: "admin",
+          updatedAt: new Date().toISOString()
+        });
+      }
+      console.log(`✓ Usuario panel bootstrap existe: ${key}`);
       return key;
     }
     const keyCreated = await createPanelUser(
@@ -1682,7 +1686,7 @@ async function pauseTerminalFlightsOnBoard(dateStr, flights) {
   const changeLines = [];
 
   for (const [key, row] of Object.entries(flights)) {
-    if (!row || typeof row !== "object" || row.noApiSync === true) continue;
+    if (!row || typeof row !== "object" || isApiSyncPausedForRow(row)) continue;
     const st = normalizeEstadoKey(row.estado);
     const identLabel =
       (row.vuelo && String(row.vuelo).trim()) ||
@@ -1744,7 +1748,7 @@ async function syncPayloadToRtdb(payload) {
     for (const key of Object.keys(flights)) {
       const row = flights[key];
       if (!row || typeof row !== "object") continue;
-      if (row.noApiSync === true) continue;
+      if (isApiSyncPausedForRow(row)) continue;
       if (row.manual === true) continue;
 
       const identLabel =

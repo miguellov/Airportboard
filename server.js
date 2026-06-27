@@ -9,7 +9,23 @@ require("dotenv").config();
 const CU = require("./carrier-utils.js");
 
 const app = express();
-app.use(cors());
+app.set("trust proxy", 1);
+
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, cb) {
+      if (!origin || CORS_ORIGINS.length === 0 || CORS_ORIGINS.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error("Origen no permitido por CORS"));
+    }
+  })
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
@@ -53,21 +69,54 @@ app.post("/anuncios/toggle", (req, res) => {
 // 📂 CONFIG ARCHIVOS (ANUNCIOS)
 // =========================
 
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime"
+]);
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+function safeUploadFilename(originalName) {
+  const ext = path
+    .extname(originalName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, "");
+  const base =
+    path
+      .basename(originalName || "media", path.extname(originalName || ""))
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "media";
+  return `${Date.now()}-${crypto.randomBytes(4).toString("hex")}-${base}${ext}`;
+}
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads"),
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + file.originalname;
-    cb(null, unique);
+    cb(null, safeUploadFilename(file.originalname));
   }
 });
 
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_UPLOAD_MIME_TYPES.has(file.mimetype)) return cb(null, true);
+    return cb(new Error("Tipo de archivo no permitido"));
+  }
+});
 
 // =========================
 // 📦 BASE DE DATOS ANUNCIOS
@@ -99,7 +148,9 @@ const FLIGHT_SYNC_MS = Math.max(
 
 const POLLING_MIN_SEC = 600; // 10 min
 
-const SYNC_SECRET = process.env.SYNC_SECRET || "POP_sync_2026_airport";
+const DEFAULT_SYNC_SECRET = "POP_sync_2026_airport";
+const SYNC_SECRET = process.env.SYNC_SECRET || DEFAULT_SYNC_SECRET;
+const USING_DEFAULT_SYNC_SECRET = SYNC_SECRET === DEFAULT_SYNC_SECRET;
 
 const AERO_API_KEY =
   process.env.FA_API_KEY || process.env.API_KEY || "";
@@ -114,6 +165,14 @@ const PANEL_BOOTSTRAP_PASS = process.env.PANEL_BOOTSTRAP_PASS || "";
 /** Realtime Database (REST). Misma base que index.html / panel.html. */
 const RTDB_BASE_URL =
   "https://airport-board-ee661-default-rtdb.firebaseio.com".replace(/\/+$/, "");
+
+function publicBaseUrl(req) {
+  return (
+    process.env.PUBLIC_BASE_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    `${req.protocol}://${req.get("host")}`
+  ).replace(/\/+$/, "");
+}
 
 // =========================
 // 🌐 Ruta base
@@ -2599,11 +2658,10 @@ app.post("/anuncios/upload", upload.single("media"), (req, res) => {
   guardarAnuncios(anuncios);
 
   const mediaPath = nuevo.media;
-  const port = process.env.PORT || 4000;
   res.json({
     ok: true,
     media: mediaPath,
-    url: mediaPath ? `http://localhost:${port}${mediaPath}` : null
+    url: mediaPath ? `${publicBaseUrl(req)}${mediaPath}` : null
   });
 });
 
@@ -2633,6 +2691,23 @@ app.get("/asignaciones", (req, res) => {
 // 🌐 PUERTO PARA RENDER
 // =========================
 
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "El archivo supera el limite de 50 MB"
+        : err.message;
+    return res.status(400).json({ ok: false, error: message });
+  }
+  if (err && err.message === "Tipo de archivo no permitido") {
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+  if (err && err.message === "Origen no permitido por CORS") {
+    return res.status(403).json({ ok: false, error: err.message });
+  }
+  return next(err);
+});
+
 const PORT = process.env.PORT || 4000;
 
 /** Tablero y panel por HTTP (iframe de vista previa en panel.html). No exponer dotfiles. */
@@ -2658,6 +2733,8 @@ app.listen(PORT, () => {
   }
   if (!SYNC_SECRET) {
     console.log("⚠️ SYNC_SECRET vacío: /api/flights/refresh rechazará peticiones");
+  } else if (USING_DEFAULT_SYNC_SECRET) {
+    console.log("⚠️ SYNC_SECRET usa el valor por defecto; cambia esto en producción");
   } else {
     console.log("✓ Sync manual: GET /api/flights/refresh?secret=***");
   }

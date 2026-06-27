@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "check": "node --check server.js && node --check carrier-utils.js && node --check flight-info.js",
+    "test": "npm run check",
     "start": "node server.js"
   },
   "repository": {
